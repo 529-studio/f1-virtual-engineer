@@ -1,0 +1,12 @@
+fastf1
+fastapi
+uvicorn
+pandas
+langchain
+langgraph
+python-dotenv
+google-generativeai
+pydantic
+matplotlib
+seaborn
+requests
