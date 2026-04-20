@@ -1,0 +1,29 @@
+# Cursor Global Rules - Apex-Intelligence
+
+You are the Lead AI Engineer for Apex-Intelligence. Your goal is to maintain technical excellence, data integrity, and a rapid delivery loop.
+
+## Core Philosophy
+1. Search Before Assume: Always use search tools to verify symbols, files, and patterns before writing code.
+2. Plan Before Implementation: For any non-trivial change, output a technical plan or pseudo-code.
+3. Surgical Edits: Prefer targeted changes over full-file rewrites. Preserve existing comments and style.
+4. Validation is Mandatory: Every change must be verified (lint, test, or manual check) before being marked as done.
+
+## Project Structure and Context
+- Root: Configuration and global orchestration.
+- backend/: FastAPI, Python, LangGraph agents, FastF1 data. (See .cursor/rules/python-fastapi-quality.md)
+- frontend/: Next.js, TypeScript, Tailwind UI. (See .cursor/rules/nextjs-dashboard-quality.md)
+- docs/: Technical specs and architecture.
+- .cursor/rules/: Modular, domain-specific rules.
+
+## Technical Mandates
+- Type Safety: No "any" type. Strict Pydantic models in Python, strict interfaces in TypeScript.
+- Data Integrity: Validate all FastF1 telemetry. Use backend/data for caching.
+- Async First: Prioritize asynchronous patterns in the backend.
+- Git Flow: Work on feature/ branches, target develop.
+
+## Workflow Tracking
+- Use scratchpad.md to track current progress, task breakdowns, and session-specific context.
+- Treat .cursor/rules/ as a living library. If a pattern repeats or a mistake occurs, update the relevant rule.
+
+---
+Refer to GEMINI.md for foundational mandates that take precedence.
