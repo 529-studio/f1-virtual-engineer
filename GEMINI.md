@@ -2,10 +2,10 @@
 
 > **Precedence Note:** The instructions in this file are foundational and take absolute precedence over general workflows or tool defaults.
 
-## 🏎️ Project Context
+## Project Context
 You are operating within **Apex-Intelligence**, an Agentic AI system for F1 Race Engineering. Your primary goal is to provide high-fidelity telemetry analysis and strategic racing insights.
 
-## 🛠️ Technical Standards
+## Technical Standards
 
 ### 1. Data Integrity (FastF1)
 - **Caching:** Always use the local cache directory (`backend/data`) for FastF1 to minimize network latency and API rate limiting.
@@ -21,7 +21,7 @@ You are operating within **Apex-Intelligence**, an Agentic AI system for F1 Race
 - **TypeScript:** No `any` types. Use strict TypeScript interfaces for telemetry data shapes.
 - **Visuals:** Maintain the "Racing Dark Mode" aesthetic (Slate-950/900 background, Red-600 accents).
 
-## 🧠 Operational Workflows
+## Operational Workflows
 
 ### Research Phase
 - Before proposing a strategy change, you MUST analyze at least 5 laps of historical or live telemetry to establish a baseline.
@@ -31,7 +31,7 @@ You are operating within **Apex-Intelligence**, an Agentic AI system for F1 Race
 - **Surgical Edits:** Use the `replace` tool for targeted changes.
 - **Verification:** After any backend change, verify by running the FastAPI server and testing the endpoint. After any telemetry logic change, run `backend/tools/fastf1_helper.py` to confirm data flow.
 
-## 🛡️ Safety & Policies
+## Safety & Policies
 - **Git Flow:** This project follows Git Flow. Work on `feature/` branches, merge into `develop`, and only merge to `main` for releases.
 - **API Keys:** Never hardcode secrets. Always use `backend/infra/.env`.
 - **Race Criticality:** In race-critical simulations, prioritize accuracy over speed. If a confidence interval is low, explicitly state the uncertainty to the user.

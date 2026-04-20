@@ -16,7 +16,7 @@ The project follows a robust, production-ready agentic workflow separating busin
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 To ensure maintainability and scalability, this project uses a monorepo structure:
 
@@ -33,7 +33,7 @@ To ensure maintainability and scalability, this project uses a monorepo structur
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 * **Language:** Python 3.11+ (Backend) & TypeScript (Frontend)
 * **AI Orchestration:** LangGraph, LangChain
@@ -44,7 +44,7 @@ To ensure maintainability and scalability, this project uses a monorepo structur
 
 ---
 
-## 🧠 Core Agent Capabilities
+## Core Agent Capabilities
 
 The Virtual Engineer is equipped with strict tool-use policies and capabilities:
 
@@ -55,7 +55,7 @@ The Virtual Engineer is equipped with strict tool-use policies and capabilities:
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 The system is containerized for seamless local development, optimized for Apple Silicon (M-series) and cloud deployments.
 
@@ -85,7 +85,7 @@ The system is containerized for seamless local development, optimized for Apple 
 
 ---
 
-## 🛡️ Safety & Evaluation
+## Safety & Evaluation
 
 To guarantee reliability in race-critical scenarios, the system implements:
 * **Validation Gates:** All tool inputs are strictly validated using Pydantic schemas before execution.

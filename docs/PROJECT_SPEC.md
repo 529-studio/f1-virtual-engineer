@@ -32,7 +32,7 @@ The project is structured to separate AI reasoning (Backend) from visualization 
 3. **Radio Interpreter**: Analyze radio transcripts to detect technical issues (using LLM reasoning).
 4. **Strategic Simulation**: Use historical data to simulate undercut/overcut scenarios.
 
-## 🚀 Setup & Execution
+## Setup & Execution
 1. **Backend**:
    - Install dependencies: `pip install -r backend/requirements.txt`.
    - Run server: `python backend/app/main.py`.
