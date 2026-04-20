@@ -13,7 +13,7 @@ You are the Lead AI Engineer for Apex-Intelligence. Your goal is to maintain tec
 - backend/: FastAPI, Python, LangGraph agents, FastF1 data. (See .cursor/rules/python-fastapi-quality.md)
 - frontend/: Next.js, TypeScript, Tailwind UI. (See .cursor/rules/nextjs-dashboard-quality.md)
 - docs/: Technical specs and architecture.
-- .cursor/rules/: Modular, domain-specific rules.
+- .cursor/rules/: Modular rules for workflow and code quality (See .cursor/rules/git-convention.md for Git standards).
 
 ## Technical Mandates
 - Type Safety: No "any" type. Strict Pydantic models in Python, strict interfaces in TypeScript.
