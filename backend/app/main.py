@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from agents.race_engineer import analyze_query
 from app.schemas.telemetry import ApiError, TelemetryQueryRequest, TelemetryResponse, TelemetrySummary
 from tools.fastf1_helper import get_session_telemetry_summary
 
@@ -8,8 +9,8 @@ app = FastAPI(title="Apex-Intelligence: Virtual Race Engineer API")
 
 class QueryRequest(BaseModel):
     query: str
-    driver: str
-    session_info: dict
+    driver: str | None = None
+    session_info: dict | None = None
 
 @app.get("/")
 async def root():
@@ -17,11 +18,14 @@ async def root():
 
 @app.post("/analyze")
 async def analyze_race_data(request: QueryRequest):
-    # This will be the entry point for our LangGraph Agent
+    result = analyze_query(request.query)
     return {
         "status": "success",
-        "agent_response": f"Analyzing data for {request.driver}... (Agent logic coming soon)",
-        "query": request.query
+        "agent_response": result["response_text"],
+        "query": request.query,
+        "intent": result["intent"],
+        "telemetry_data": result["telemetry_data"],
+        "error": result["error"],
     }
 
 
