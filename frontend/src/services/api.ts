@@ -33,13 +33,15 @@ export interface AnalyzeResponse {
   error?: string | null;
 }
 
-const DEFAULT_API_BASE_URL = "http://localhost:8000";
-
 export async function analyzeTelemetry(
   payload: AnalyzeRequest,
 ): Promise<AnalyzeResponse> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL;
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!apiBaseUrl) {
+    throw new Error(
+      "NEXT_PUBLIC_API_BASE_URL is not configured. Add it to frontend/.env.local.",
+    );
+  }
   const response = await fetch(`${apiBaseUrl}/analyze`, {
     method: "POST",
     headers: {
