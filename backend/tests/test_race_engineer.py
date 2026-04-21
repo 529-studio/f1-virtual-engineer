@@ -50,6 +50,8 @@ class RaceEngineerTests(unittest.TestCase):
         self.assertIn("HAM telemetry", result["response_text"])
         self.assertIsNone(result["error"])
         self.assertFalse(result["telemetry_data"]["fallback"])
+        self.assertEqual(result["execution"]["termination_reason"], "completed")
+        self.assertEqual(result["execution"]["step_limit"], 6)
 
     @patch("agents.race_engineer.get_session_telemetry_summary")
     def test_analyze_query_uses_memory_for_follow_up_without_driver(self, mock_summary):

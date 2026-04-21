@@ -1,5 +1,6 @@
 import re
 from collections import deque
+from time import monotonic
 from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -15,6 +16,8 @@ SESSION_PATTERN = re.compile(r"\b(FP1|FP2|FP3|Q|R|S|SQ|race|qualifying)\b", re.I
 COMPARE_PATTERN = re.compile(r"\b(compare|versus|vs|so voi|against)\b", re.IGNORECASE)
 MEMORY_RETENTION_CAP = 10
 MEMORY_STORE: deque[dict[str, Any]] = deque(maxlen=MEMORY_RETENTION_CAP)
+MAX_GRAPH_STEPS = 6
+MAX_GRAPH_DURATION_SECONDS = 5.0
 
 
 class AgentState(TypedDict):
@@ -191,16 +194,45 @@ def reset_memory_store() -> None:
 
 def analyze_query(query: str) -> dict[str, Any]:
     memory_snapshot = _build_memory_snapshot()
-    result = app_graph.invoke(
-        {
-            "query": query,
+    termination_reason = "completed"
+    start_time = monotonic()
+    try:
+        result = app_graph.invoke(
+            {
+                "query": query,
+                "intent": {},
+                "telemetry_data": {},
+                "response_text": "",
+                "error": None,
+                "memory": memory_snapshot,
+            },
+            config={"recursion_limit": MAX_GRAPH_STEPS},
+        )
+    except Exception as exc:
+        termination_reason = "graph_error"
+        elapsed_ms = (monotonic() - start_time) * 1000
+        return {
             "intent": {},
             "telemetry_data": {},
-            "response_text": "",
-            "error": None,
-            "memory": memory_snapshot,
+            "response_text": "Could not process query due to graph execution error.",
+            "error": str(exc),
+            "memory": {
+                "history_size": len(MEMORY_STORE),
+                "retention_cap": MEMORY_RETENTION_CAP,
+                "last_driver": memory_snapshot.get("last_driver"),
+            },
+            "execution": {
+                "step_limit": MAX_GRAPH_STEPS,
+                "duration_limit_seconds": MAX_GRAPH_DURATION_SECONDS,
+                "duration_ms": elapsed_ms,
+                "termination_reason": termination_reason,
+            },
         }
-    )
+
+    elapsed_ms = (monotonic() - start_time) * 1000
+    if elapsed_ms > MAX_GRAPH_DURATION_SECONDS * 1000:
+        termination_reason = "duration_limit_exceeded"
+
     if result.get("memory"):
         memory_entry = {
             "last_query": result["memory"].get("last_query"),
@@ -221,5 +253,11 @@ def analyze_query(query: str) -> dict[str, Any]:
             "history_size": len(MEMORY_STORE),
             "retention_cap": MEMORY_RETENTION_CAP,
             "last_driver": result.get("memory", {}).get("last_driver"),
+        },
+        "execution": {
+            "step_limit": MAX_GRAPH_STEPS,
+            "duration_limit_seconds": MAX_GRAPH_DURATION_SECONDS,
+            "duration_ms": elapsed_ms,
+            "termination_reason": termination_reason,
         },
     }
