@@ -1,4 +1,5 @@
 import re
+from collections import deque
 from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -11,6 +12,8 @@ DEFAULT_YEAR = 2023
 DRIVER_PATTERN = re.compile(r"\b(HAM|VER|NOR|LEC|SAI|RUS|PER|ALO|PIA|OCO|GAS|TSU|ALB|STR)\b", re.IGNORECASE)
 YEAR_PATTERN = re.compile(r"\b(20\d{2})\b")
 SESSION_PATTERN = re.compile(r"\b(FP1|FP2|FP3|Q|R|S|SQ|race|qualifying)\b", re.IGNORECASE)
+MEMORY_RETENTION_CAP = 10
+MEMORY_STORE: deque[dict[str, Any]] = deque(maxlen=MEMORY_RETENTION_CAP)
 
 
 class AgentState(TypedDict):
@@ -19,6 +22,7 @@ class AgentState(TypedDict):
     telemetry_data: dict[str, Any]
     response_text: str
     error: str | None
+    memory: dict[str, Any]
 
 
 def parse_telemetry_intent(query: str) -> dict[str, Any]:
@@ -53,6 +57,18 @@ def parse_telemetry_intent(query: str) -> dict[str, Any]:
 
 def parse_intent_node(state: AgentState) -> AgentState:
     intent = parse_telemetry_intent(state["query"])
+    memory = state.get("memory") or {}
+    # If user omits driver in follow-up question, try last known context.
+    if intent["needs_clarification"] and memory.get("last_driver"):
+        intent["driver"] = memory["last_driver"]
+        intent["needs_clarification"] = False
+        intent["clarification_message"] = None
+        if not YEAR_PATTERN.search(state["query"]) and memory.get("last_year"):
+            intent["year"] = memory["last_year"]
+        if not SESSION_PATTERN.search(state["query"]) and memory.get("last_session_type"):
+            intent["session_type"] = memory["last_session_type"]
+        if "JAPAN" not in state["query"].upper() and memory.get("last_event"):
+            intent["event"] = memory["last_event"]
     return {**state, "intent": intent}
 
 
@@ -67,7 +83,18 @@ def run_telemetry_node(state: AgentState) -> AgentState:
         session_type=intent["session_type"],
         driver=intent["driver"],
     )
-    return {**state, "telemetry_data": telemetry}
+    memory = state.get("memory") or {}
+    memory.update(
+        {
+            "last_query": state["query"],
+            "last_driver": intent["driver"],
+            "last_event": intent["event"],
+            "last_year": intent["year"],
+            "last_session_type": intent["session_type"],
+            "last_telemetry_data": telemetry,
+        }
+    )
+    return {**state, "telemetry_data": telemetry, "memory": memory}
 
 
 def format_response_node(state: AgentState) -> AgentState:
@@ -101,7 +128,28 @@ workflow.add_edge("format_response", END)
 app_graph = workflow.compile()
 
 
+def _build_memory_snapshot() -> dict[str, Any]:
+    if not MEMORY_STORE:
+        return {"history": []}
+    history = list(MEMORY_STORE)
+    latest = history[-1]
+    return {
+        "history": history,
+        "last_query": latest.get("last_query"),
+        "last_driver": latest.get("last_driver"),
+        "last_event": latest.get("last_event"),
+        "last_year": latest.get("last_year"),
+        "last_session_type": latest.get("last_session_type"),
+        "last_telemetry_data": latest.get("last_telemetry_data"),
+    }
+
+
+def reset_memory_store() -> None:
+    MEMORY_STORE.clear()
+
+
 def analyze_query(query: str) -> dict[str, Any]:
+    memory_snapshot = _build_memory_snapshot()
     result = app_graph.invoke(
         {
             "query": query,
@@ -109,11 +157,28 @@ def analyze_query(query: str) -> dict[str, Any]:
             "telemetry_data": {},
             "response_text": "",
             "error": None,
+            "memory": memory_snapshot,
         }
     )
+    if result.get("memory"):
+        memory_entry = {
+            "last_query": result["memory"].get("last_query"),
+            "last_driver": result["memory"].get("last_driver"),
+            "last_event": result["memory"].get("last_event"),
+            "last_year": result["memory"].get("last_year"),
+            "last_session_type": result["memory"].get("last_session_type"),
+            "last_telemetry_data": result["memory"].get("last_telemetry_data"),
+        }
+        MEMORY_STORE.append(memory_entry)
+
     return {
         "intent": result["intent"],
         "telemetry_data": result.get("telemetry_data", {}),
         "response_text": result["response_text"],
         "error": result.get("error"),
+        "memory": {
+            "history_size": len(MEMORY_STORE),
+            "retention_cap": MEMORY_RETENTION_CAP,
+            "last_driver": result.get("memory", {}).get("last_driver"),
+        },
     }

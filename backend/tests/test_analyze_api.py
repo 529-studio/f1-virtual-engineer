@@ -17,6 +17,7 @@ class AnalyzeApiTests(unittest.TestCase):
             "telemetry_data": {"fallback": False},
             "response_text": "HAM telemetry (Japanese Grand Prix 2023 R): speed avg 255.0 km/h.",
             "error": None,
+            "memory": {"history_size": 1, "retention_cap": 10, "last_driver": "HAM"},
         }
         response = self.client.post(
             "/analyze",
@@ -27,6 +28,7 @@ class AnalyzeApiTests(unittest.TestCase):
         self.assertEqual(payload["status"], "success")
         self.assertIn("agent_response", payload)
         self.assertEqual(payload["intent"]["driver"], "HAM")
+        self.assertEqual(payload["memory"]["last_driver"], "HAM")
 
 
 if __name__ == "__main__":
