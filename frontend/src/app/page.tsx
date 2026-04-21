@@ -1,4 +1,6 @@
-import React from 'react';
+import React from "react";
+
+import { TelemetryQueryPanel } from "@/components/TelemetryQueryPanel";
 
 export default function Home() {
   return (
@@ -32,20 +34,7 @@ export default function Home() {
 
         {/* Dashboard Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Telemetry Card */}
-          <div className="md:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-red-900/50 transition-colors">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-slate-500">Live Telemetry</h2>
-              <select className="bg-slate-800 border-none text-xs rounded px-2 py-1 focus:ring-1 ring-red-600 outline-none">
-                <option>Lewis Hamilton (HAM)</option>
-                <option>Max Verstappen (VER)</option>
-                <option>Lando Norris (NOR)</option>
-              </select>
-            </div>
-            <div className="h-64 bg-slate-950/50 rounded flex items-center justify-center border border-dashed border-slate-800">
-              <p className="text-slate-600 font-mono text-sm uppercase">Telemetry Visualization Placeholder</p>
-            </div>
-          </div>
+          <TelemetryQueryPanel />
 
           {/* AI Strategy Card */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-red-900/50 transition-colors">
