@@ -1,6 +1,6 @@
 import re
 from collections import deque
-from time import monotonic
+from time import monotonic, sleep
 from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -18,6 +18,9 @@ MEMORY_RETENTION_CAP = 10
 MEMORY_STORE: deque[dict[str, Any]] = deque(maxlen=MEMORY_RETENTION_CAP)
 MAX_GRAPH_STEPS = 6
 MAX_GRAPH_DURATION_SECONDS = 5.0
+MAX_TOOL_RETRIES = 2
+RETRY_BACKOFF_SECONDS = 0.1
+RETRYABLE_ERROR_HINTS = ("timeout", "timed out", "temporarily unavailable", "connection", "rate limit")
 
 
 class AgentState(TypedDict):
@@ -27,6 +30,8 @@ class AgentState(TypedDict):
     response_text: str
     error: str | None
     memory: dict[str, Any]
+    retry_count: int
+    retry_metadata: dict[str, Any]
 
 
 def parse_telemetry_intent(query: str) -> dict[str, Any]:
@@ -119,12 +124,23 @@ def run_telemetry_node(state: AgentState) -> AgentState:
     if intent["needs_clarification"]:
         return {**state, "error": intent["clarification_message"]}
 
-    telemetry = get_session_telemetry_summary(
+    telemetry, retry_count, retryable_exhausted = _call_with_retry(
         year=intent["year"],
         event=intent["event"],
         session_type=intent["session_type"],
         driver=intent["driver"],
     )
+    if retryable_exhausted:
+        return {
+            **state,
+            "telemetry_data": telemetry,
+            "retry_count": retry_count,
+            "retry_metadata": {
+                "max_retries": MAX_TOOL_RETRIES,
+                "retry_backoff_seconds": RETRY_BACKOFF_SECONDS,
+                "retryable_exhausted": True,
+            },
+        }
     memory = state.get("memory") or {}
     memory.update(
         {
@@ -136,7 +152,17 @@ def run_telemetry_node(state: AgentState) -> AgentState:
             "last_telemetry_data": telemetry,
         }
     )
-    return {**state, "telemetry_data": telemetry, "memory": memory}
+    return {
+        **state,
+        "telemetry_data": telemetry,
+        "memory": memory,
+        "retry_count": retry_count,
+        "retry_metadata": {
+            "max_retries": MAX_TOOL_RETRIES,
+            "retry_backoff_seconds": RETRY_BACKOFF_SECONDS,
+            "retryable_exhausted": False,
+        },
+    }
 
 
 def format_response_node(state: AgentState) -> AgentState:
@@ -192,6 +218,38 @@ def reset_memory_store() -> None:
     MEMORY_STORE.clear()
 
 
+def _is_retryable_fallback_reason(reason: str | None) -> bool:
+    if not reason:
+        return False
+    normalized = reason.lower()
+    return any(hint in normalized for hint in RETRYABLE_ERROR_HINTS)
+
+
+def _call_with_retry(
+    *,
+    year: int,
+    event: str,
+    session_type: str,
+    driver: str,
+) -> tuple[dict[str, Any], int, bool]:
+    retry_count = 0
+    while True:
+        telemetry = get_session_telemetry_summary(
+            year=year,
+            event=event,
+            session_type=session_type,
+            driver=driver,
+        )
+        fallback_reason = telemetry.get("fallback_reason")
+        is_retryable = telemetry.get("fallback") and _is_retryable_fallback_reason(fallback_reason)
+        if not is_retryable:
+            return telemetry, retry_count, False
+        if retry_count >= MAX_TOOL_RETRIES:
+            return telemetry, retry_count, True
+        retry_count += 1
+        sleep(RETRY_BACKOFF_SECONDS)
+
+
 def analyze_query(query: str) -> dict[str, Any]:
     memory_snapshot = _build_memory_snapshot()
     termination_reason = "completed"
@@ -205,6 +263,8 @@ def analyze_query(query: str) -> dict[str, Any]:
                 "response_text": "",
                 "error": None,
                 "memory": memory_snapshot,
+                "retry_count": 0,
+                "retry_metadata": {},
             },
             config={"recursion_limit": MAX_GRAPH_STEPS},
         )
@@ -226,6 +286,11 @@ def analyze_query(query: str) -> dict[str, Any]:
                 "duration_limit_seconds": MAX_GRAPH_DURATION_SECONDS,
                 "duration_ms": elapsed_ms,
                 "termination_reason": termination_reason,
+            },
+            "retry": {
+                "count": 0,
+                "max_retries": MAX_TOOL_RETRIES,
+                "retryable_exhausted": False,
             },
         }
 
@@ -259,5 +324,11 @@ def analyze_query(query: str) -> dict[str, Any]:
             "duration_limit_seconds": MAX_GRAPH_DURATION_SECONDS,
             "duration_ms": elapsed_ms,
             "termination_reason": termination_reason,
+        },
+        "retry": {
+            "count": result.get("retry_count", 0),
+            "max_retries": result.get("retry_metadata", {}).get("max_retries", MAX_TOOL_RETRIES),
+            "retry_backoff_seconds": result.get("retry_metadata", {}).get("retry_backoff_seconds", RETRY_BACKOFF_SECONDS),
+            "retryable_exhausted": result.get("retry_metadata", {}).get("retryable_exhausted", False),
         },
     }
