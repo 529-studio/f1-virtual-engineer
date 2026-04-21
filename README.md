@@ -73,8 +73,9 @@ The system is containerized for seamless local development, optimized for Apple 
     ```
 
 2.  **Environment Setup:**
-    * Copy the example environment file: `cp .env.example .env`
-    * Add your required API keys (e.g., Gemini API, Supabase).
+    * Backend: `cp backend/.env.example backend/.env`
+    * Frontend: `cp frontend/.env.local.example frontend/.env.local`
+    * Add your required API keys (e.g., Gemini API, Supabase) and backend URL for frontend API calls.
 
 3.  **Run with Docker:**
     ```bash
