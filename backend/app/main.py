@@ -26,6 +26,7 @@ async def analyze_race_data(request: QueryRequest):
         "intent": result["intent"],
         "telemetry_data": result["telemetry_data"],
         "error": result["error"],
+        "memory": result.get("memory"),
     }
 
 
