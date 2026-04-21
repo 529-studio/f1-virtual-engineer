@@ -28,6 +28,7 @@ async def analyze_race_data(request: QueryRequest):
         "error": result["error"],
         "memory": result.get("memory"),
         "execution": result.get("execution"),
+        "retry": result.get("retry"),
     }
 
 

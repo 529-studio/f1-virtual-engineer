@@ -19,6 +19,7 @@ class AnalyzeApiTests(unittest.TestCase):
             "error": None,
             "memory": {"history_size": 1, "retention_cap": 10, "last_driver": "HAM"},
             "execution": {"termination_reason": "completed", "step_limit": 6, "duration_ms": 10.0},
+            "retry": {"count": 1, "max_retries": 2, "retryable_exhausted": False},
         }
         response = self.client.post(
             "/analyze",
@@ -31,6 +32,7 @@ class AnalyzeApiTests(unittest.TestCase):
         self.assertEqual(payload["intent"]["driver"], "HAM")
         self.assertEqual(payload["memory"]["last_driver"], "HAM")
         self.assertEqual(payload["execution"]["termination_reason"], "completed")
+        self.assertEqual(payload["retry"]["count"], 1)
 
 
 if __name__ == "__main__":

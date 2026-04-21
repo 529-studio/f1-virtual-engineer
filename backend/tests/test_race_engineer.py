@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from agents.race_engineer import (
     MEMORY_RETENTION_CAP,
+    MAX_TOOL_RETRIES,
     analyze_query,
     parse_telemetry_intent,
     reset_memory_store,
@@ -52,6 +53,7 @@ class RaceEngineerTests(unittest.TestCase):
         self.assertFalse(result["telemetry_data"]["fallback"])
         self.assertEqual(result["execution"]["termination_reason"], "completed")
         self.assertEqual(result["execution"]["step_limit"], 6)
+        self.assertEqual(result["retry"]["count"], 0)
 
     @patch("agents.race_engineer.get_session_telemetry_summary")
     def test_analyze_query_uses_memory_for_follow_up_without_driver(self, mock_summary):
@@ -119,6 +121,60 @@ class RaceEngineerTests(unittest.TestCase):
         self.assertIsNotNone(last)
         self.assertEqual(last["memory"]["history_size"], MEMORY_RETENTION_CAP)
         self.assertEqual(last["memory"]["retention_cap"], MEMORY_RETENTION_CAP)
+
+    @patch("agents.race_engineer.get_session_telemetry_summary")
+    def test_retry_policy_recovers_from_transient_fallback(self, mock_summary):
+        mock_summary.side_effect = [
+            {
+                "driver": "HAM",
+                "year": 2023,
+                "event": "Japanese Grand Prix",
+                "session_type": "R",
+                "sample_points": 0,
+                "speed": {"min": 0.0, "max": 0.0, "avg": 0.0, "unit": "km/h"},
+                "gear": {"min": 0.0, "max": 0.0, "avg": 0.0, "unit": "gear"},
+                "rpm": {"min": 0.0, "max": 0.0, "avg": 0.0, "unit": "rpm"},
+                "source": "fastf1",
+                "fallback": True,
+                "fallback_reason": "Connection timeout to provider",
+            },
+            {
+                "driver": "HAM",
+                "year": 2023,
+                "event": "Japanese Grand Prix",
+                "session_type": "R",
+                "sample_points": 3,
+                "speed": {"min": 250.0, "max": 260.0, "avg": 255.0, "unit": "km/h"},
+                "gear": {"min": 7.0, "max": 8.0, "avg": 7.3, "unit": "gear"},
+                "rpm": {"min": 12000.0, "max": 12500.0, "avg": 12300.0, "unit": "rpm"},
+                "source": "fastf1",
+                "fallback": False,
+                "fallback_reason": None,
+            },
+        ]
+        result = analyze_query("ham japan 2023 race telemetry")
+        self.assertEqual(mock_summary.call_count, 2)
+        self.assertEqual(result["retry"]["count"], 1)
+        self.assertFalse(result["retry"]["retryable_exhausted"])
+
+    @patch("agents.race_engineer.get_session_telemetry_summary")
+    def test_retry_policy_stops_after_max_attempts(self, mock_summary):
+        mock_summary.return_value = {
+            "driver": "HAM",
+            "year": 2023,
+            "event": "Japanese Grand Prix",
+            "session_type": "R",
+            "sample_points": 0,
+            "speed": {"min": 0.0, "max": 0.0, "avg": 0.0, "unit": "km/h"},
+            "gear": {"min": 0.0, "max": 0.0, "avg": 0.0, "unit": "gear"},
+            "rpm": {"min": 0.0, "max": 0.0, "avg": 0.0, "unit": "rpm"},
+            "source": "fastf1",
+            "fallback": True,
+            "fallback_reason": "Connection timeout to provider",
+        }
+        result = analyze_query("ham japan 2023 race telemetry")
+        self.assertEqual(mock_summary.call_count, MAX_TOOL_RETRIES + 1)
+        self.assertTrue(result["retry"]["retryable_exhausted"])
 
 
 if __name__ == "__main__":
