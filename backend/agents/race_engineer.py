@@ -12,6 +12,7 @@ DEFAULT_YEAR = 2023
 DRIVER_PATTERN = re.compile(r"\b(HAM|VER|NOR|LEC|SAI|RUS|PER|ALO|PIA|OCO|GAS|TSU|ALB|STR)\b", re.IGNORECASE)
 YEAR_PATTERN = re.compile(r"\b(20\d{2})\b")
 SESSION_PATTERN = re.compile(r"\b(FP1|FP2|FP3|Q|R|S|SQ|race|qualifying)\b", re.IGNORECASE)
+COMPARE_PATTERN = re.compile(r"\b(compare|versus|vs|so voi|against)\b", re.IGNORECASE)
 MEMORY_RETENTION_CAP = 10
 MEMORY_STORE: deque[dict[str, Any]] = deque(maxlen=MEMORY_RETENTION_CAP)
 
@@ -27,13 +28,20 @@ class AgentState(TypedDict):
 
 def parse_telemetry_intent(query: str) -> dict[str, Any]:
     normalized = query.upper()
-    driver_match = DRIVER_PATTERN.search(normalized)
+    driver_matches = [match.upper() for match in DRIVER_PATTERN.findall(normalized)]
+    unique_drivers: list[str] = []
+    for code in driver_matches:
+        if code not in unique_drivers:
+            unique_drivers.append(code)
+
+    driver_match = unique_drivers[0] if unique_drivers else None
     year_match = YEAR_PATTERN.search(normalized)
     session_match = SESSION_PATTERN.search(query)
 
     intent = {
         "intent": "telemetry_lookup",
-        "driver": driver_match.group(1).upper() if driver_match else None,
+        "driver": driver_match,
+        "driver_candidates": unique_drivers,
         "year": int(year_match.group(1)) if year_match else DEFAULT_YEAR,
         "event": DEFAULT_EVENT,
         "session_type": DEFAULT_SESSION_TYPE,
@@ -48,7 +56,12 @@ def parse_telemetry_intent(query: str) -> dict[str, Any]:
     if "JAPAN" in normalized or "NHAT" in normalized:
         intent["event"] = "Japanese Grand Prix"
 
-    if not intent["driver"]:
+    if len(unique_drivers) > 1:
+        intent["needs_clarification"] = True
+        intent["clarification_message"] = (
+            "Multiple driver codes detected. Please specify exactly one driver for this query."
+        )
+    elif not intent["driver"]:
         intent["needs_clarification"] = True
         intent["clarification_message"] = "Please provide a 3-letter driver code (for example: HAM, VER, NOR)."
 
@@ -57,18 +70,44 @@ def parse_telemetry_intent(query: str) -> dict[str, Any]:
 
 def parse_intent_node(state: AgentState) -> AgentState:
     intent = parse_telemetry_intent(state["query"])
+    return {**state, "intent": intent}
+
+
+def resolve_followup_node(state: AgentState) -> AgentState:
+    intent = {**state["intent"]}
     memory = state.get("memory") or {}
-    # If user omits driver in follow-up question, try last known context.
-    if intent["needs_clarification"] and memory.get("last_driver"):
+    query = state["query"]
+
+    if len(intent.get("driver_candidates", [])) > 1:
+        intent["needs_clarification"] = True
+        intent["clarification_message"] = (
+            "Multiple driver codes detected. Please specify exactly one driver for this query."
+        )
+        return {**state, "intent": intent}
+
+    if not intent.get("driver") and COMPARE_PATTERN.search(query):
+        intent["needs_clarification"] = True
+        intent["clarification_message"] = (
+            "Comparison query detected but target driver is missing. Please provide one driver code."
+        )
+        return {**state, "intent": intent}
+
+    if not intent.get("driver") and memory.get("last_driver"):
         intent["driver"] = memory["last_driver"]
         intent["needs_clarification"] = False
         intent["clarification_message"] = None
-        if not YEAR_PATTERN.search(state["query"]) and memory.get("last_year"):
-            intent["year"] = memory["last_year"]
-        if not SESSION_PATTERN.search(state["query"]) and memory.get("last_session_type"):
-            intent["session_type"] = memory["last_session_type"]
-        if "JAPAN" not in state["query"].upper() and memory.get("last_event"):
-            intent["event"] = memory["last_event"]
+
+    if not YEAR_PATTERN.search(query) and memory.get("last_year"):
+        intent["year"] = memory["last_year"]
+    if not SESSION_PATTERN.search(query) and memory.get("last_session_type"):
+        intent["session_type"] = memory["last_session_type"]
+    if "JAPAN" not in query.upper() and memory.get("last_event"):
+        intent["event"] = memory["last_event"]
+
+    if not intent.get("driver"):
+        intent["needs_clarification"] = True
+        intent["clarification_message"] = "Please provide a 3-letter driver code (for example: HAM, VER, NOR)."
+
     return {**state, "intent": intent}
 
 
@@ -119,10 +158,12 @@ def format_response_node(state: AgentState) -> AgentState:
 
 workflow = StateGraph(AgentState)
 workflow.add_node("parse_intent", parse_intent_node)
+workflow.add_node("resolve_followup", resolve_followup_node)
 workflow.add_node("run_telemetry", run_telemetry_node)
 workflow.add_node("format_response", format_response_node)
 workflow.set_entry_point("parse_intent")
-workflow.add_edge("parse_intent", "run_telemetry")
+workflow.add_edge("parse_intent", "resolve_followup")
+workflow.add_edge("resolve_followup", "run_telemetry")
 workflow.add_edge("run_telemetry", "format_response")
 workflow.add_edge("format_response", END)
 app_graph = workflow.compile()

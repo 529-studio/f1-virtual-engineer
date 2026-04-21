@@ -25,6 +25,11 @@ class RaceEngineerTests(unittest.TestCase):
         self.assertEqual(intent["year"], 2023)
         self.assertEqual(intent["session_type"], "R")
 
+    def test_parse_telemetry_intent_asks_clarification_for_multiple_drivers(self):
+        intent = parse_telemetry_intent("compare HAM vs VER in japan 2023")
+        self.assertTrue(intent["needs_clarification"])
+        self.assertIn("Multiple driver codes detected", intent["clarification_message"])
+
     @patch("agents.race_engineer.get_session_telemetry_summary")
     def test_analyze_query_returns_formatted_telemetry_text(self, mock_summary):
         mock_summary.return_value = {
@@ -68,6 +73,27 @@ class RaceEngineerTests(unittest.TestCase):
         self.assertEqual(second["intent"]["driver"], "HAM")
         self.assertIsNone(second["error"])
         self.assertGreaterEqual(second["memory"]["history_size"], 2)
+
+    @patch("agents.race_engineer.get_session_telemetry_summary")
+    def test_follow_up_comparison_without_driver_requires_clarification(self, mock_summary):
+        mock_summary.return_value = {
+            "driver": "HAM",
+            "year": 2023,
+            "event": "Japanese Grand Prix",
+            "session_type": "R",
+            "sample_points": 3,
+            "speed": {"min": 250.0, "max": 260.0, "avg": 255.0, "unit": "km/h"},
+            "gear": {"min": 7.0, "max": 8.0, "avg": 7.3, "unit": "gear"},
+            "rpm": {"min": 12000.0, "max": 12500.0, "avg": 12300.0, "unit": "rpm"},
+            "source": "fastf1",
+            "fallback": False,
+            "fallback_reason": None,
+        }
+        analyze_query("ham japan 2023 race telemetry")
+        follow_up = analyze_query("compare with him")
+
+        self.assertIsNotNone(follow_up["error"])
+        self.assertIn("Comparison query detected", follow_up["error"])
 
     @patch("agents.race_engineer.get_session_telemetry_summary")
     def test_memory_store_respects_retention_cap(self, mock_summary):
