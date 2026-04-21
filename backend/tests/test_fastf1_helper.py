@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
-from tools.fastf1_helper import get_session_telemetry_summary
+from tools.fastf1_helper import extract_tyre_wear_features, get_session_telemetry_summary
 
 
 class FastF1HelperTests(unittest.TestCase):
@@ -51,6 +51,50 @@ class FastF1HelperTests(unittest.TestCase):
         self.assertTrue(result["fallback"])
         self.assertEqual(result["sample_points"], 0)
         self.assertEqual(result["speed"]["avg"], 0.0)
+
+    @patch("tools.fastf1_helper.fastf1.get_session")
+    def test_extract_tyre_wear_features_success(self, mock_get_session):
+        laps_df = pd.DataFrame(
+            {
+                "LapTime": pd.to_timedelta([90.0, 90.4, 90.9], unit="s"),
+                "Stint": [1, 1, 2],
+            }
+        )
+        weather_df = pd.DataFrame({"TrackTemp": [32.0, 33.0, 35.0]})
+
+        mock_session = MagicMock()
+        mock_session.laps.pick_driver.return_value = laps_df
+        mock_session.weather_data = weather_df
+        mock_get_session.return_value = mock_session
+
+        result = extract_tyre_wear_features(2023, "Japanese Grand Prix", "R", "HAM")
+
+        self.assertFalse(result["fallback"])
+        self.assertEqual(result["features"]["lap_count"], 3)
+        self.assertEqual(result["features"]["stint_count"], 2)
+        self.assertFalse(result["features"]["temperature_missing"])
+        self.assertIsNotNone(result["features"]["avg_track_temp_c"])
+
+    @patch("tools.fastf1_helper.fastf1.get_session")
+    def test_extract_tyre_wear_features_marks_missing_temperature(self, mock_get_session):
+        laps_df = pd.DataFrame(
+            {
+                "LapTime": pd.to_timedelta([90.0, 90.2], unit="s"),
+                "Stint": [1, 1],
+            }
+        )
+        weather_df = pd.DataFrame({"AirTemp": [24.0, 24.5]})
+
+        mock_session = MagicMock()
+        mock_session.laps.pick_driver.return_value = laps_df
+        mock_session.weather_data = weather_df
+        mock_get_session.return_value = mock_session
+
+        result = extract_tyre_wear_features(2023, "Japanese Grand Prix", "R", "HAM")
+
+        self.assertFalse(result["fallback"])
+        self.assertTrue(result["features"]["temperature_missing"])
+        self.assertIsNone(result["features"]["avg_track_temp_c"])
 
 
 if __name__ == "__main__":

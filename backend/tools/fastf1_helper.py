@@ -106,6 +106,106 @@ def get_session_telemetry_summary(
             "fallback_reason": str(exc),
         }
 
+
+def extract_tyre_wear_features(
+    year: int,
+    event: str,
+    session_type: str,
+    driver: str,
+) -> dict[str, Any]:
+    """
+    Derive tyre-wear features used for downstream prediction.
+    Features include lap-time decay, stint progression, and temperature trend flags.
+    """
+    driver = driver.upper()
+    try:
+        session = fastf1.get_session(year, event, session_type)
+        session.load()
+        laps = session.laps.pick_driver(driver)
+        if laps.empty:
+            return {
+                "driver": driver,
+                "year": year,
+                "event": event,
+                "session_type": session_type,
+                "fallback": True,
+                "fallback_reason": "No laps found for requested driver/session.",
+                "features": {
+                    "lap_count": 0,
+                    "stint_count": 0,
+                    "lap_time_decay_seconds_per_lap": 0.0,
+                    "stint_progress_ratio": 0.0,
+                    "avg_track_temp_c": None,
+                    "track_temp_trend_c_per_lap": None,
+                    "temperature_missing": True,
+                },
+            }
+
+        lap_seconds = laps["LapTime"].dt.total_seconds().dropna().reset_index(drop=True)
+        if len(lap_seconds) <= 1:
+            lap_time_decay = 0.0
+        else:
+            lap_time_decay = float((lap_seconds.iloc[-1] - lap_seconds.iloc[0]) / (len(lap_seconds) - 1))
+
+        stint_series = laps["Stint"].dropna()
+        stint_count = int(stint_series.nunique()) if not stint_series.empty else 0
+        if stint_count > 0 and not stint_series.empty:
+            current_stint = int(stint_series.iloc[-1])
+            laps_in_current = laps[laps["Stint"] == current_stint]
+            stint_progress_ratio = float(len(laps_in_current) / len(laps))
+        else:
+            stint_progress_ratio = 0.0
+
+        weather = session.weather_data if hasattr(session, "weather_data") else None
+        avg_track_temp = None
+        temp_trend = None
+        temperature_missing = True
+        if weather is not None and not weather.empty and "TrackTemp" in weather.columns:
+            track_temp = weather["TrackTemp"].dropna().reset_index(drop=True)
+            if not track_temp.empty:
+                avg_track_temp = float(track_temp.mean())
+                if len(track_temp) > 1:
+                    temp_trend = float((track_temp.iloc[-1] - track_temp.iloc[0]) / (len(track_temp) - 1))
+                else:
+                    temp_trend = 0.0
+                temperature_missing = False
+
+        return {
+            "driver": driver,
+            "year": year,
+            "event": event,
+            "session_type": session_type,
+            "fallback": False,
+            "fallback_reason": None,
+            "features": {
+                "lap_count": int(len(laps)),
+                "stint_count": stint_count,
+                "lap_time_decay_seconds_per_lap": lap_time_decay,
+                "stint_progress_ratio": stint_progress_ratio,
+                "avg_track_temp_c": avg_track_temp,
+                "track_temp_trend_c_per_lap": temp_trend,
+                "temperature_missing": temperature_missing,
+            },
+        }
+    except Exception as exc:
+        return {
+            "driver": driver,
+            "year": year,
+            "event": event,
+            "session_type": session_type,
+            "fallback": True,
+            "fallback_reason": str(exc),
+            "features": {
+                "lap_count": 0,
+                "stint_count": 0,
+                "lap_time_decay_seconds_per_lap": 0.0,
+                "stint_progress_ratio": 0.0,
+                "avg_track_temp_c": None,
+                "track_temp_trend_c_per_lap": None,
+                "temperature_missing": True,
+            },
+        }
+
 if __name__ == "__main__":
     # Test script: Fetch Hamilton's telemetry from 2023 Japan GP
     print("Fetching Lewis Hamilton's telemetry from 2023 Japanese GP...")
