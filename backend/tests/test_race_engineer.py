@@ -6,6 +6,7 @@ from agents.race_engineer import (
     MAX_TOOL_RETRIES,
     MEMORY_STORE,
     analyze_query,
+    parse_query_intent,
     parse_telemetry_intent,
     reset_memory_store,
 )
@@ -275,6 +276,61 @@ class RaceEngineerTests(unittest.TestCase):
         result = analyze_query("ham japan 2023 race telemetry")
         self.assertEqual(mock_summary.call_count, MAX_TOOL_RETRIES + 1)
         self.assertTrue(result["retry"]["retryable_exhausted"])
+
+    def test_parse_query_intent_detects_strategy(self):
+        intent = parse_query_intent("Should HAM pit soon in Japanese GP 2023 race?")
+        self.assertEqual(intent["intent_type"], "strategy")
+        self.assertEqual(intent["driver"], "HAM")
+
+    @patch("agents.race_engineer.strategy_analyzer")
+    def test_analyze_query_returns_strategy_payload(self, mock_strategy):
+        mock_strategy.return_value = {
+            "driver": "HAM",
+            "year": 2023,
+            "event": "Japanese Grand Prix",
+            "session_type": "R",
+            "fallback": False,
+            "fallback_reason": None,
+            "strategy": {
+                "recommended_pit_window_laps": [8, 14],
+                "undercut_risk": "medium",
+                "overcut_risk": "low",
+                "confidence_band": "medium",
+                "assumptions": ["Current gap to rival considered: 1.2s."],
+                "rationale": ["Predicted degradation rate: 0.310s/lap."],
+            },
+        }
+        result = analyze_query("Should HAM pit soon in Japanese GP 2023 race?")
+
+        self.assertEqual(result["intent"]["intent_type"], "strategy")
+        self.assertIsNotNone(result["strategy_data"])
+        self.assertEqual(result["strategy_data"]["confidence_band"], "medium")
+        self.assertIn("Baseline strategy recommendation", result["response_text"])
+
+    @patch("agents.race_engineer.strategy_analyzer")
+    def test_strategy_follow_up_uses_memory_context(self, mock_strategy):
+        mock_strategy.return_value = {
+            "driver": "HAM",
+            "year": 2023,
+            "event": "Japanese Grand Prix",
+            "session_type": "R",
+            "fallback": False,
+            "fallback_reason": None,
+            "strategy": {
+                "recommended_pit_window_laps": [8, 14],
+                "undercut_risk": "medium",
+                "overcut_risk": "low",
+                "confidence_band": "medium",
+                "assumptions": ["Current gap to rival considered: 1.2s."],
+                "rationale": ["Predicted degradation rate: 0.310s/lap."],
+            },
+        }
+        analyze_query("ham japan 2023 race telemetry")
+        follow_up = analyze_query("Should he pit soon?")
+
+        self.assertEqual(follow_up["intent"]["driver"], "HAM")
+        self.assertEqual(follow_up["intent"]["intent_type"], "strategy")
+        self.assertIsNotNone(follow_up["strategy_data"])
 
 
 if __name__ == "__main__":

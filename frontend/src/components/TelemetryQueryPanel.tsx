@@ -2,7 +2,7 @@
 
 import { FormEvent, ReactNode, useMemo, useState } from "react";
 
-import { analyzeTelemetry, AnalyzeResponse } from "@/services/api";
+import { analyzeTelemetry, AnalyzeResponse, StrategyData } from "@/services/api";
 
 const DRIVER_OPTIONS = [
   { code: "HAM", label: "Lewis Hamilton" },
@@ -31,7 +31,7 @@ interface TelemetryQueryPanelProps {
 export function TelemetryQueryPanel({
   variant = "preview",
 }: TelemetryQueryPanelProps) {
-  const [query, setQuery] = useState("Show HAM speed at Japanese GP 2023 race");
+  const [query, setQuery] = useState("Should HAM pit soon in Japanese GP 2023 race?");
   const [driver, setDriver] = useState("HAM");
   const [eventName, setEventName] = useState("Japanese Grand Prix");
   const [year, setYear] = useState(2023);
@@ -64,22 +64,26 @@ export function TelemetryQueryPanel({
     sessionType;
 
   const strategySignals = useMemo(() => {
+    const strategy = result?.strategy_data;
     const speedAvg = result?.telemetry_data?.speed?.avg;
     const gearAvg = result?.telemetry_data?.gear?.avg;
-    const fallback = result?.telemetry_data?.fallback;
+    const fallback = strategy?.fallback ?? result?.telemetry_data?.fallback;
     const samplePoints = result?.telemetry_data?.sample_points;
 
     const paceProfile =
       speedAvg == null
-        ? "Awaiting telemetry"
+        ? strategy?.confidence_band
+          ? `Strategy-led / ${strategy.confidence_band} confidence`
+          : "Awaiting telemetry"
         : speedAvg >= 235
           ? "High-speed stable"
           : speedAvg >= 210
             ? "Balanced race pace"
             : "Traffic-sensitive pace";
 
-    const strategyBias =
-      speedAvg == null
+    const strategyBias = strategy
+      ? `${capitalize(strategy.undercut_risk)} undercut risk`
+      : speedAvg == null
         ? "Need a fresh query"
         : speedAvg >= 230
           ? "Favors attack / undercut pressure"
@@ -87,8 +91,13 @@ export function TelemetryQueryPanel({
             ? "Neutral, monitor tyre decay"
             : "Protect track position first";
 
-    const evidenceQuality =
-      samplePoints == null
+    const evidenceQuality = strategy
+      ? strategy.fallback
+        ? "Recommendation unavailable"
+        : strategy.assumptions.length > 0
+          ? "Explainable heuristic"
+          : "Thin strategy evidence"
+      : samplePoints == null
         ? "No telemetry snapshot yet"
         : samplePoints >= 100
           ? "Strong evidence"
@@ -98,15 +107,17 @@ export function TelemetryQueryPanel({
 
     const confidence = fallback
       ? "Lower confidence"
-      : samplePoints == null
-        ? "Waiting"
-        : samplePoints >= 100
-          ? "High confidence"
-          : "Medium confidence";
+      : strategy?.confidence_band
+        ? `${capitalize(strategy.confidence_band)} confidence`
+        : samplePoints == null
+          ? "Waiting"
+          : samplePoints >= 100
+            ? "High confidence"
+            : "Medium confidence";
 
     const drivability =
       gearAvg == null
-        ? "Unknown"
+        ? strategy?.rationale?.[0] ?? "Unknown"
         : gearAvg >= 6
           ? "Flowing high-gear sections"
           : gearAvg >= 4.5
@@ -182,7 +193,7 @@ export function TelemetryQueryPanel({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-red-500/50 md:col-span-2"
-              placeholder="Ask a telemetry question..."
+              placeholder="Ask a telemetry or strategy question..."
               required
             />
           </div>
@@ -191,7 +202,7 @@ export function TelemetryQueryPanel({
             disabled={isLoading}
             className="rounded-full bg-red-700 px-4 py-3 text-xs font-bold uppercase tracking-[0.25em] text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoading ? "Running analysis..." : "Run telemetry analysis"}
+            {isLoading ? "Running analysis..." : "Run analysis"}
           </button>
         </form>
 
@@ -215,6 +226,12 @@ export function TelemetryQueryPanel({
                 <p className="text-xs font-bold uppercase text-slate-400">Agent response</p>
                 <p className="mt-2 text-sm text-slate-100">{result.agent_response}</p>
               </div>
+              {result.strategy_data && (
+                <div className="grid grid-cols-1 gap-3 text-xs md:grid-cols-2">
+                  <MetricCard title="Pit window" value={formatPitWindow(result.strategy_data)} />
+                  <MetricCard title="Confidence" value={capitalize(result.strategy_data.confidence_band)} />
+                </div>
+              )}
               {result.telemetry_data?.speed && (
                 <div className="grid grid-cols-1 gap-3 text-xs md:grid-cols-3">
                   <MetricCard title="Speed avg" value={formatChannel(result.telemetry_data.speed)} />
@@ -227,7 +244,7 @@ export function TelemetryQueryPanel({
 
           {!isLoading && !errorMessage && !result && (
             <p className="text-sm font-mono uppercase text-slate-600">
-              Submit a telemetry prompt to view results.
+              Submit a telemetry or strategy prompt to view results.
             </p>
           )}
         </div>
@@ -243,10 +260,10 @@ export function TelemetryQueryPanel({
             Mission control query
           </p>
           <h2 className="mt-2 text-xl font-bold uppercase tracking-[-0.04em] text-white sm:text-2xl">
-            Run telemetry and strategy analysis
+            Run telemetry-backed strategy analysis
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-            Choose a race context, run a focused telemetry question, and inspect the result through a dashboard that keeps assumptions visible.
+            Choose a race context, run a focused telemetry or strategy question, and inspect a baseline recommendation with explicit assumptions.
           </p>
         </div>
         <span className="h-fit rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-mono uppercase tracking-[0.3em] text-slate-300">
@@ -259,7 +276,11 @@ export function TelemetryQueryPanel({
         <ContextCard label="Event" value={eventLabel} detail={eventName} />
         <ContextCard label="Year" value={String(year)} detail="Season" />
         <ContextCard label="Session" value={sessionType} detail={sessionLabel} />
-        <ContextCard label="Mode" value="Telemetry" detail="Explainable AI" />
+        <ContextCard
+          label="Mode"
+          value={result?.intent?.intent_type === "strategy" ? "Strategy" : "Telemetry"}
+          detail="Explainable AI"
+        />
         <ContextCard label="Confidence" value={strategySignals.confidence} detail={statusTag} />
       </div>
 
@@ -334,14 +355,14 @@ export function TelemetryQueryPanel({
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-slate-500">
-            This slice now allows event, year, and session selection while preserving the same telemetry-backed query flow.
+            This slice now supports baseline strategy recommendations while keeping assumptions visible and fallbacks honest.
           </p>
           <button
             type="submit"
             disabled={isLoading}
             className="inline-flex items-center justify-center rounded-full bg-red-600 px-5 py-3 text-xs font-bold uppercase tracking-[0.25em] text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoading ? "Running analysis..." : "Run telemetry analysis"}
+            {isLoading ? "Running analysis..." : "Run analysis"}
           </button>
         </div>
       </form>
@@ -354,7 +375,7 @@ export function TelemetryQueryPanel({
                 Response console
               </p>
               <p className="mt-2 text-sm text-slate-400">
-                Strategy explanation, telemetry summary, and failure states all surface here.
+                Baseline strategy recommendation, telemetry summary, and failure states all surface here.
               </p>
             </div>
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-300">
@@ -397,6 +418,10 @@ export function TelemetryQueryPanel({
                   <p className="mt-3 text-sm leading-7 text-slate-100">{result.agent_response}</p>
                 </div>
 
+                {result.strategy_data && (
+                  <StrategyRecommendationBlock strategy={result.strategy_data} />
+                )}
+
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   <MetricCard title="Speed avg" value={formatChannel(result.telemetry_data?.speed)} />
                   <MetricCard title="Gear avg" value={formatChannel(result.telemetry_data?.gear)} />
@@ -411,12 +436,9 @@ export function TelemetryQueryPanel({
                   />
                   <MetricCard
                     title="Fallback"
-                    value={result.telemetry_data?.fallback ? "Yes" : "No"}
+                    value={result.strategy_data?.fallback || result.telemetry_data?.fallback ? "Yes" : "No"}
                   />
-                  <MetricCard
-                    title="Intent driver"
-                    value={result.intent?.driver ?? driver}
-                  />
+                  <MetricCard title="Intent driver" value={result.intent?.driver ?? driver} />
                 </div>
               </div>
             )}
@@ -428,15 +450,15 @@ export function TelemetryQueryPanel({
                     Waiting for query
                   </p>
                   <h3 className="mt-3 text-xl font-bold text-white">
-                    Submit a telemetry prompt to open the dashboard loop.
+                    Submit a telemetry or strategy prompt to open the dashboard loop.
                   </h3>
                   <p className="mt-3 max-w-xl text-sm leading-7 text-slate-400">
-                    Try a pace, speed, or tyre question after selecting the right event and session context.
+                    Try a pace, speed, pit-window, or tyre question after selecting the right event and session context.
                   </p>
                 </div>
                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  <HintCard label="Race" value="Compare HAM race pace trend" />
-                  <HintCard label="Qualifying" value="Show VER top speed profile" />
+                  <HintCard label="Strategy" value="Should HAM pit soon in Japanese GP 2023 race?" />
+                  <HintCard label="Telemetry" value="Show VER top speed profile" />
                 </div>
               </div>
             )}
@@ -460,7 +482,7 @@ export function TelemetryQueryPanel({
           <PanelCard
             eyebrow="Strategy snapshot"
             title="Turn telemetry into a quick engineering read."
-            body="These cards do not pretend to be full strategy logic. They make the current signal easier to reason about at a glance."
+            body="These cards do not pretend to be race-team-grade simulation. They expose a heuristic read with visible assumptions and confidence."
           >
             <div className="mt-5 grid gap-3">
               <MiniSignalCard label="Pace profile" value={strategySignals.paceProfile} />
@@ -473,19 +495,96 @@ export function TelemetryQueryPanel({
           <PanelCard
             eyebrow="Operator checklist"
             title="What this slice improves"
-            body="The dashboard now behaves more like a real operator surface and less like a fixed demo form."
+            body="The dashboard now behaves more like a real operator surface and less like a fixed telemetry demo."
           >
             <ul className="mt-5 space-y-3 text-sm text-slate-300">
-              <ChecklistItem text="Event, year, and session can now be changed from the UI." />
-              <ChecklistItem text="Context remains visible before and after every run." />
-              <ChecklistItem text="Strategy snapshot cards make the output easier to scan." />
-              <ChecklistItem text="Error and empty states remain honest and actionable." />
+              <ChecklistItem text="Strategy questions now return a visible recommendation block." />
+              <ChecklistItem text="Pit window, risk, confidence, assumptions, and rationale stay explicit." />
+              <ChecklistItem text="Event, year, and session remain visible before and after every run." />
+              <ChecklistItem text="Error and fallback states remain honest and actionable." />
             </ul>
           </PanelCard>
         </aside>
       </div>
     </div>
   );
+}
+
+function StrategyRecommendationBlock({ strategy }: { strategy: StrategyData }) {
+  if (strategy.fallback) {
+    return (
+      <div className="rounded-[1.5rem] border border-amber-500/30 bg-amber-500/10 p-4">
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-300">
+          Strategy unavailable
+        </p>
+        <p className="mt-3 text-sm text-slate-100">
+          {strategy.fallback_reason ?? "No strategy recommendation is available for this context."}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 rounded-[1.5rem] border border-red-500/20 bg-red-500/[0.06] p-4">
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-red-300">
+          Strategy recommendation
+        </p>
+        <p className="mt-3 text-sm leading-7 text-slate-100">
+          Baseline recommendation derived from telemetry-backed heuristics. Confidence and assumptions remain visible.
+        </p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard title="Pit window" value={formatPitWindow(strategy)} />
+        <MetricCard title="Undercut risk" value={capitalize(strategy.undercut_risk)} />
+        <MetricCard title="Overcut risk" value={capitalize(strategy.overcut_risk)} />
+        <MetricCard title="Confidence" value={capitalize(strategy.confidence_band)} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ExplainabilityList title="Assumptions" items={strategy.assumptions} />
+        <ExplainabilityList title="Rationale" items={strategy.rationale} />
+      </div>
+    </div>
+  );
+}
+
+function ExplainabilityList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
+        {title}
+      </p>
+      <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-200">
+        {items.length > 0 ? (
+          items.map((item) => (
+            <li key={item} className="flex gap-3">
+              <span className="mt-2 h-1.5 w-1.5 rounded-full bg-red-400" />
+              <span>{item}</span>
+            </li>
+          ))
+        ) : (
+          <li className="text-slate-500">No additional detail available.</li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+function formatPitWindow(strategy: StrategyData) {
+  const window = strategy.recommended_pit_window_laps;
+  if (!window || window.length < 2) {
+    return "N/A";
+  }
+  return `Lap ${window[0]}-${window[1]}`;
+}
+
+function capitalize(value?: string) {
+  if (!value) {
+    return "N/A";
+  }
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function formatChannel(

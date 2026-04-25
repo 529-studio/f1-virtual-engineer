@@ -11,11 +11,24 @@ export interface TelemetryChannel {
   unit: string;
 }
 
+export interface StrategyData {
+  recommended_pit_window_laps: [number, number] | number[];
+  undercut_risk: string;
+  overcut_risk: string;
+  confidence_band: string;
+  assumptions: string[];
+  rationale: string[];
+  fallback: boolean;
+  fallback_reason?: string | null;
+}
+
 export interface AnalyzeResponse {
   status: "success" | "error";
   agent_response: string;
   query: string;
   intent?: {
+    intent?: string | null;
+    intent_type?: "telemetry" | "strategy" | null;
     driver?: string | null;
     year?: number | null;
     event?: string | null;
@@ -30,6 +43,7 @@ export interface AnalyzeResponse {
     fallback?: boolean;
     fallback_reason?: string | null;
   };
+  strategy_data?: StrategyData | null;
   error?: string | null;
 }
 

@@ -13,13 +13,14 @@ class AnalyzeApiTests(unittest.TestCase):
     @patch("app.main.analyze_query")
     def test_analyze_endpoint_returns_agent_payload(self, mock_analyze):
         mock_analyze.return_value = {
-            "intent": {"driver": "HAM", "year": 2023, "session_type": "R"},
+            "intent": {"driver": "HAM", "year": 2023, "session_type": "R", "intent_type": "telemetry"},
             "telemetry_data": {"fallback": False},
+            "strategy_data": None,
             "response_text": "HAM telemetry (Japanese Grand Prix 2023 R): speed avg 255.0 km/h.",
             "error": None,
             "memory": {"history_size": 1, "retention_cap": 10, "last_driver": "HAM"},
-            "execution": {"termination_reason": "completed", "step_limit": 6, "duration_ms": 10.0},
-            "retry": {"count": 1, "max_retries": 2, "retryable_exhausted": False},
+            "execution": {"termination_reason": "completed", "step_limit": 6, "duration_ms": 10.0, "duration_limit_seconds": 5.0},
+            "retry": {"count": 1, "max_retries": 2, "retryable_exhausted": False, "retry_backoff_seconds": 0.1},
         }
         response = self.client.post(
             "/analyze",
@@ -33,6 +34,38 @@ class AnalyzeApiTests(unittest.TestCase):
         self.assertEqual(payload["memory"]["last_driver"], "HAM")
         self.assertEqual(payload["execution"]["termination_reason"], "completed")
         self.assertEqual(payload["retry"]["count"], 1)
+
+    @patch("app.main.analyze_query")
+    def test_analyze_endpoint_returns_strategy_payload(self, mock_analyze):
+        mock_analyze.return_value = {
+            "intent": {"driver": "HAM", "year": 2023, "session_type": "R", "intent_type": "strategy"},
+            "telemetry_data": {},
+            "strategy_data": {
+                "recommended_pit_window_laps": [8, 14],
+                "undercut_risk": "medium",
+                "overcut_risk": "low",
+                "confidence_band": "medium",
+                "assumptions": ["Current gap to rival considered: 1.2s."],
+                "rationale": ["Predicted degradation rate: 0.310s/lap."],
+                "fallback": False,
+                "fallback_reason": None,
+            },
+            "response_text": "Baseline strategy recommendation for HAM: consider pit window laps 8-14.",
+            "error": None,
+            "memory": {"history_size": 1, "retention_cap": 10, "last_driver": "HAM"},
+            "execution": {"termination_reason": "completed", "step_limit": 6, "duration_ms": 10.0, "duration_limit_seconds": 5.0},
+            "retry": {"count": 0, "max_retries": 2, "retryable_exhausted": False, "retry_backoff_seconds": 0.1},
+        }
+        response = self.client.post(
+            "/analyze",
+            json={"query": "should ham pit soon", "driver": "HAM", "session_info": {"event": "Japanese Grand Prix"}},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["status"], "success")
+        self.assertEqual(payload["intent"]["intent_type"], "strategy")
+        self.assertEqual(payload["strategy_data"]["confidence_band"], "medium")
+        self.assertEqual(payload["strategy_data"]["recommended_pit_window_laps"], [8, 14])
 
 
 if __name__ == "__main__":
