@@ -1,26 +1,104 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #05070b;
+  --foreground: #f8fafc;
+  --font-sans-app: Inter, Arial, Helvetica, sans-serif;
+  --font-mono-app: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans-app);
+  --font-mono: var(--font-mono-app);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(239, 68, 68, 0.12), transparent 24%),
+    linear-gradient(180deg, #05070b 0%, #07111b 48%, #05070b 100%);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans-app);
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.75), transparent 80%);
+}
+
+.hero-radial {
+  background:
+    radial-gradient(circle at 25% 10%, rgba(239, 68, 68, 0.18), transparent 28%),
+    radial-gradient(circle at 80% 20%, rgba(56, 189, 248, 0.12), transparent 28%);
+  filter: blur(40px);
+}
+
+.telemetry-ribbon::before,
+.telemetry-ribbon::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8rem;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.telemetry-ribbon::before {
+  left: 0;
+  background: linear-gradient(90deg, rgba(5, 7, 11, 0.95), transparent);
+}
+
+.telemetry-ribbon::after {
+  right: 0;
+  background: linear-gradient(270deg, rgba(5, 7, 11, 0.95), transparent);
+}
+
+.telemetry-ribbon__track {
+  animation: telemetry-marquee 28s linear infinite;
+}
+
+.story-track {
+  overflow: hidden;
+}
+
+.story-track__progress {
+  width: 64%;
+  box-shadow: 0 0 32px rgba(239, 68, 68, 0.35);
+}
+
+@keyframes telemetry-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .telemetry-ribbon__track {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
