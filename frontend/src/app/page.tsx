@@ -1,77 +1,94 @@
-import React from "react";
+import { CapabilityGrid } from "@/components/landing/CapabilityGrid";
+import { LandingCTA } from "@/components/landing/LandingCTA";
+import { LandingHero } from "@/components/landing/LandingHero";
+import { MissionControlPreview } from "@/components/landing/MissionControlPreview";
+import { SectionShell } from "@/components/landing/SectionShell";
+import { StrategyStory } from "@/components/landing/StrategyStory";
 
-import { TelemetryQueryPanel } from "@/components/TelemetryQueryPanel";
+const navItems = [
+  { label: "Capabilities", href: "#capabilities" },
+  { label: "Strategy Loop", href: "#strategy-story" },
+  { label: "Mission Control", href: "#mission-control" },
+];
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-50 font-sans">
-      {/* Navigation */}
-      <nav className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-red-600 rounded-sm transform -skew-x-12 flex items-center justify-center font-black italic text-white">A</div>
-              <span className="text-xl font-bold tracking-tighter uppercase italic">Apex Intelligence</span>
+    <main id="top" className="min-h-screen overflow-x-hidden bg-[#05070b] text-slate-50">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.12),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.08),transparent_28%)]" />
+
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-red-600 font-black italic text-white shadow-[0_0_20px_rgba(239,68,68,0.45)]">
+              A
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-xs font-mono text-slate-400 bg-slate-800 px-2 py-1 rounded">SYSTEM: ONLINE</span>
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <header className="mb-12">
-          <h1 className="text-4xl md:text-6xl font-black uppercase italic mb-4 tracking-tighter">
-            Virtual Race <span className="text-red-600">Engineer</span>
-          </h1>
-          <p className="text-slate-400 max-w-2xl text-lg">
-            Real-time telemetry analysis and strategic AI insights for the next generation of Formula 1 enthusiasts.
-          </p>
-        </header>
-
-        {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <TelemetryQueryPanel />
-
-          {/* AI Strategy Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-red-900/50 transition-colors">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-6">Agent Recommendations</h2>
-            <div className="space-y-4">
-              <div className="p-4 bg-red-950/20 border border-red-900/30 rounded-lg">
-                <p className="text-xs font-bold text-red-500 uppercase mb-1">Strategy Alert</p>
-                <p className="text-sm font-medium">Recommended Pit Window: Lap 18-22</p>
-                <p className="text-xs text-slate-400 mt-2 italic">Reasoning: Tyre degradation on Medium compound exceeding 0.3s/lap decay.</p>
-              </div>
-              <div className="p-4 bg-slate-800/50 border border-slate-700 rounded-lg">
-                <p className="text-xs font-bold text-slate-400 uppercase mb-1">Gap Analysis</p>
-                <p className="text-sm font-medium">Undercut threat from PER: High (1.2s)</p>
-              </div>
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-white">
+                Apex Intelligence
+              </p>
+              <p className="text-[10px] uppercase tracking-[0.35em] text-slate-500">
+                Virtual F1 Race Engineer
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Toolset Section */}
-        <section className="mt-12 pt-12 border-t border-slate-900">
-          <h2 className="text-2xl font-bold mb-8 uppercase italic tracking-tighter">Mission Control</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {['Strategy', 'Radio AI', 'Tyre Wear', 'Telemetry'].map((tool) => (
-              <button key={tool} className="p-4 bg-slate-900 border border-slate-800 rounded-lg text-left hover:bg-slate-800 transition-colors group">
-                <p className="text-slate-500 text-xs font-mono uppercase mb-1 group-hover:text-red-500 transition-colors">Module</p>
-                <p className="font-bold uppercase tracking-tight italic">{tool}</p>
-              </button>
+          <nav className="hidden items-center gap-6 md:flex">
+            {navItems.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400 transition hover:text-white"
+              >
+                {item.label}
+              </a>
             ))}
-          </div>
-        </section>
-      </div>
+          </nav>
 
-      <footer className="mt-20 py-8 border-t border-slate-900 text-center">
-        <p className="text-slate-600 text-xs font-mono tracking-widest uppercase italic">
-          Apex-Intelligence // Powered by Gemini & FastF1
-        </p>
-      </footer>
+          <a
+            href="#mission-control"
+            className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-200 transition hover:border-white/20 hover:bg-white/10"
+          >
+            Launch
+          </a>
+        </div>
+      </header>
+
+      <div className="relative z-10">
+        <LandingHero />
+
+        <SectionShell
+          className="py-18 lg:py-24"
+          eyebrow="Core capabilities"
+          title="A landing page that sells the system, not just the screen."
+          description="The first fold should signal what the product does. The next fold should prove why users should believe it."
+        >
+          <div id="capabilities">
+            <CapabilityGrid />
+          </div>
+        </SectionShell>
+
+        <SectionShell
+          className="py-18 lg:py-24"
+          eyebrow="Strategy story"
+          title="Translate race data into decisions users can trust."
+          description="The strongest version of this homepage makes strategy reasoning visible, explainable, and emotionally compelling at the same time."
+        >
+          <div id="strategy-story">
+            <StrategyStory />
+          </div>
+        </SectionShell>
+
+        <SectionShell
+          className="py-18 lg:py-24"
+          eyebrow="Mission control preview"
+          title="End the story by showing a real operator surface."
+          description="A high-impact landing page should end with proof that the product already has substance."
+        >
+          <MissionControlPreview />
+        </SectionShell>
+
+        <LandingCTA />
+      </div>
     </main>
   );
 }
