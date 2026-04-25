@@ -8,9 +8,9 @@ const navItems = [
 ];
 
 const systemCards = [
-  { label: "Primary mode", value: "Telemetry analysis" },
-  { label: "Fallback policy", value: "Visible + honest" },
-  { label: "Response format", value: "Cards + context" },
+  { label: "Primary mode", value: "Telemetry + strategy" },
+  { label: "Context control", value: "Driver / event / session" },
+  { label: "Response format", value: "Cards + signals + context" },
 ];
 
 export default function MissionControlPage() {
@@ -60,13 +60,13 @@ export default function MissionControlPage() {
           <section className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-red-300">
-                CF-06 / dashboard MVP
+                CF-06 / dashboard slice 2
               </p>
               <h1 className="mt-4 max-w-4xl text-4xl font-black uppercase tracking-[-0.06em] text-white sm:text-5xl lg:text-7xl">
-                The first real mission-control surface for telemetry and strategy.
+                A sharper operator surface with configurable context and faster reads.
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-                This slice turns the landing-page preview into a working dashboard page with visible driver/session context, actionable loading and error states, and readable result cards.
+                This upgrade makes mission control feel less like a fixed demo and more like a usable dashboard by adding session controls and strategy-signal cards around the telemetry loop.
               </p>
             </div>
 

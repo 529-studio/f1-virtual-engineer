@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useMemo, useState } from "react";
 
 import { analyzeTelemetry, AnalyzeResponse } from "@/services/api";
 
@@ -10,11 +10,19 @@ const DRIVER_OPTIONS = [
   { code: "NOR", label: "Lando Norris" },
 ];
 
-const DEFAULT_SESSION = {
-  event: "Japanese Grand Prix",
-  year: 2023,
-  session_type: "R",
-};
+const EVENT_OPTIONS = [
+  { value: "Japanese Grand Prix", label: "Japanese GP" },
+  { value: "Monaco Grand Prix", label: "Monaco GP" },
+  { value: "British Grand Prix", label: "British GP" },
+];
+
+const YEAR_OPTIONS = [2023, 2024];
+
+const SESSION_OPTIONS = [
+  { value: "FP1", label: "Practice 1" },
+  { value: "Q", label: "Qualifying" },
+  { value: "R", label: "Race" },
+];
 
 interface TelemetryQueryPanelProps {
   variant?: "preview" | "dashboard";
@@ -25,9 +33,14 @@ export function TelemetryQueryPanel({
 }: TelemetryQueryPanelProps) {
   const [query, setQuery] = useState("Show HAM speed at Japanese GP 2023 race");
   const [driver, setDriver] = useState("HAM");
+  const [eventName, setEventName] = useState("Japanese Grand Prix");
+  const [year, setYear] = useState(2023);
+  const [sessionType, setSessionType] = useState("R");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
+
+  const isDashboard = variant === "dashboard";
 
   const statusTag = useMemo(() => {
     if (isLoading) {
@@ -44,8 +57,70 @@ export function TelemetryQueryPanel({
 
   const driverLabel =
     DRIVER_OPTIONS.find((option) => option.code === driver)?.label ?? driver;
+  const eventLabel =
+    EVENT_OPTIONS.find((option) => option.value === eventName)?.label ?? eventName;
+  const sessionLabel =
+    SESSION_OPTIONS.find((option) => option.value === sessionType)?.label ??
+    sessionType;
 
-  const isDashboard = variant === "dashboard";
+  const strategySignals = useMemo(() => {
+    const speedAvg = result?.telemetry_data?.speed?.avg;
+    const gearAvg = result?.telemetry_data?.gear?.avg;
+    const fallback = result?.telemetry_data?.fallback;
+    const samplePoints = result?.telemetry_data?.sample_points;
+
+    const paceProfile =
+      speedAvg == null
+        ? "Awaiting telemetry"
+        : speedAvg >= 235
+          ? "High-speed stable"
+          : speedAvg >= 210
+            ? "Balanced race pace"
+            : "Traffic-sensitive pace";
+
+    const strategyBias =
+      speedAvg == null
+        ? "Need a fresh query"
+        : speedAvg >= 230
+          ? "Favors attack / undercut pressure"
+          : speedAvg >= 215
+            ? "Neutral, monitor tyre decay"
+            : "Protect track position first";
+
+    const evidenceQuality =
+      samplePoints == null
+        ? "No telemetry snapshot yet"
+        : samplePoints >= 100
+          ? "Strong evidence"
+          : samplePoints >= 50
+            ? "Usable evidence"
+            : "Thin evidence";
+
+    const confidence = fallback
+      ? "Lower confidence"
+      : samplePoints == null
+        ? "Waiting"
+        : samplePoints >= 100
+          ? "High confidence"
+          : "Medium confidence";
+
+    const drivability =
+      gearAvg == null
+        ? "Unknown"
+        : gearAvg >= 6
+          ? "Flowing high-gear sections"
+          : gearAvg >= 4.5
+            ? "Mixed-speed track"
+            : "Low-speed traction heavy";
+
+    return {
+      paceProfile,
+      strategyBias,
+      evidenceQuality,
+      confidence,
+      drivability,
+    };
+  }, [result]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -56,7 +131,11 @@ export function TelemetryQueryPanel({
       const response = await analyzeTelemetry({
         query,
         driver,
-        session_info: DEFAULT_SESSION,
+        session_info: {
+          event: eventName,
+          year,
+          session_type: sessionType,
+        },
       });
       setResult(response);
     } catch (error) {
@@ -69,14 +148,95 @@ export function TelemetryQueryPanel({
     }
   }
 
+  if (!isDashboard) {
+    return (
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-red-900/50 transition-colors">
+        <div className="flex flex-col gap-3 border-b border-white/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">
+              Live Telemetry Query
+            </h2>
+            <p className="mt-2 text-sm text-slate-500">
+              A compact preview of the real mission-control loop.
+            </p>
+          </div>
+          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-mono uppercase tracking-[0.3em] text-slate-300">
+            Status: {statusTag}
+          </span>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <select
+              value={driver}
+              onChange={(event) => setDriver(event.target.value)}
+              className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-xs text-slate-100 outline-none transition focus:border-red-500/50"
+            >
+              {DRIVER_OPTIONS.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.label} ({option.code})
+                </option>
+              ))}
+            </select>
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-red-500/50 md:col-span-2"
+              placeholder="Ask a telemetry question..."
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="rounded-full bg-red-700 px-4 py-3 text-xs font-bold uppercase tracking-[0.25em] text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isLoading ? "Running analysis..." : "Run telemetry analysis"}
+          </button>
+        </form>
+
+        <div className="mt-6 min-h-48 rounded-xl border border-dashed border-slate-800 bg-slate-950/50 p-4">
+          {isLoading && (
+            <p className="text-sm font-mono text-slate-400">
+              Running query against backend agent...
+            </p>
+          )}
+
+          {!isLoading && errorMessage && (
+            <div className="rounded-xl border border-red-900/40 bg-red-950/30 p-3">
+              <p className="text-xs font-bold uppercase text-red-400">Request error</p>
+              <p className="mt-2 text-sm text-slate-200">{errorMessage}</p>
+            </div>
+          )}
+
+          {!isLoading && !errorMessage && result && (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-3">
+                <p className="text-xs font-bold uppercase text-slate-400">Agent response</p>
+                <p className="mt-2 text-sm text-slate-100">{result.agent_response}</p>
+              </div>
+              {result.telemetry_data?.speed && (
+                <div className="grid grid-cols-1 gap-3 text-xs md:grid-cols-3">
+                  <MetricCard title="Speed avg" value={formatChannel(result.telemetry_data.speed)} />
+                  <MetricCard title="Gear avg" value={formatChannel(result.telemetry_data.gear)} />
+                  <MetricCard title="RPM avg" value={formatChannel(result.telemetry_data.rpm, 0)} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {!isLoading && !errorMessage && !result && (
+            <p className="text-sm font-mono uppercase text-slate-600">
+              Submit a telemetry prompt to view results.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={
-        isDashboard
-          ? "rounded-[2rem] border border-white/10 bg-slate-950/85 p-6 shadow-[0_32px_64px_rgba(2,6,23,0.5)] backdrop-blur-xl"
-          : "bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-red-900/50 transition-colors"
-      }
-    >
+    <div className="rounded-[2rem] border border-white/10 bg-slate-950/85 p-6 shadow-[0_32px_64px_rgba(2,6,23,0.5)] backdrop-blur-xl">
       <div className="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-red-300">
@@ -86,7 +246,7 @@ export function TelemetryQueryPanel({
             Run telemetry and strategy analysis
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-            Ask the race engineer a focused telemetry question, keep the driver and session context visible, and inspect the response through readable result cards.
+            Choose a race context, run a focused telemetry question, and inspect the result through a dashboard that keeps assumptions visible.
           </p>
         </div>
         <span className="h-fit rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[10px] font-mono uppercase tracking-[0.3em] text-slate-300">
@@ -94,23 +254,22 @@ export function TelemetryQueryPanel({
         </span>
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-4">
-        <ContextCard label="Selected driver" value={driver} detail={driverLabel} />
-        <ContextCard label="Event" value="Japanese GP" detail={String(DEFAULT_SESSION.year)} />
-        <ContextCard label="Session" value="Race" detail={DEFAULT_SESSION.session_type} />
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <ContextCard label="Driver" value={driver} detail={driverLabel} />
+        <ContextCard label="Event" value={eventLabel} detail={eventName} />
+        <ContextCard label="Year" value={String(year)} detail="Season" />
+        <ContextCard label="Session" value={sessionType} detail={sessionLabel} />
         <ContextCard label="Mode" value="Telemetry" detail="Explainable AI" />
+        <ContextCard label="Confidence" value={strategySignals.confidence} detail={statusTag} />
       </div>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <label className="space-y-2">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
-              Driver
-            </span>
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-6">
+          <Field label="Driver">
             <select
               value={driver}
               onChange={(event) => setDriver(event.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-red-500/50"
+              className="dashboard-input"
             >
               {DRIVER_OPTIONS.map((option) => (
                 <option key={option.code} value={option.code}>
@@ -118,25 +277,64 @@ export function TelemetryQueryPanel({
                 </option>
               ))}
             </select>
-          </label>
+          </Field>
 
-          <label className="space-y-2 md:col-span-3">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
-              Query
-            </span>
+          <Field label="Event">
+            <select
+              value={eventName}
+              onChange={(event) => setEventName(event.target.value)}
+              className="dashboard-input"
+            >
+              {EVENT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Year">
+            <select
+              value={year}
+              onChange={(event) => setYear(Number(event.target.value))}
+              className="dashboard-input"
+            >
+              {YEAR_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Session">
+            <select
+              value={sessionType}
+              onChange={(event) => setSessionType(event.target.value)}
+              className="dashboard-input"
+            >
+              {SESSION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Query" className="lg:col-span-2">
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-red-500/50"
-              placeholder="Ask a telemetry question..."
+              className="dashboard-input"
+              placeholder="Ask a telemetry or strategy question..."
               required
             />
-          </label>
+          </Field>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-slate-500">
-            Current session context is fixed to Japanese Grand Prix 2023 race for this MVP slice.
+            This slice now allows event, year, and session selection while preserving the same telemetry-backed query flow.
           </p>
           <button
             type="submit"
@@ -156,7 +354,7 @@ export function TelemetryQueryPanel({
                 Response console
               </p>
               <p className="mt-2 text-sm text-slate-400">
-                Strategy output, telemetry summary, and failure states all surface here.
+                Strategy explanation, telemetry summary, and failure states all surface here.
               </p>
             </div>
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-300">
@@ -200,18 +398,9 @@ export function TelemetryQueryPanel({
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  <MetricCard
-                    title="Speed avg"
-                    value={formatChannel(result.telemetry_data?.speed)}
-                  />
-                  <MetricCard
-                    title="Gear avg"
-                    value={formatChannel(result.telemetry_data?.gear)}
-                  />
-                  <MetricCard
-                    title="RPM avg"
-                    value={formatChannel(result.telemetry_data?.rpm, 0)}
-                  />
+                  <MetricCard title="Speed avg" value={formatChannel(result.telemetry_data?.speed)} />
+                  <MetricCard title="Gear avg" value={formatChannel(result.telemetry_data?.gear)} />
+                  <MetricCard title="RPM avg" value={formatChannel(result.telemetry_data?.rpm, 0)} />
                   <MetricCard
                     title="Sample points"
                     value={
@@ -242,12 +431,12 @@ export function TelemetryQueryPanel({
                     Submit a telemetry prompt to open the dashboard loop.
                   </h3>
                   <p className="mt-3 max-w-xl text-sm leading-7 text-slate-400">
-                    Start with a specific question like pace, speed, or tyre degradation for the current driver/session context.
+                    Try a pace, speed, or tyre question after selecting the right event and session context.
                   </p>
                 </div>
                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  <HintCard label="Example" value="Compare HAM race pace trend" />
-                  <HintCard label="Example" value="Show NOR speed summary" />
+                  <HintCard label="Race" value="Compare HAM race pace trend" />
+                  <HintCard label="Qualifying" value="Show VER top speed profile" />
                 </div>
               </div>
             )}
@@ -257,35 +446,42 @@ export function TelemetryQueryPanel({
         <aside className="space-y-4">
           <PanelCard
             eyebrow="Selected context"
-            title="Make driver and session assumptions visible."
-            body="This MVP slice keeps the race context explicit so users always know what the system is analyzing."
+            title="Keep the race assumptions explicit."
+            body="The more configurable this surface becomes, the more important it is to show users what exact race context is being analyzed."
           >
             <dl className="mt-5 space-y-3 text-sm text-slate-300">
               <ContextRow label="Driver" value={`${driverLabel} (${driver})`} />
-              <ContextRow label="Event" value={DEFAULT_SESSION.event} />
-              <ContextRow label="Year" value={String(DEFAULT_SESSION.year)} />
-              <ContextRow label="Session" value="Race (R)" />
+              <ContextRow label="Event" value={eventName} />
+              <ContextRow label="Year" value={String(year)} />
+              <ContextRow label="Session" value={`${sessionLabel} (${sessionType})`} />
             </dl>
           </PanelCard>
 
           <PanelCard
-            eyebrow="Operator checklist"
-            title="What a good mission-control MVP must do"
-            body="A dashboard is only useful if it handles the whole loop, including the ugly states."
+            eyebrow="Strategy snapshot"
+            title="Turn telemetry into a quick engineering read."
+            body="These cards do not pretend to be full strategy logic. They make the current signal easier to reason about at a glance."
           >
-            <ul className="mt-5 space-y-3 text-sm text-slate-300">
-              <ChecklistItem text="Loading state is visible and not mistaken for failure." />
-              <ChecklistItem text="Error copy gives an actionable next step." />
-              <ChecklistItem text="Results are summarized as cards, not raw payload." />
-              <ChecklistItem text="Context stays visible even before the first response." />
-            </ul>
+            <div className="mt-5 grid gap-3">
+              <MiniSignalCard label="Pace profile" value={strategySignals.paceProfile} />
+              <MiniSignalCard label="Strategy bias" value={strategySignals.strategyBias} />
+              <MiniSignalCard label="Evidence quality" value={strategySignals.evidenceQuality} />
+              <MiniSignalCard label="Drivability" value={strategySignals.drivability} />
+            </div>
           </PanelCard>
 
           <PanelCard
-            eyebrow="Suggested next step"
-            title="After this slice"
-            body="Once this page is stable, the next upgrade is richer session selection and tighter visual alignment with future strategy cards."
-          />
+            eyebrow="Operator checklist"
+            title="What this slice improves"
+            body="The dashboard now behaves more like a real operator surface and less like a fixed demo form."
+          >
+            <ul className="mt-5 space-y-3 text-sm text-slate-300">
+              <ChecklistItem text="Event, year, and session can now be changed from the UI." />
+              <ChecklistItem text="Context remains visible before and after every run." />
+              <ChecklistItem text="Strategy snapshot cards make the output easier to scan." />
+              <ChecklistItem text="Error and empty states remain honest and actionable." />
+            </ul>
+          </PanelCard>
         </aside>
       </div>
     </div>
@@ -301,6 +497,25 @@ function formatChannel(
   }
 
   return `${channel.avg.toFixed(fractionDigits)} ${channel.unit}`;
+}
+
+function Field({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className={`space-y-2 ${className ?? ""}`.trim()}>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
 }
 
 function ContextCard({
@@ -326,7 +541,9 @@ function ContextCard({
 function MetricCard({ title, value }: { title: string; value: string }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">{title}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
+        {title}
+      </p>
       <p className="mt-3 text-lg font-bold text-white">{value}</p>
     </div>
   );
@@ -341,11 +558,13 @@ function PanelCard({
   eyebrow: string;
   title: string;
   body: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <article className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-red-300">{eyebrow}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-red-300">
+        {eyebrow}
+      </p>
       <h3 className="mt-3 text-xl font-bold tracking-[-0.03em] text-white">{title}</h3>
       <p className="mt-3 text-sm leading-7 text-slate-400">{body}</p>
       {children}
@@ -362,6 +581,17 @@ function ContextRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function MiniSignalCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
+        {label}
+      </p>
+      <p className="mt-2 text-sm text-slate-100">{value}</p>
+    </div>
+  );
+}
+
 function ChecklistItem({ text }: { text: string }) {
   return (
     <li className="flex items-start gap-3">
@@ -374,7 +604,9 @@ function ChecklistItem({ text }: { text: string }) {
 function HintCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">{label}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
+        {label}
+      </p>
       <p className="mt-3 text-sm text-slate-200">{value}</p>
     </div>
   );
