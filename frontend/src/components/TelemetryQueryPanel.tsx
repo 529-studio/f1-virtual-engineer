@@ -276,7 +276,11 @@ export function TelemetryQueryPanel({
         <ContextCard label="Event" value={eventLabel} detail={eventName} />
         <ContextCard label="Year" value={String(year)} detail="Season" />
         <ContextCard label="Session" value={sessionType} detail={sessionLabel} />
-        <ContextCard label="Mode" value={result?.intent?.intent_type === "strategy" ? "Strategy" : "Telemetry"} detail="Explainable AI" />
+        <ContextCard
+          label="Mode"
+          value={result?.intent?.intent_type === "strategy" ? "Strategy" : "Telemetry"}
+          detail="Explainable AI"
+        />
         <ContextCard label="Confidence" value={strategySignals.confidence} detail={statusTag} />
       </div>
 
@@ -434,10 +438,7 @@ export function TelemetryQueryPanel({
                     title="Fallback"
                     value={result.strategy_data?.fallback || result.telemetry_data?.fallback ? "Yes" : "No"}
                   />
-                  <MetricCard
-                    title="Intent driver"
-                    value={result.intent?.driver ?? driver}
-                  />
+                  <MetricCard title="Intent driver" value={result.intent?.driver ?? driver} />
                 </div>
               </div>
             )}
