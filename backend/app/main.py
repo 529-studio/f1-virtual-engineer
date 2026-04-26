@@ -1,27 +1,50 @@
 from fastapi import FastAPI
 
 from agents.race_engineer import analyze_query
-from app.schemas.analyze import AnalyzeResponse
+from app.schemas.analyze import AnalyzeRequest, AnalyzeResponse
 from app.schemas.telemetry import ApiError, TelemetryQueryRequest, TelemetryResponse, TelemetrySummary
-from pydantic import BaseModel
 from tools.fastf1_helper import get_session_telemetry_summary
 
-app = FastAPI(title="Apex-Intelligence: Virtual Race Engineer API")
+app = FastAPI(
+    title="Apex-Intelligence: Virtual Race Engineer API",
+    summary="Telemetry-backed F1 strategy assistant API for mission-control and demo workflows.",
+    description=(
+        "FastAPI service for telemetry lookups, baseline strategy recommendations, and explainable "
+        "response envelopes used by the frontend mission-control experience."
+    ),
+    version="0.1.0",
+    docs_url="/docs",
+    openapi_url="/openapi.json",
+    contact={"name": "Apex-Intelligence", "url": "https://github.com/thdat-vu/f1-virtual-engineer"},
+    openapi_tags=[
+        {"name": "system", "description": "Basic service discovery and health-style endpoints."},
+        {"name": "analysis", "description": "Telemetry and strategy analysis workflows for the mission-control UI."},
+        {"name": "telemetry", "description": "Strict telemetry contract endpoints backed by FastF1 summaries."},
+    ],
+)
 
 
-class QueryRequest(BaseModel):
-    query: str
-    driver: str | None = None
-    session_info: dict | None = None
-
-
-@app.get("/")
+@app.get(
+    "/",
+    tags=["system"],
+    summary="Service welcome endpoint",
+    description="Simple discovery endpoint confirming the backend API is running.",
+)
 async def root():
     return {"message": "Welcome to Apex-Intelligence Virtual Race Engineer API"}
 
 
-@app.post("/analyze", response_model=AnalyzeResponse)
-async def analyze_race_data(request: QueryRequest):
+@app.post(
+    "/analyze",
+    response_model=AnalyzeResponse,
+    tags=["analysis"],
+    summary="Analyze a telemetry or strategy question",
+    description=(
+        "Accepts a natural-language query plus optional explicit session context and returns either a telemetry summary "
+        "or a baseline strategy recommendation with confidence, assumptions, and rationale."
+    ),
+)
+async def analyze_race_data(request: AnalyzeRequest):
     result = analyze_query(request.query)
     return {
         "status": "error" if result.get("error") else "success",
@@ -37,7 +60,15 @@ async def analyze_race_data(request: QueryRequest):
     }
 
 
-@app.post("/telemetry", response_model=TelemetryResponse)
+@app.post(
+    "/telemetry",
+    response_model=TelemetryResponse,
+    tags=["telemetry"],
+    summary="Fetch normalized telemetry summary",
+    description=(
+        "Returns speed, gear, RPM, and fallback metadata for a concrete driver/session query using the strict telemetry contract."
+    ),
+)
 async def get_telemetry(request: TelemetryQueryRequest):
     telemetry = get_session_telemetry_summary(
         year=request.year,

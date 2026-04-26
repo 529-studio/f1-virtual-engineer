@@ -24,7 +24,11 @@ class AnalyzeApiTests(unittest.TestCase):
         }
         response = self.client.post(
             "/analyze",
-            json={"query": "show ham telemetry", "driver": "HAM", "session_info": {"event": "Japanese Grand Prix"}},
+            json={
+                "query": "show ham telemetry",
+                "driver": "HAM",
+                "session_info": {"event": "Japanese Grand Prix", "year": 2023, "session_type": "R"},
+            },
         )
         self.assertEqual(response.status_code, 200)
         payload = response.json()
@@ -58,7 +62,11 @@ class AnalyzeApiTests(unittest.TestCase):
         }
         response = self.client.post(
             "/analyze",
-            json={"query": "should ham pit soon", "driver": "HAM", "session_info": {"event": "Japanese Grand Prix"}},
+            json={
+                "query": "should ham pit soon",
+                "driver": "HAM",
+                "session_info": {"event": "Japanese Grand Prix", "year": 2023, "session_type": "R"},
+            },
         )
         self.assertEqual(response.status_code, 200)
         payload = response.json()
@@ -66,6 +74,21 @@ class AnalyzeApiTests(unittest.TestCase):
         self.assertEqual(payload["intent"]["intent_type"], "strategy")
         self.assertEqual(payload["strategy_data"]["confidence_band"], "medium")
         self.assertEqual(payload["strategy_data"]["recommended_pit_window_laps"], [8, 14])
+
+    def test_openapi_exposes_docs_metadata_for_core_routes(self):
+        response = self.client.get("/openapi.json")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["info"]["title"], "Apex-Intelligence: Virtual Race Engineer API")
+        self.assertEqual(payload["info"]["version"], "0.1.0")
+        self.assertIn("/analyze", payload["paths"])
+        self.assertIn("/telemetry", payload["paths"])
+        analyze_post = payload["paths"]["/analyze"]["post"]
+        self.assertEqual(analyze_post["summary"], "Analyze a telemetry or strategy question")
+        self.assertEqual(analyze_post["tags"], ["analysis"])
+        telemetry_post = payload["paths"]["/telemetry"]["post"]
+        self.assertEqual(telemetry_post["tags"], ["telemetry"])
+        self.assertIn("AnalyzeRequest", payload["components"]["schemas"])
 
 
 if __name__ == "__main__":
