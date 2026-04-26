@@ -84,6 +84,17 @@ The system is containerized for seamless local development, optimized for Apple 
     * *The Backend will be available at `http://localhost:8000`*
     * *The Frontend will be available at `http://localhost:3000`*
 
+### API Docs (Swagger / OpenAPI)
+
+When the backend is running, you can inspect and try the API contract from:
+
+- Swagger UI: `http://localhost:8000/docs`
+- OpenAPI JSON: `http://localhost:8000/openapi.json`
+
+Recommended quick checks for reviewers:
+- use `/telemetry` to verify the strict telemetry schema and fallback contract
+- use `/analyze` to inspect telemetry-vs-strategy response envelopes for frontend integration
+
 ---
 
 ## Safety & Evaluation

@@ -1,8 +1,26 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.telemetry import TelemetrySummary
+
+
+class AnalyzeSessionInfo(BaseModel):
+    event: str = Field(..., min_length=2, max_length=120, description="Grand Prix or event name, e.g. Japanese Grand Prix")
+    year: int = Field(..., ge=2018, le=2100, description="Championship season year")
+    session_type: Literal["FP1", "FP2", "FP3", "Q", "R", "S", "SQ"] = Field(
+        ...,
+        description="FastF1 session token",
+    )
+
+
+class AnalyzeRequest(BaseModel):
+    query: str = Field(..., min_length=3, description="Natural language telemetry or strategy question")
+    driver: str | None = Field(default=None, min_length=3, max_length=3, description="Optional 3-letter driver code")
+    session_info: AnalyzeSessionInfo | None = Field(
+        default=None,
+        description="Optional explicit session context to align frontend and backend assumptions",
+    )
 
 
 class StrategySummary(BaseModel):
