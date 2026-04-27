@@ -1,0 +1,30 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - backend/.env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/data:/app/backend/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        BACKEND_INTERNAL_URL: http://backend:8000
+        NEXT_PUBLIC_API_BASE_URL: /api
+    env_file:
+      - frontend/.env.local
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:8000
+      NEXT_PUBLIC_API_BASE_URL: /api
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
