@@ -1,4 +1,6 @@
+import os
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from agents.race_engineer import analyze_query
 from app.schemas.analyze import AnalyzeRequest, AnalyzeResponse
@@ -21,6 +23,29 @@ app = FastAPI(
         {"name": "analysis", "description": "Telemetry and strategy analysis workflows for the mission-control UI."},
         {"name": "telemetry", "description": "Strict telemetry contract endpoints backed by FastF1 summaries."},
     ],
+)
+
+# CORS configuration
+allowed_origins_str = os.getenv("CORS_ALLOWED_ORIGINS", "")
+if allowed_origins_str:
+    allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
+else:
+    # Safe defaults for local development
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+    ]
+
+print(f"INFO: CORS enabled for origins: {allowed_origins}")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
