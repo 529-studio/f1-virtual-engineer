@@ -84,6 +84,62 @@ The system is containerized for seamless local development, optimized for Apple 
     * *The Backend will be available at `http://localhost:8000`*
     * *The Frontend will be available at `http://localhost:3000`*
 
+### CI/CD recommendation for first user feedback
+
+If your goal is to let the first real user open a browser URL and try the product quickly, use this path:
+
+1. **GitHub Actions for CI**
+   - run backend tests
+   - run frontend lint/build
+   - validate Docker images build successfully
+
+2. **Deploy the built app to a simple platform**
+   - easiest choices for indie-hacker speed: **Railway**, **Render**, **Fly.io**, or a small VPS with **Coolify**
+   - use the new Dockerfiles or the compose setup as the deployment base
+
+3. **Expose one public staging URL**
+   - example: `https://staging.apex-intelligence.app`
+   - ask first users to try 2-3 suggested prompts from the landing page / mission-control flow
+
+Important note: GitHub Actions alone does **not** host the app permanently. It is best used as CI, or as a trigger to deploy to a hosting platform that gives you the actual public URL.
+
+Recommended fastest path after this issue lands:
+- keep GitHub Actions as CI
+- deploy frontend + backend on Railway or Render
+- use the platform-generated URL first, add custom domain later
+
+### Staging-like Docker Compose
+
+For a first-publish / reviewer-friendly run path, the repo now includes a staging-like compose file:
+
+```bash
+docker compose -f docker-compose.staging.yml up --build
+```
+
+Expected URLs after startup:
+- Frontend: `http://localhost:3000`
+- Backend API: `http://localhost:8000`
+- Swagger UI: `http://localhost:8000/docs`
+
+Before first run, make sure these files exist:
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.local.example frontend/.env.local
+```
+
+Notes:
+- For plain local dev outside Docker, `frontend/.env.local` can keep `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`.
+- For staging-like Docker Compose, browser requests should go to `NEXT_PUBLIC_API_BASE_URL=/api`.
+- Inside Docker Compose, Next.js rewrites `/api/*` to the internal backend URL from `BACKEND_INTERNAL_URL=http://backend:8000`.
+- FastF1 cache is mounted through `./backend/data` so repeated runs are faster.
+
+To stop the stack:
+
+```bash
+docker compose -f docker-compose.staging.yml down
+```
+
 ### API Docs (Swagger / OpenAPI)
 
 When the backend is running, you can inspect and try the API contract from:
