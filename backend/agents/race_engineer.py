@@ -11,10 +11,38 @@ from tools.strategy_helper import strategy_analyzer
 DEFAULT_EVENT = "Japanese Grand Prix"
 DEFAULT_SESSION_TYPE = "R"
 DEFAULT_YEAR = 2023
-DRIVER_PATTERN = re.compile(r"\b(HAM|VER|NOR|LEC|SAI|RUS|PER|ALO|PIA|OCO|GAS|TSU|ALB|STR)\b", re.IGNORECASE)
+DRIVER_MAP = {
+    "VERSTAPPEN": "VER",
+    "HAMILTON": "HAM",
+    "NORRIS": "NOR",
+    "LECLERC": "LEC",
+    "SAINZ": "SAI",
+    "RUSSELL": "RUS",
+    "PEREZ": "PER",
+    "ALONSO": "ALO",
+    "PIASTRI": "PIA",
+    "OCON": "OCO",
+    "GASLY": "GAS",
+    "TSUNODA": "TSU",
+    "ALBON": "ALB",
+    "STROLL": "STR",
+    "RICCIARDO": "RIC",
+    "HULKENBERG": "HUL",
+    "MAGNUSSEN": "MAG",
+    "BOTTAS": "BOT",
+    "ZHOU": "ZHO",
+    "SARGEANT": "SAR",
+}
+DRIVER_PATTERN = re.compile(
+    r"\b(HAM|VER|NOR|LEC|SAI|RUS|PER|ALO|PIA|OCO|GAS|TSU|ALB|STR|RIC|HUL|MAG|BOT|ZHO|SAR|"
+    + "|".join(DRIVER_MAP.keys())
+    + r")\b",
+    re.IGNORECASE,
+)
 YEAR_PATTERN = re.compile(r"\b(20\d{2})\b")
 SESSION_PATTERN = re.compile(r"\b(FP1|FP2|FP3|Q|R|S|SQ|race|qualifying)\b", re.IGNORECASE)
 COMPARE_PATTERN = re.compile(r"\b(compare|versus|vs|so voi|against)\b", re.IGNORECASE)
+FOLLOWUP_PATTERN = re.compile(r"\b(and|what\s+about|how\s+about|him|her|them|his|their)\b", re.IGNORECASE)
 STRATEGY_PATTERN = re.compile(
     r"\b(strategy|pit|pit\s+window|undercut|overcut|tyre|tire|wear|degradation|should\s+.*pit)\b",
     re.IGNORECASE,
@@ -22,7 +50,7 @@ STRATEGY_PATTERN = re.compile(
 MEMORY_RETENTION_CAP = 10
 MEMORY_STORE: deque[dict[str, Any]] = deque(maxlen=MEMORY_RETENTION_CAP)
 MAX_GRAPH_STEPS = 6
-MAX_GRAPH_DURATION_SECONDS = 5.0
+MAX_GRAPH_DURATION_SECONDS = 10.0  # Increased timeout for complex data fetching
 MAX_TOOL_RETRIES = 2
 RETRY_BACKOFF_SECONDS = 0.1
 RETRYABLE_ERROR_HINTS = ("timeout", "timed out", "temporarily unavailable", "connection", "rate limit")
@@ -42,9 +70,10 @@ class AgentState(TypedDict):
 
 def parse_query_intent(query: str) -> dict[str, Any]:
     normalized = query.upper()
-    driver_matches = [match.upper() for match in DRIVER_PATTERN.findall(normalized)]
+    raw_matches = DRIVER_PATTERN.findall(normalized)
     unique_drivers: list[str] = []
-    for code in driver_matches:
+    for match in raw_matches:
+        code = DRIVER_MAP.get(match, match)
         if code not in unique_drivers:
             unique_drivers.append(code)
 
@@ -117,9 +146,12 @@ def resolve_followup_node(state: AgentState) -> AgentState:
         return {**state, "intent": intent}
 
     if not intent.get("driver") and memory.get("last_driver"):
-        intent["driver"] = memory["last_driver"]
-        intent["needs_clarification"] = False
-        intent["clarification_message"] = None
+        # Only fallback to memory if it's likely a follow-up query
+        is_followup = FOLLOWUP_PATTERN.search(query) or len(query.split()) < 5
+        if is_followup:
+            intent["driver"] = memory["last_driver"]
+            intent["needs_clarification"] = False
+            intent["clarification_message"] = None
 
     if not YEAR_PATTERN.search(query) and memory.get("last_year"):
         intent["year"] = memory["last_year"]
@@ -140,6 +172,16 @@ def run_analysis_node(state: AgentState) -> AgentState:
     if intent["needs_clarification"]:
         return {**state, "error": intent["clarification_message"]}
 
+    memory = state.get("memory") or {}
+    new_memory_vals = {
+        "last_query": state["query"],
+        "last_event": intent["event"],
+        "last_year": intent["year"],
+        "last_session_type": intent["session_type"],
+    }
+    if intent.get("driver"):
+        new_memory_vals["last_driver"] = intent["driver"]
+    
     if intent.get("intent_type") == "strategy":
         strategy = strategy_analyzer(
             year=intent["year"],
@@ -147,17 +189,8 @@ def run_analysis_node(state: AgentState) -> AgentState:
             session_type=intent["session_type"],
             driver=intent["driver"],
         )
-        memory = state.get("memory") or {}
-        memory.update(
-            {
-                "last_query": state["query"],
-                "last_driver": intent["driver"],
-                "last_event": intent["event"],
-                "last_year": intent["year"],
-                "last_session_type": intent["session_type"],
-                "last_strategy_data": strategy,
-            }
-        )
+        new_memory_vals["last_strategy_data"] = strategy
+        memory.update(new_memory_vals)
         return {
             **state,
             "strategy_data": strategy,
@@ -187,17 +220,9 @@ def run_analysis_node(state: AgentState) -> AgentState:
                 "retryable_exhausted": True,
             },
         }
-    memory = state.get("memory") or {}
-    memory.update(
-        {
-            "last_query": state["query"],
-            "last_driver": intent["driver"],
-            "last_event": intent["event"],
-            "last_year": intent["year"],
-            "last_session_type": intent["session_type"],
-            "last_telemetry_data": telemetry,
-        }
-    )
+    
+    new_memory_vals["last_telemetry_data"] = telemetry
+    memory.update(new_memory_vals)
     return {
         **state,
         "telemetry_data": telemetry,
