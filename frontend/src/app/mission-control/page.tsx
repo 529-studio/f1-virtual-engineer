@@ -89,7 +89,7 @@ export default function MissionControlPage() {
     <main className="h-screen w-screen flex bg-background text-foreground transition-colors duration-500 overflow-hidden">
       {/* Left Sidebar Rail */}
       <nav className="w-16 border-r border-border bg-black/50 flex flex-col items-center py-6 gap-8 z-50 shrink-0">
-        <div className="h-8 w-8 bg-accent flex items-center justify-center font-black italic rounded-sm cursor-pointer" onClick={() => setTheme(theme === "apex" ? "mercedes" : "apex")}>
+        <div className="h-8 w-8 bg-accent flex items-center justify-center font-black italic rounded-sm">
           A
         </div>
         <div className="flex flex-col gap-6 text-white/40">
@@ -108,10 +108,10 @@ export default function MissionControlPage() {
       <div className="flex-1 flex flex-col min-w-0 h-full">
         {/* Header */}
         <header className="pt-8 px-10 pb-4 shrink-0">
-          <h1 className="monumental leading-[0.85] max-w-2xl truncate">
+          <h1 className="monumental leading-[0.85] w-full">
             {theme === "apex" ? "Apex-Intelligence Mission Control" : "Apex-Intelligence Mercedes Edition"}
           </h1>
-          <div className="flex items-center gap-4 mt-4">
+          <div className="flex items-center gap-6 mt-4">
             <form onSubmit={handleRunAnalysis} className="flex-1 max-w-xl">
               <input 
                 value={query}
@@ -120,7 +120,20 @@ export default function MissionControlPage() {
                 className="w-full bg-white/5 border border-white/10 px-4 py-2 readout text-[10px] uppercase tracking-widest outline-none focus:border-accent/50 transition-colors"
               />
             </form>
-            <p className="readout text-[10px] text-white/20 uppercase tracking-[0.2em] hidden sm:block">
+            <div className="flex items-center gap-3 border-l border-white/10 pl-6">
+              <span className="readout text-[9px] text-white/30 uppercase tracking-widest">Team Theme</span>
+              <button 
+                onClick={() => setTheme("apex")}
+                className={`w-4 h-4 rounded-full border ${theme === "apex" ? "border-white scale-125" : "border-white/20"} bg-[#FF2800] transition-all`}
+                title="Apex Default"
+              />
+              <button 
+                onClick={() => setTheme("mercedes")}
+                className={`w-4 h-4 rounded-full border ${theme === "mercedes" ? "border-white scale-125" : "border-white/20"} bg-[#00A19B] transition-all`}
+                title="Mercedes AMG"
+              />
+            </div>
+            <p className="readout text-[10px] text-white/20 uppercase tracking-[0.2em] ml-auto hidden xl:block">
               {result?.intent?.driver || "NO_DRIVER"} {"//"} {result?.intent?.event || "NO_EVENT"}
             </p>
           </div>
