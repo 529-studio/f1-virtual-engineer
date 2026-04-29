@@ -1,124 +1,33 @@
----
-name: f1-ui-motion-designer
-description: Design or rework F1-themed landing pages, product surfaces, and motion-first UI experiences for this indie-hacker repo. Use when a task asks for stronger visual identity, modern UI/UX direction, motion design, landing page restructuring, reference synthesis, or implementation planning for a cinematic but buildable frontend.
----
+# Skill: F1 UI/UX Motion Designer (Apple x Automotive Edition)
 
-# F1 UI Motion Designer
+Expert guide for transforming the Apex-Intelligence interface into a high-precision "Operator Surface".
 
-## Goal
+## Design Philosophy: "Surgical Mission Control"
+- **Data as the Hero**: AI does not "talk", it "annotates". Telemetry charts (FastF1) are the primary visual, AI insights are HUD overlays.
+- **Apple Aesthetic**: 
+  - Typography: SF Pro Display / Neo-Grotesk (Large, monumental headers, tracking -0.02em).
+  - Material: Glassmorphism (Background blur 20px, subtle borders 0.5px white/10%).
+  - Layout: Radical subtraction. If a pixel doesn't convey data, remove it.
+- **Automotive Precision**: Zero-radius buttons, monospace data labels, and high-contrast "Chiaroscuro" (Deep blacks vs targeted highlights).
 
-Create a landing page or product surface that feels unmistakably Formula 1:
+## Automotive Palette & Theme Map
+| Theme | Style | Primary | Surface | Accents |
+| :--- | :--- | :--- | :--- | :--- |
+| **Default (Apex)** | Racing Dark | #020617 | #0F172A | #EF4444 (Red-600) |
+| **Ferrari** | Editorial | #FFFFFF | #000000 | #FF2800 (Rosso Corsa) |
+| **Mercedes** | Silver Arrow | #00A19B | #1E1E1E | #C0C0C0 (Silver) |
+| **Red Bull** | Racing Bold | #0600EF | #000B21 | #FFEC00 (Yellow) |
+| **BMW** | Luxury Eng. | #FFFFFF | #1A1A1A | #0066B2 (BMW Blue) |
+| **Tesla** | Radical Sub. | #E2E2E2 | #000000 | #CC0000 (Red) |
+| **Bugatti** | Hypercar | #000000 | #000000 | #0000FF (Bugatti Blue) |
 
-- fast,
-- precise,
-- technical,
-- premium,
-- demoable by a solo builder.
+## Layout Rules (The "Cockpit" Grid)
+1. **The Navigation (Left)**: Thin sidebar (64px) for global mode switching (Live, Replay, Analytics).
+2. **The Command Center (Top)**: Minimal status bar (Active Driver, Session Time, Track Temp).
+3. **The Canvas (Center)**: 70% of viewport. Multi-layered FastF1 telemetry charts.
+4. **The Intelligence HUD (Right)**: Vertical drawer for AI Strategy recommendations and reasoning traces.
 
-Prefer a strong branded experience over generic SaaS blocks, but keep the implementation realistic for Next.js + Tailwind.
-
-## Design stance for this repo
-
-Optimize for an indie hacker MVP:
-
-- one memorable hero moment,
-- a small set of high-leverage motion patterns,
-- reusable visual primitives,
-- clear product understanding within 5 seconds,
-- performance and accessibility that survive real devices.
-
-Do not design an expensive agency-only concept that depends on custom WebGL, video production, or weeks of asset work unless the user explicitly asks for it.
-
-## Core F1 visual vocabulary
-
-Use these motifs selectively, not all at once:
-
-- telemetry traces,
-- speed-line gradients,
-- sector timing bars,
-- racing line curves,
-- tyre compound color accents,
-- carbon-fiber or brushed-metal texture hints,
-- pit-wall dashboard cards,
-- grid systems and HUD overlays,
-- countdown / lap / delta language,
-- redline or DRS-style highlight moments.
-
-## Recommended UX structure
-
-For a landing page, bias toward this sequence:
-
-1. **Cinematic hero**
-   - bold statement of product value,
-   - one dominant motion moment,
-   - primary CTA,
-   - supporting telemetry/HUD artifact.
-2. **What the product actually does**
-   - 3 to 4 capability modules,
-   - each tied to user outcomes, not vague AI claims.
-3. **Why this feels different**
-   - strategy reasoning,
-   - telemetry-backed insights,
-   - explainability,
-   - fast demo flow.
-4. **Interface preview / mission-control strip**
-   - show how the dashboard or query flow works.
-5. **Conversion CTA**
-   - enter mission control,
-   - explore telemetry,
-   - see strategy analysis.
-
-## Motion heuristics
-
-Prefer motion that communicates speed, precision, and system confidence:
-
-- staggered reveal for headline and metrics,
-- scroll-linked opacity/translate/scale changes,
-- sticky storytelling blocks,
-- metric counters or telemetry sweeps,
-- horizontal track or timeline movement,
-- hover states with subtle glow/parallax,
-- section transitions that feel like mode switches.
-
-Avoid:
-
-- random floating blobs,
-- too many simultaneous loops,
-- heavy animation with no information value,
-- mobile-hostile parallax,
-- flashy effects that obscure CTA clarity.
-
-## Implementation guidance
-
-Default stack recommendation:
-
-- Tailwind for layout and visual system,
-- CSS gradients, masks, shadows, and transforms for most effects,
-- Framer Motion for orchestrated entrance/scroll/hover motion,
-- optional lightweight SVG paths for telemetry/racing-line visuals.
-
-Only escalate to heavier animation stacks if the user explicitly wants advanced scenes that cannot be achieved with CSS + Framer Motion.
-
-## Technical review checklist
-
-Before implementation or issue creation, define:
-
-- visual concept in one sentence,
-- section list,
-- motion system,
-- component boundaries,
-- fallback behavior for reduced motion,
-- mobile simplifications,
-- performance budget,
-- acceptance criteria tied to visible UX outcomes.
-
-## Output expectations
-
-When using this skill, provide:
-
-1. concept direction,
-2. references/patterns worth borrowing,
-3. implementation architecture,
-4. phased delivery plan,
-5. explicit non-goals,
-6. measurable acceptance criteria.
+## Motion & Interaction
+- **Entrance**: Cinematic fades for monumental headers.
+- **Data updates**: Subtle "shimmer" effect when new telemetry arrives.
+- **Hover**: 0.5px border glow using the Team's Primary color.
