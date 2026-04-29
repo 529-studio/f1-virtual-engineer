@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
-import { analyzeTelemetry, AnalyzeResponse } from "@/services/api";
+import { FormEvent, useEffect } from "react";
+import { analyzeTelemetry } from "@/services/api";
+import { useMissionStore } from "@/lib/store";
 
 const ICON_SIZE = 20;
 
@@ -58,10 +59,12 @@ function generateMockPath(type: string) {
 }
 
 export default function MissionControlPage() {
-  const [theme, setTheme] = useState<"apex" | "mercedes">("apex");
-  const [query, setQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<AnalyzeResponse | null>(null);
+  const { 
+    theme, setTheme, 
+    query, setQuery, 
+    result, setResult, 
+    isLoading, setIsLoading 
+  } = useMissionStore();
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
