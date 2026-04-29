@@ -1,30 +1,63 @@
 @import "tailwindcss";
 
 :root {
-  --background: #05070b;
-  --foreground: #f8fafc;
-  --font-sans-app: Inter, Arial, Helvetica, sans-serif;
-  --font-mono-app: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --background: #000000;
+  --foreground: #ffffff;
+  --accent: #ff2800; /* Apex Red / Ferrari Rosso Corsa */
+  --surface: #0a0a0a;
+  --border: rgba(255, 255, 255, 0.1);
+  --font-sans-app: "Inter", "SF Pro Display", -apple-system, sans-serif;
+  --font-mono-app: "JetBrains Mono", "SFMono-Regular", monospace;
+}
+
+[data-theme="mercedes"] {
+  --background: #0b0f10;
+  --foreground: #e1e1e1;
+  --accent: #00a19b; /* Mercedes AMG Petronas Teal */
+  --surface: #1e2528;
+  --border: rgba(0, 161, 155, 0.2);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
   --font-sans: var(--font-sans-app);
   --font-mono: var(--font-mono-app);
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top, rgba(239, 68, 68, 0.12), transparent 24%),
-    linear-gradient(180deg, #05070b 0%, #07111b 48%, #05070b 100%);
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans-app);
+}
+
+/* Cockpit Glassmorphism */
+.glass {
+  background: rgba(10, 10, 10, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 0.5px solid var(--border);
+}
+
+/* Monumental Typography */
+.monumental {
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  line-height: 0.9;
+}
+
+/* Monospace sensor readout */
+.readout {
+  font-family: var(--font-mono-app);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 .hero-grid {
