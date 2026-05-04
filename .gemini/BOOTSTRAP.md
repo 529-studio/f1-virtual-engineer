@@ -6,7 +6,11 @@ This folder contains the operating system for Gemini within the Apex-Intelligenc
 Every time a new session starts, the Agent MUST:
 1.  **Read Mandates**: Load `.gemini/MANDATES.md` to understand core constraints.
 2.  **Load Skills**: Recursively read all files in `.gemini/skills/`.
-3.  **Execute Flows**: Check `.gemini/flows/` for any scheduled automation (e.g., daily status checks).
+3.  **Compaction Check**: If context history is deep, summarize key decisions into a "Working Checkpoint" before proceeding.
+
+## Harness Patterns (Autonomous Mode)
+- **Generator-Evaluator**: When implementing complex logic, I will first write the implementation (Generator) then peer-review it against mandates (Evaluator) before asking for user approval.
+- **Continuous Grader**: Use `/quality-gate` skills to prove correctness after every atomic edit.
 
 ## Skills Directory Guide
 - `f1-data-expert.md`: Deep knowledge of FastF1 and race telemetry.
