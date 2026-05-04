@@ -65,7 +65,8 @@ def get_session_telemetry_summary(
 
     try:
         session = fastf1.get_session(year, event, session_type)
-        session.load()
+        # Optimization: only load laps and telemetry for this summary
+        session.load(laps=True, telemetry=True, weather=False, messages=False)
         laps = session.laps.pick_driver(driver)
         if laps.empty:
             return {
@@ -120,7 +121,8 @@ def extract_tyre_wear_features(
     driver = driver.upper()
     try:
         session = fastf1.get_session(year, event, session_type)
-        session.load()
+        # Optimization: only load laps and weather for strategy analysis
+        session.load(laps=True, telemetry=False, weather=True, messages=False)
         laps = session.laps.pick_driver(driver)
         if laps.empty:
             return {

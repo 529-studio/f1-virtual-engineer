@@ -1,3 +1,4 @@
+import copy
 import re
 from collections import deque
 from time import monotonic, sleep
@@ -13,44 +14,98 @@ DEFAULT_SESSION_TYPE = "R"
 DEFAULT_YEAR = 2023
 DRIVER_MAP = {
     "VERSTAPPEN": "VER",
+    "MAX VERSTAPPEN": "VER",
+    "MAX": "VER",
     "HAMILTON": "HAM",
+    "LEWIS HAMILTON": "HAM",
+    "LEWIS": "HAM",
     "NORRIS": "NOR",
+    "LANDO NORRIS": "NOR",
+    "LANDO": "NOR",
     "LECLERC": "LEC",
+    "CHARLES LECLERC": "LEC",
+    "CHARLES": "LEC",
     "SAINZ": "SAI",
+    "CARLOS SAINZ": "SAI",
+    "CARLOS": "SAI",
     "RUSSELL": "RUS",
+    "GEORGE RUSSELL": "RUS",
+    "GEORGE": "RUS",
     "PEREZ": "PER",
+    "SERGIO PEREZ": "PER",
+    "SERGIO": "PER",
+    "CHECO": "PER",
     "ALONSO": "ALO",
+    "FERNANDO ALONSO": "ALO",
+    "FERNANDO": "ALO",
     "PIASTRI": "PIA",
+    "OSCAR PIASTRI": "PIA",
+    "OSCAR": "PIA",
     "OCON": "OCO",
+    "ESTEBAN OCON": "OCO",
+    "ESTEBAN": "OCO",
     "GASLY": "GAS",
+    "PIERRE GASLY": "GAS",
+    "PIERRE": "GAS",
     "TSUNODA": "TSU",
+    "YUKI TSUNODA": "TSU",
+    "YUKI": "TSU",
     "ALBON": "ALB",
+    "ALEX ALBON": "ALB",
+    "ALEX": "ALB",
     "STROLL": "STR",
+    "LANCE STROLL": "STR",
+    "LANCE": "STR",
     "RICCIARDO": "RIC",
+    "DANIEL RICCIARDO": "RIC",
+    "DANIEL": "RIC",
     "HULKENBERG": "HUL",
+    "NICO HULKENBERG": "HUL",
+    "NICO": "HUL",
     "MAGNUSSEN": "MAG",
+    "KEVIN MAGNUSSEN": "MAG",
+    "KEVIN": "MAG",
     "BOTTAS": "BOT",
+    "VALTTERI BOTTAS": "BOT",
+    "VALTTERI": "BOT",
     "ZHOU": "ZHO",
+    "GUANYU ZHOU": "ZHO",
+    "GUANYU": "ZHO",
     "SARGEANT": "SAR",
+    "LOGAN SARGEANT": "SAR",
+    "LOGAN": "SAR",
+    "BEARMAN": "BEA",
+    "OLIVER BEARMAN": "BEA",
+    "OLLIE": "BEA",
 }
+# Sort keys by length descending to match longest possible driver name first
+sorted_driver_names = sorted(DRIVER_MAP.keys(), key=len, reverse=True)
 DRIVER_PATTERN = re.compile(
-    r"\b(HAM|VER|NOR|LEC|SAI|RUS|PER|ALO|PIA|OCO|GAS|TSU|ALB|STR|RIC|HUL|MAG|BOT|ZHO|SAR|"
-    + "|".join(DRIVER_MAP.keys())
+    r"\b("
+    + "|".join(re.escape(name) for name in sorted_driver_names)
+    + r"|HAM|VER|NOR|LEC|SAI|RUS|PER|ALO|PIA|OCO|GAS|TSU|ALB|STR|RIC|HUL|MAG|BOT|ZHO|SAR"
     + r")\b",
     re.IGNORECASE,
 )
 YEAR_PATTERN = re.compile(r"\b(20\d{2})\b")
 SESSION_PATTERN = re.compile(r"\b(FP1|FP2|FP3|Q|R|S|SQ|race|qualifying)\b", re.IGNORECASE)
 COMPARE_PATTERN = re.compile(r"\b(compare|versus|vs|so voi|against)\b", re.IGNORECASE)
-FOLLOWUP_PATTERN = re.compile(r"\b(and|what\s+about|how\s+about|him|her|them|his|their)\b", re.IGNORECASE)
+FOLLOWUP_PATTERN = re.compile(r"\b(and|what\s+about|how\s+about|him|her|them|his|their|also|furthermore|he|she|it|again)\b", re.IGNORECASE)
 STRATEGY_PATTERN = re.compile(
-    r"\b(strategy|pit|pit\s+window|undercut|overcut|tyre|tire|wear|degradation|should\s+.*pit)\b",
+    r"\b(strategy|pit|pit\s+window|undercut|overcut|tyre|tire|wear|degradation|should\s+.*pit|box)\b",
     re.IGNORECASE,
 )
+DOMAIN_KEYWORDS = ("strategy", "telemetry", "pace", "data", "result", "box", "speed", "gear", "rpm", "pit", "window", "pit soon", "should he", "should she")
+COMMON_WORDS = {
+    "what", "about", "how", "show", "tell", "the", "and", "me", "is", "was", "were", 
+    "for", "in", "of", "to", "with", "his", "her", "again", "more", "also", "please", 
+    "can", "you", "it", "its", "at", "on", "from", "by", "give", "display", "check", 
+    "look", "at", "for", "get", "inform", "details", "info", "information"
+}
 MEMORY_RETENTION_CAP = 10
 MEMORY_STORE: deque[dict[str, Any]] = deque(maxlen=MEMORY_RETENTION_CAP)
 MAX_GRAPH_STEPS = 6
-MAX_GRAPH_DURATION_SECONDS = 10.0  # Increased timeout for complex data fetching
+MAX_GRAPH_DURATION_SECONDS = 15.0  # Increased timeout for complex data fetching
 MAX_TOOL_RETRIES = 2
 RETRY_BACKOFF_SECONDS = 0.1
 RETRYABLE_ERROR_HINTS = ("timeout", "timed out", "temporarily unavailable", "connection", "rate limit")
@@ -73,7 +128,7 @@ def parse_query_intent(query: str) -> dict[str, Any]:
     raw_matches = DRIVER_PATTERN.findall(normalized)
     unique_drivers: list[str] = []
     for match in raw_matches:
-        code = DRIVER_MAP.get(match, match)
+        code = DRIVER_MAP.get(match.upper(), match.upper())
         if code not in unique_drivers:
             unique_drivers.append(code)
 
@@ -110,9 +165,9 @@ def parse_query_intent(query: str) -> dict[str, Any]:
         intent["clarification_message"] = (
             "Multiple driver codes detected. Please specify exactly one driver for this query."
         )
-    elif not intent["driver"]:
+    elif not unique_drivers:
         intent["needs_clarification"] = True
-        intent["clarification_message"] = "Please provide a 3-letter driver code (for example: HAM, VER, NOR)."
+        intent["clarification_message"] = "Please provide a 3-letter driver code (for example: HAM, VER, NOR) or a full driver name."
 
     return intent
 
@@ -127,15 +182,18 @@ def parse_intent_node(state: AgentState) -> AgentState:
 
 
 def resolve_followup_node(state: AgentState) -> AgentState:
-    intent = {**state["intent"]}
+    intent = copy.deepcopy(state["intent"])
     memory = state.get("memory") or {}
     query = state["query"]
 
-    if len(intent.get("driver_candidates", [])) > 1:
-        intent["needs_clarification"] = True
-        intent["clarification_message"] = (
-            "Multiple driver codes detected. Please specify exactly one driver for this query."
-        )
+    # If a driver was already found, we don't need to fallback
+    if intent.get("driver"):
+        intent["needs_clarification"] = False
+        intent["clarification_message"] = None
+        return {**state, "intent": intent}
+
+    # Only skip if we have multiple drivers (actual ambiguity)
+    if intent.get("needs_clarification") and intent.get("driver_candidates") and len(intent["driver_candidates"]) > 1:
         return {**state, "intent": intent}
 
     if not intent.get("driver") and COMPARE_PATTERN.search(query):
@@ -145,14 +203,39 @@ def resolve_followup_node(state: AgentState) -> AgentState:
         )
         return {**state, "intent": intent}
 
+    # Memory fallback logic for DRIVER
     if not intent.get("driver") and memory.get("last_driver"):
-        # Only fallback to memory if it's likely a follow-up query
-        is_followup = FOLLOWUP_PATTERN.search(query) or len(query.split()) < 5
-        if is_followup:
+        q_lower = query.lower()
+        is_explicit_followup = bool(FOLLOWUP_PATTERN.search(query))
+        
+        # Improved unknown driver detection: look for any word that is NOT a known driver, keyword, or common word
+        words = re.findall(r"\b\w+\b", query)
+        domain_tokens = set()
+        for k in DOMAIN_KEYWORDS:
+            for token in k.split():
+                domain_tokens.add(token.upper())
+                
+        potential_unknown_drivers = [w for w in words 
+                                   if w.upper() not in DRIVER_MAP 
+                                   and w.upper() not in domain_tokens
+                                   and w.lower() not in COMMON_WORDS
+                                   and not w.isdigit()]
+        
+        # More restrictive short query check
+        is_very_short_followup = len(query.split()) < 4 and any(k in q_lower for k in DOMAIN_KEYWORDS)
+        
+        if (is_explicit_followup or is_very_short_followup) and not potential_unknown_drivers:
             intent["driver"] = memory["last_driver"]
             intent["needs_clarification"] = False
             intent["clarification_message"] = None
+        elif potential_unknown_drivers:
+            intent["needs_clarification"] = True
+            intent["clarification_message"] = f"I detected '{potential_unknown_drivers[0]}' but I only have data for official F1 drivers (e.g. HAM, VER, NOR). Please provide their 3-letter code."
+        else:
+            intent["needs_clarification"] = True
+            intent["clarification_message"] = "Please provide a 3-letter driver code (for example: HAM, VER, NOR) or a full driver name."
 
+    # Contextual fallbacks for Year, Session, Event
     if not YEAR_PATTERN.search(query) and memory.get("last_year"):
         intent["year"] = memory["last_year"]
     if not SESSION_PATTERN.search(query) and memory.get("last_session_type"):
@@ -160,9 +243,11 @@ def resolve_followup_node(state: AgentState) -> AgentState:
     if all(token not in query.upper() for token in ("JAPAN", "MONACO", "BRITISH", "SILVERSTONE")) and memory.get("last_event"):
         intent["event"] = memory["last_event"]
 
+    # Final check for driver
     if not intent.get("driver"):
         intent["needs_clarification"] = True
-        intent["clarification_message"] = "Please provide a 3-letter driver code (for example: HAM, VER, NOR)."
+        if not intent.get("clarification_message"):
+            intent["clarification_message"] = "Please provide a 3-letter driver code (for example: HAM, VER, NOR) or a full driver name."
 
     return {**state, "intent": intent}
 
@@ -339,7 +424,8 @@ def _call_with_retry(
 
 
 def analyze_query(query: str) -> dict[str, Any]:
-    memory_snapshot = _build_memory_snapshot()
+    import copy
+    memory_snapshot = copy.deepcopy(_build_memory_snapshot())
     termination_reason = "completed"
     start_time = monotonic()
     try:
