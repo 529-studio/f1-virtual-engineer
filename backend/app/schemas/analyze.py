@@ -25,6 +25,7 @@ class AnalyzeRequest(BaseModel):
 
 class StrategySummary(BaseModel):
     recommended_pit_window_laps: list[int]
+    target_lap: int | None = Field(default=None, description="The specific lap recommended for the pit stop")
     undercut_risk: str
     overcut_risk: str
     confidence_band: str

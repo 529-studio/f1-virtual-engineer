@@ -20,36 +20,52 @@ const navIcons = [
   { id: "settings", d: "M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" },
 ];
 
-const TelemetryChart = ({ label, value, unit, color, isLoading }: { label: string, value: string, unit: string, color: string, isLoading: boolean }) => (
-  <div className="flex-1 min-h-0 flex flex-col group overflow-hidden">
-    <div className="flex justify-between items-end mb-1">
-      <h3 className="readout text-[11px] uppercase tracking-wider text-white/50">{label} ({unit})</h3>
-      <div className="flex items-baseline gap-1">
-        <span className="readout text-2xl font-bold">{isLoading ? "---" : value}</span>
-        <span className="readout text-[10px] uppercase text-white/30">{unit}</span>
+const TelemetryChart = ({ label, value, unit, color, isLoading, markerLap }: { label: string, value: string, unit: string, color: string, isLoading: boolean, markerLap?: number }) => {
+  // Calculate marker X position (simulated: lap / total_laps * 1000)
+  // Total laps fixed at 71 for this demo
+  const markerX = markerLap ? (markerLap / 71) * 1000 : null;
+
+  return (
+    <div className="flex-1 min-h-0 flex flex-col group overflow-hidden">
+      <div className="flex justify-between items-end mb-1">
+        <h3 className="readout text-[11px] uppercase tracking-wider text-white/50">{label} ({unit})</h3>
+        <div className="flex items-baseline gap-1">
+          <span className="readout text-2xl font-bold">{isLoading ? "---" : value}</span>
+          <span className="readout text-[10px] uppercase text-white/30">{unit}</span>
+        </div>
+      </div>
+      <div className="flex-1 relative border border-white/5 bg-white/2 backdrop-blur-sm overflow-hidden">
+        {isLoading ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-8 h-[1px] bg-accent/30 animate-pulse" />
+          </div>
+        ) : (
+          <svg className="w-full h-full" viewBox="0 0 1000 100" preserveAspectRatio="none">
+            <path 
+              d={generateMockPath(label)} 
+              fill="none" 
+              stroke={color} 
+              strokeWidth="1.5" 
+              className="opacity-80"
+            />
+            
+            {markerX && (
+              <g className="animate-in fade-in zoom-in duration-500">
+                <line x1={markerX} y1="0" x2={markerX} y2="100" stroke="#FF2800" strokeWidth="1" strokeDasharray="4 2" />
+                <circle cx={markerX} cy="30%" r="4" fill="#FF2800" className="animate-pulse" />
+                <rect x={markerX + 5} y="20%" width="40" height="14" fill="#FF2800" />
+                <text x={markerX + 8} y="29%" className="readout font-black fill-white text-[9px]" style={{ fontSize: '9px' }}>BOX</text>
+              </g>
+            )}
+
+            <circle cx="85%" cy="30%" r="3" fill={color} />
+            <text x="86%" y="28%" className="readout text-[24px] fill-white/80" style={{ fontSize: '24px' }}>{value}</text>
+          </svg>
+        )}
       </div>
     </div>
-    <div className="flex-1 relative border border-white/5 bg-white/2 backdrop-blur-sm overflow-hidden">
-      {isLoading ? (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-8 h-[1px] bg-accent/30 animate-pulse" />
-        </div>
-      ) : (
-        <svg className="w-full h-full" viewBox="0 0 1000 100" preserveAspectRatio="none">
-          <path 
-            d={generateMockPath(label)} 
-            fill="none" 
-            stroke={color} 
-            strokeWidth="1.5" 
-            className="opacity-80"
-          />
-          <circle cx="85%" cy="30%" r="3" fill={color} />
-          <text x="86%" y="28%" className="readout text-[24px] fill-white/80" style={{ fontSize: '24px' }}>{value}</text>
-        </svg>
-      )}
-    </div>
-  </div>
-);
+  );
+};
 
 // Helper to generate different "vibe" paths for charts
 function generateMockPath(type: string) {
@@ -150,6 +166,7 @@ export default function MissionControlPage() {
             unit="KPH" 
             color="currentColor" 
             isLoading={isLoading}
+            markerLap={strategy?.target_lap}
           />
           <TelemetryChart 
             label="Throttle" 
@@ -157,6 +174,7 @@ export default function MissionControlPage() {
             unit="%" 
             color="currentColor" 
             isLoading={isLoading}
+            markerLap={strategy?.target_lap}
           />
           <TelemetryChart 
             label="Brake" 
@@ -164,6 +182,7 @@ export default function MissionControlPage() {
             unit="BAR" 
             color="currentColor" 
             isLoading={isLoading}
+            markerLap={strategy?.target_lap}
           />
         </div>
 

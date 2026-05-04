@@ -403,8 +403,11 @@ def analyze_query(query: str) -> dict[str, Any]:
     strategy_bundle = result.get("strategy_data") or {}
     strategy_payload = None
     if strategy_bundle:
+        strategy_data = strategy_bundle.get("strategy") or {}
+        pit_window = strategy_data.get("recommended_pit_window_laps", [])
         strategy_payload = {
-            **(strategy_bundle.get("strategy") or {}),
+            **strategy_data,
+            "target_lap": pit_window[0] if pit_window else None,
             "fallback": strategy_bundle.get("fallback", False),
             "fallback_reason": strategy_bundle.get("fallback_reason"),
         }
