@@ -70,10 +70,11 @@ if [ "$need_backend" -eq 1 ]; then
 fi
 
 if [ "$need_frontend" -eq 1 ]; then
-  echo "[self-qa] Running frontend lint..."
+  echo "[self-qa] Running frontend lint & build..."
   (
     cd frontend
     npm run lint
+    npm run build
   )
 fi
 

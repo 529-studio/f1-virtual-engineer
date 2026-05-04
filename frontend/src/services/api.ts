@@ -13,6 +13,7 @@ export interface TelemetryChannel {
 
 export interface StrategyData {
   recommended_pit_window_laps: [number, number] | number[];
+  target_lap: number | null;
   undercut_risk: string;
   overcut_risk: string;
   confidence_band: string;
@@ -40,6 +41,8 @@ export interface AnalyzeResponse {
     speed?: TelemetryChannel;
     gear?: TelemetryChannel;
     rpm?: TelemetryChannel;
+    throttle?: TelemetryChannel;
+    brake?: TelemetryChannel;
     fallback?: boolean;
     fallback_reason?: string | null;
   };

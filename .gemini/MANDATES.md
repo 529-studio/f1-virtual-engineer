@@ -26,5 +26,5 @@
 ## L3: Verification Gate (DoD)
 1. Code implements requirement.
 2. 80%+ test coverage for new logic.
-3. Lint/Type-check passes.
+3. Lint/Type-check passes (`npm run build` for frontend).
 4. Documentation updated.
