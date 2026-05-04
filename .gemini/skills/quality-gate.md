@@ -8,7 +8,7 @@ The final checkpoint before any PR or Merge.
     - Check API response times (< 500ms for cached data).
 2.  **Frontend Integrity**:
     - `npm run lint`.
-    - `tsc` (Type checking).
+    - `npm run build` (Full production build + Type checking).
 3.  **Harness Check**:
     - Verify that no hardcoded secrets or sensitive data are left in the diff.
     - Confirm all new logic has a corresponding entry in `docs/issues`.

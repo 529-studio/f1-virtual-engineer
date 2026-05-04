@@ -74,9 +74,11 @@ Keep unrelated refactors out of the issue branch.
 
 Run the repo-local guardrails in this order:
 
-1. `./.codex/scripts/self-qa.sh --staged`
+1. `./.codex/scripts/self-qa.sh --staged` (This MUST include `npm run build` for frontend changes).
 2. `./.codex/scripts/pre-commit-guard.sh`
 3. make sure commit message will pass `./.codex/scripts/commit-msg-guard.sh`
+
+**CRITICAL**: If any frontend code is changed, you MUST verify that `npm run build` passes locally before pushing. No exceptions.
 
 Also verify:
 
