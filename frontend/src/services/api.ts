@@ -50,7 +50,29 @@ export interface AnalyzeResponse {
   error?: string | null;
 }
 
+export interface EventInfo {
+  name: string;
+  location: string;
+  round: number;
+  official_name: string;
+}
+
+export interface ScheduleResponse {
+  year: number;
+  events: EventInfo[];
+  status: "success" | "error";
+  error?: string | null;
+}
+
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "/api";
+
+export async function getEventsByYear(year: number): Promise<ScheduleResponse> {
+  const response = await fetch(`${apiBaseUrl}/events/${year}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch events for ${year}`);
+  }
+  return (await response.json()) as ScheduleResponse;
+}
 
 export async function analyzeTelemetry(
   payload: AnalyzeRequest,
