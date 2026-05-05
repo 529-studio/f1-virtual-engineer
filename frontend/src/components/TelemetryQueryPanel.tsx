@@ -1,22 +1,44 @@
 "use client";
 
-import { FormEvent, ReactNode, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { 
+  Activity, 
+  ChevronRight, 
+  HelpCircle, 
+  Info, 
+  Zap, 
+  Target, 
+  TrendingUp,
+  X
+} from "lucide-react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 
-import { analyzeTelemetry, AnalyzeResponse, StrategyData } from "@/services/api";
+import { analyzeTelemetry, AnalyzeResponse, StrategyData, getEventsByYear, EventInfo } from "@/services/api";
 
 const DRIVER_OPTIONS = [
-  { code: "HAM", label: "Lewis Hamilton" },
   { code: "VER", label: "Max Verstappen" },
+  { code: "HAM", label: "Lewis Hamilton" },
   { code: "NOR", label: "Lando Norris" },
+  { code: "LEC", label: "Charles Leclerc" },
+  { code: "SAI", label: "Carlos Sainz" },
+  { code: "RUS", label: "George Russell" },
+  { code: "PIA", label: "Oscar Piastri" },
+  { code: "PER", label: "Sergio Perez" },
+  { code: "ALO", label: "Fernando Alonso" },
+  { code: "STR", label: "Lance Stroll" },
+  { code: "TSU", label: "Yuki Tsunoda" },
+  { code: "ALB", label: "Alexander Albon" },
+  { code: "GAS", label: "Pierre Gasly" },
+  { code: "OCO", label: "Esteban Ocon" },
+  { code: "HUL", label: "Nico Hulkenberg" },
+  { code: "MAG", label: "Kevin Magnussen" },
+  { code: "BOT", label: "Valtteri Bottas" },
+  { code: "ZHO", label: "Guanyu Zhou" },
+  { code: "RIC", label: "Daniel Ricciardo" },
+  { code: "BEA", label: "Oliver Bearman" },
 ];
 
-const EVENT_OPTIONS = [
-  { value: "Japanese Grand Prix", label: "Japanese GP" },
-  { value: "Monaco Grand Prix", label: "Monaco GP" },
-  { value: "British Grand Prix", label: "British GP" },
-];
-
-const YEAR_OPTIONS = [2023, 2024];
+const YEAR_OPTIONS = [2023, 2024, 2025];
 
 const SESSION_OPTIONS = [
   { value: "FP1", label: "Practice 1" },
@@ -31,19 +53,57 @@ interface TelemetryQueryPanelProps {
 export function TelemetryQueryPanel({
   variant = "preview",
 }: TelemetryQueryPanelProps) {
-  const [query, setQuery] = useState("Should HAM pit soon in Japanese GP 2023 race?");
-  const [driver, setDriver] = useState("HAM");
+  const [driver, setDriver] = useState("VER");
   const [eventName, setEventName] = useState("Japanese Grand Prix");
   const [year, setYear] = useState(2023);
   const [sessionType, setSessionType] = useState("R");
+  const [availableEvents, setAvailableEvents] = useState<EventInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingEvents, setIsFetchingEvents] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    async function fetchEvents() {
+      setIsFetchingEvents(true);
+      try {
+        const response = await getEventsByYear(year);
+        if (response.status === "success") {
+          setAvailableEvents(response.events);
+          // If current event is not in new list, reset to first event
+          if (response.events.length > 0 && !response.events.some(e => e.name === eventName)) {
+            setEventName(response.events[0].name);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch events:", err);
+      } finally {
+        setIsFetchingEvents(false);
+      }
+    }
+    fetchEvents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year]);
+
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem("apex-tutorial-seen");
+    if (!hasSeenTutorial) {
+      // Defer to avoid synchronous setState warning in effect
+      const timeout = setTimeout(() => setShowTutorial(true), 100);
+      return () => clearTimeout(timeout);
+    }
+  }, []);
+
+  const closeTutorial = () => {
+    setShowTutorial(false);
+    localStorage.setItem("apex-tutorial-seen", "true");
+  };
 
   const isDashboard = variant === "dashboard";
 
   const statusTag = useMemo(() => {
-    if (isLoading) {
+    if (isLoading || isFetchingEvents) {
       return "LOADING";
     }
     if (errorMessage) {
@@ -53,12 +113,12 @@ export function TelemetryQueryPanel({
       return "READY";
     }
     return "IDLE";
-  }, [errorMessage, isLoading, result]);
+  }, [errorMessage, isLoading, result, isFetchingEvents]);
 
   const driverLabel =
     DRIVER_OPTIONS.find((option) => option.code === driver)?.label ?? driver;
   const eventLabel =
-    EVENT_OPTIONS.find((option) => option.value === eventName)?.label ?? eventName;
+    availableEvents.find((e) => e.name === eventName)?.name ?? eventName;
   const sessionLabel =
     SESSION_OPTIONS.find((option) => option.value === sessionType)?.label ??
     sessionType;
@@ -133,10 +193,13 @@ export function TelemetryQueryPanel({
     };
   }, [result]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleAction(intent: "telemetry" | "strategy") {
     setIsLoading(true);
     setErrorMessage(null);
+
+    const query = intent === "strategy" 
+      ? `Predict strategy and pit window for ${driver}` 
+      : `Show telemetry pace for ${driver}`;
 
     try {
       const response = await analyzeTelemetry({
@@ -176,8 +239,31 @@ export function TelemetryQueryPanel({
           </span>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+        <div className="mt-5 space-y-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <select
+              value={year}
+              onChange={(event) => setYear(Number(event.target.value))}
+              className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-xs text-slate-100 outline-none transition focus:border-red-500/50"
+            >
+              {YEAR_OPTIONS.map((y) => (
+                <option key={y} value={y}>
+                  {y} Season
+                </option>
+              ))}
+            </select>
+            <select
+              value={eventName}
+              onChange={(event) => setEventName(event.target.value)}
+              className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-xs text-slate-100 outline-none transition focus:border-red-500/50"
+              disabled={isFetchingEvents}
+            >
+              {availableEvents.map((event) => (
+                <option key={event.round} value={event.name}>
+                  {event.name}
+                </option>
+              ))}
+            </select>
             <select
               value={driver}
               onChange={(event) => setDriver(event.target.value)}
@@ -185,26 +271,28 @@ export function TelemetryQueryPanel({
             >
               {DRIVER_OPTIONS.map((option) => (
                 <option key={option.code} value={option.code}>
-                  {option.label} ({option.code})
+                  {option.label}
                 </option>
               ))}
             </select>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-red-500/50 md:col-span-2"
-              placeholder="Ask a telemetry or strategy question..."
-              required
-            />
           </div>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="rounded-full bg-red-700 px-4 py-3 text-xs font-bold uppercase tracking-[0.25em] text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isLoading ? "Running analysis..." : "Run analysis"}
-          </button>
-        </form>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleAction("telemetry")}
+              disabled={isLoading || isFetchingEvents}
+              className="flex-1 rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-white transition hover:bg-slate-700 disabled:opacity-50"
+            >
+              Pace Analysis
+            </button>
+            <button
+              onClick={() => handleAction("strategy")}
+              disabled={isLoading || isFetchingEvents}
+              className="flex-1 rounded-xl bg-red-700 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-white transition hover:bg-red-600 disabled:opacity-50"
+            >
+              Pit Strategy
+            </button>
+          </div>
+        </div>
 
         <div className="mt-6 min-h-48 rounded-xl border border-dashed border-slate-800 bg-slate-950/50 p-4">
           {isLoading && (
@@ -284,8 +372,8 @@ export function TelemetryQueryPanel({
         <ContextCard label="Confidence" value={strategySignals.confidence} detail={statusTag} />
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-6">
+      <div className="mt-6 space-y-4">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
           <Field label="Driver">
             <select
               value={driver}
@@ -305,12 +393,19 @@ export function TelemetryQueryPanel({
               value={eventName}
               onChange={(event) => setEventName(event.target.value)}
               className="dashboard-input"
+              disabled={isFetchingEvents}
             >
-              {EVENT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
+              {availableEvents.map((event) => (
+                <option key={event.round} value={event.name}>
+                  {event.name} ({event.location})
                 </option>
               ))}
+              {availableEvents.length === 0 && !isFetchingEvents && (
+                <option value="">No events found</option>
+              )}
+              {isFetchingEvents && (
+                <option value="">Loading events...</option>
+              )}
             </select>
           </Field>
 
@@ -341,31 +436,38 @@ export function TelemetryQueryPanel({
               ))}
             </select>
           </Field>
+        </div>
 
-          <Field label="Query" className="lg:col-span-2">
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="dashboard-input"
-              placeholder="Ask a telemetry or strategy question..."
-              required
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between pt-2">
+          <div className="flex flex-wrap gap-2">
+            <ActionButton 
+              onClick={() => handleAction("telemetry")}
+              disabled={isLoading}
+              icon={<TrendingUp className="w-4 h-4" />}
+              label="Analyze Pace"
+              sublabel="Telemetry Summary"
             />
-          </Field>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-slate-500">
-            This slice now supports baseline strategy recommendations while keeping assumptions visible and fallbacks honest.
+            <ActionButton 
+              onClick={() => handleAction("strategy")}
+              disabled={isLoading}
+              variant="accent"
+              icon={<Target className="w-4 h-4" />}
+              label="Predict Strategy"
+              sublabel="Pit Window & Risk"
+            />
+            <button 
+              onClick={() => setShowTutorial(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 transition hover:bg-white/10"
+            >
+              <HelpCircle className="w-4 h-4" />
+              How to use
+            </button>
+          </div>
+          <p className="max-w-xs text-[10px] uppercase tracking-widest leading-relaxed text-slate-500">
+            Select context, then choose an action. No manual prompting required.
           </p>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="inline-flex items-center justify-center rounded-full bg-red-600 px-5 py-3 text-xs font-bold uppercase tracking-[0.25em] text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isLoading ? "Running analysis..." : "Run analysis"}
-          </button>
         </div>
-      </form>
+      </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
@@ -444,22 +546,14 @@ export function TelemetryQueryPanel({
             )}
 
             {!isLoading && !errorMessage && !result && (
-              <div className="flex min-h-60 flex-col justify-between rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
-                    Waiting for query
-                  </p>
-                  <h3 className="mt-3 text-xl font-bold text-white">
-                    Submit a telemetry or strategy prompt to open the dashboard loop.
-                  </h3>
-                  <p className="mt-3 max-w-xl text-sm leading-7 text-slate-400">
-                    Try a pace, speed, pit-window, or tyre question after selecting the right event and session context.
-                  </p>
-                </div>
-                <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  <HintCard label="Strategy" value="Should HAM pit soon in Japanese GP 2023 race?" />
-                  <HintCard label="Telemetry" value="Show VER top speed profile" />
-                </div>
+              <div className="flex min-h-60 flex-col justify-center items-center rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-8 text-center">
+                <Activity className="w-12 h-12 text-slate-700 mb-4" />
+                <h3 className="text-xl font-bold text-white">
+                  Mission Control Ready
+                </h3>
+                <p className="mt-3 max-w-sm text-sm leading-7 text-slate-400">
+                  Select a driver and event context above, then choose an analysis action to begin telemetry ingestion.
+                </p>
               </div>
             )}
           </div>
@@ -506,7 +600,145 @@ export function TelemetryQueryPanel({
           </PanelCard>
         </aside>
       </div>
+
+      <AnimatePresence>
+        {showTutorial && <TutorialOverlay onClose={closeTutorial} />}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function ActionButton({ 
+  onClick, 
+  disabled, 
+  icon, 
+  label, 
+  sublabel,
+  variant = "default" 
+}: { 
+  onClick: () => void; 
+  disabled: boolean; 
+  icon: ReactNode; 
+  label: string; 
+  sublabel: string;
+  variant?: "default" | "accent";
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`
+        group relative flex items-center gap-4 rounded-2xl border px-5 py-4 transition-all
+        ${variant === "accent" 
+          ? "bg-red-700 border-red-600 hover:bg-red-600 shadow-[0_8px_16px_rgba(185,28,28,0.2)]" 
+          : "bg-white/5 border-white/10 hover:bg-white/10"
+        }
+        disabled:opacity-50 disabled:cursor-not-allowed
+      `}
+    >
+      <div className={`
+        flex h-10 w-10 items-center justify-center rounded-xl transition-colors
+        ${variant === "accent" ? "bg-white/10 text-white" : "bg-white/5 text-slate-400 group-hover:text-white"}
+      `}>
+        {icon}
+      </div>
+      <div className="text-left">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white">
+          {label}
+        </p>
+        <p className={`text-[10px] uppercase tracking-[0.1em] ${variant === "accent" ? "text-red-200" : "text-slate-500"}`}>
+          {sublabel}
+        </p>
+      </div>
+      <ChevronRight className={`w-4 h-4 ml-2 transition-transform group-hover:translate-x-1 ${variant === "accent" ? "text-white/50" : "text-slate-700"}`} />
+    </button>
+  );
+}
+
+function TutorialOverlay({ onClose }: { onClose: () => void }) {
+  const steps = [
+    {
+      icon: <Activity className="w-6 h-6 text-red-500" />,
+      title: "Select Context",
+      description: "Pick your driver, event, and year from the mission control selectors."
+    },
+    {
+      icon: <Zap className="w-6 h-6 text-red-500" />,
+      title: "Choose Action",
+      description: "Click an action button to run specialized telemetry or strategy analysis."
+    },
+    {
+      icon: <Info className="w-6 h-6 text-red-500" />,
+      title: "Inspect Results",
+      description: "Review agent responses and explainable metrics in the console."
+    }
+  ];
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-6"
+    >
+      <motion.div 
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        className="relative max-w-2xl w-full rounded-[2.5rem] border border-white/10 bg-slate-900 p-8 shadow-2xl"
+      >
+        <button 
+          onClick={onClose}
+          className="absolute top-6 right-6 p-2 rounded-full bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="text-center mb-10">
+          <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-red-500">
+            System Orientation
+          </p>
+          <h2 className="mt-4 text-3xl font-bold text-white uppercase tracking-tight">
+            How to operate Apex Intelligence
+          </h2>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-3">
+          {steps.map((step, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.15 + 0.2 }}
+              className="flex flex-col items-center text-center p-4"
+            >
+              <div className="mb-4 p-4 rounded-2xl bg-white/5">
+                {step.icon}
+              </div>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                {step.title}
+              </h3>
+              <p className="mt-3 text-xs leading-relaxed text-slate-400">
+                {step.description}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="mt-12 flex justify-center"
+        >
+          <button 
+            onClick={onClose}
+            className="rounded-full bg-red-600 px-8 py-4 text-xs font-bold uppercase tracking-[0.3em] text-white transition hover:bg-red-500"
+          >
+            Launch Command Center
+          </button>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -697,17 +929,6 @@ function ChecklistItem({ text }: { text: string }) {
       <span className="mt-2 h-1.5 w-1.5 rounded-full bg-red-400" />
       <span>{text}</span>
     </li>
-  );
-}
-
-function HintCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">
-        {label}
-      </p>
-      <p className="mt-3 text-sm text-slate-200">{value}</p>
-    </div>
   );
 }
 

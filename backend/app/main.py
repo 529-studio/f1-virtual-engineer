@@ -4,8 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from agents.race_engineer import analyze_query
 from app.schemas.analyze import AnalyzeRequest, AnalyzeResponse
+from app.schemas.schedule import ScheduleResponse
 from app.schemas.telemetry import ApiError, TelemetryQueryRequest, TelemetryResponse, TelemetrySummary
-from tools.fastf1_helper import get_session_telemetry_summary
+from tools.fastf1_helper import get_session_telemetry_summary, get_year_schedule
 
 app = FastAPI(
     title="Apex-Intelligence: Virtual Race Engineer API",
@@ -57,6 +58,25 @@ app.add_middleware(
 )
 async def root():
     return {"message": "Welcome to Apex-Intelligence Virtual Race Engineer API"}
+
+
+@app.get(
+    "/events/{year}",
+    response_model=ScheduleResponse,
+    tags=["telemetry"],
+    summary="Fetch race schedule for a specific year",
+    description="Returns a list of all Grand Prix events for the requested year.",
+)
+async def get_schedule(year: int):
+    events = get_year_schedule(year)
+    if not events:
+        return ScheduleResponse(
+            year=year,
+            events=[],
+            status="error",
+            error=f"No schedule found for year {year}."
+        )
+    return ScheduleResponse(year=year, events=events, status="success")
 
 
 @app.post(

@@ -51,6 +51,28 @@ def _normalize_telemetry(
     }
 
 
+def get_year_schedule(year: int) -> list[dict[str, Any]]:
+    """
+    Fetch the event schedule for a specific year and return a list of event dictionaries.
+    """
+    try:
+        schedule = fastf1.get_event_schedule(year)
+        # Filter for official race events (Grand Prix) and testing if needed
+        # We'll return EventName and Location for the UI
+        events = []
+        for _, row in schedule.iterrows():
+            events.append({
+                "name": row["EventName"],
+                "location": row["Location"],
+                "round": int(row["RoundNumber"]),
+                "official_name": row["OfficialEventName"]
+            })
+        return events
+    except Exception as exc:
+        print(f"Error fetching schedule for {year}: {exc}")
+        return []
+
+
 def get_session_telemetry_summary(
     year: int,
     event: str,
