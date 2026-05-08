@@ -18,10 +18,10 @@
   --foreground-dim:  rgba(245, 245, 247, 0.45);
   --foreground-faint:rgba(245, 245, 247, 0.18);
 
-  /* Accent — Apex / default */
-  --accent:     #e8002d; /* Rosso Corsa */
-  --accent-dim: rgba(232, 0, 45, 0.15);
-  --accent-glow:rgba(232, 0, 45, 0.25);
+  /* Accent — monochrome default (no team selected) */
+  --accent:     #f5f5f7;
+  --accent-dim: rgba(245, 245, 247, 0.10);
+  --accent-glow:rgba(245, 245, 247, 0.08);
 
   /* Borders */
   --border:       rgba(255, 255, 255, 0.08);
@@ -41,10 +41,11 @@
    Background stays near-black for all.
    ───────────────────────────────────────────── */
 
-[data-theme="apex"] {
-  --accent:     #e8002d;
-  --accent-dim: rgba(232, 0, 45, 0.15);
-  --accent-glow:rgba(232, 0, 45, 0.25);
+[data-theme="cadillac"] {
+  --accent:     #D4AF37;
+  --accent-dim: rgba(212, 175, 55, 0.15);
+  --accent-glow:rgba(212, 175, 55, 0.22);
+  --surface:    #0a0a08;
 }
 
 [data-theme="redbull"] {
@@ -104,11 +105,11 @@
   --accent-glow:rgba(102, 146, 255, 0.22);
 }
 
-[data-theme="sauber"] {
-  --accent:     #52E252;
-  --accent-dim: rgba(82, 226, 82, 0.12);
-  --accent-glow:rgba(82, 226, 82, 0.2);
-  --surface:    #08100a;
+[data-theme="audi"] {
+  --accent:     #C8C8C8;
+  --accent-dim: rgba(200, 200, 200, 0.12);
+  --accent-glow:rgba(200, 200, 200, 0.18);
+  --surface:    #0e0e0e;
 }
 
 /* ─────────────────────────────────────────────

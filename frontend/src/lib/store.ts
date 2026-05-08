@@ -3,8 +3,8 @@ import { persist } from "zustand/middleware";
 import { AnalyzeResponse } from "@/services/api";
 
 export type TeamTheme =
-  | "apex" | "ferrari" | "redbull" | "mercedes" | "mclaren"
-  | "alpine" | "astonmartin" | "williams" | "haas" | "rb" | "sauber";
+  | "ferrari" | "redbull" | "mercedes" | "mclaren" | "alpine"
+  | "astonmartin" | "williams" | "haas" | "rb" | "audi" | "cadillac";
 
 interface MissionControlState {
   theme: TeamTheme;
@@ -22,7 +22,7 @@ interface MissionControlState {
 export const useMissionStore = create<MissionControlState>()(
   persist(
     (set) => ({
-      theme: "apex",
+      theme: "ferrari",
       query: "",
       result: null,
       isLoading: false,

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CapabilityGrid } from "@/components/landing/CapabilityGrid";
 import { LandingCTA } from "@/components/landing/LandingCTA";
 import { LandingHero } from "@/components/landing/LandingHero";
+import { TeamSwitcher } from "@/components/landing/TeamSwitcher";
 
 const navItems = [
   { label: "Capabilities", href: "#capabilities" },
@@ -56,14 +57,17 @@ export default function Home() {
             ))}
           </nav>
 
-          {/* CTA */}
-          <Link
-            href="/mission-control"
-            className="readout text-[0.6rem] font-bold uppercase tracking-widest px-4 py-2 transition-all"
-            style={{ background: "var(--accent)", color: "#fff" }}
-          >
-            Launch
-          </Link>
+          {/* Team switcher + CTA */}
+          <div className="flex items-center gap-4">
+            <TeamSwitcher />
+            <Link
+              href="/mission-control"
+              className="readout text-[0.6rem] font-bold uppercase tracking-widest px-4 py-2 transition-all"
+              style={{ background: "var(--accent)", color: "#fff" }}
+            >
+              Launch
+            </Link>
+          </div>
         </div>
       </header>
 
