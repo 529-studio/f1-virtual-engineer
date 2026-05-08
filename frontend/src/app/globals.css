@@ -41,10 +41,11 @@
    Background stays near-black for all.
    ───────────────────────────────────────────── */
 
-[data-theme="apex"] {
-  --accent:     #e8002d;
-  --accent-dim: rgba(232, 0, 45, 0.15);
-  --accent-glow:rgba(232, 0, 45, 0.25);
+[data-theme="cadillac"] {
+  --accent:     #D4AF37;
+  --accent-dim: rgba(212, 175, 55, 0.15);
+  --accent-glow:rgba(212, 175, 55, 0.22);
+  --surface:    #0a0a08;
 }
 
 [data-theme="redbull"] {

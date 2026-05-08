@@ -4,20 +4,21 @@ import { FormEvent, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { analyzeTelemetry } from "@/services/api";
 import { useMissionStore } from "@/lib/store";
+import { TeamIcon } from "@/components/icons/TeamIcons";
 
-/* ─── Team config ───────────────────────────────────────────── */
+/* ─── Team config — 2026 F1 season ─────────────────────────── */
 const TEAMS = [
-  { id: "apex",        abbr: "APX", color: "#f5f5f7", label: "Apex" },
-  { id: "ferrari",     abbr: "FER", color: "#E8002D", label: "Ferrari" },
-  { id: "redbull",     abbr: "RBR", color: "#3671C6", label: "Red Bull" },
-  { id: "mercedes",    abbr: "MER", color: "#00A19B", label: "Mercedes" },
-  { id: "mclaren",     abbr: "MCL", color: "#FF8000", label: "McLaren" },
-  { id: "alpine",      abbr: "ALP", color: "#0090FF", label: "Alpine" },
-  { id: "astonmartin", abbr: "AMR", color: "#358C75", label: "Aston Martin" },
-  { id: "williams",    abbr: "WIL", color: "#64C4FF", label: "Williams" },
-  { id: "haas",        abbr: "HAS", color: "#B6BABD", label: "Haas" },
-  { id: "rb",          abbr: "RB",  color: "#6692FF", label: "RB" },
-  { id: "sauber",      abbr: "SAU", color: "#52E252", label: "Sauber" },
+  { id: "ferrari",     color: "#DC0000", label: "Ferrari" },
+  { id: "redbull",     color: "#1E2A78", label: "Red Bull" },
+  { id: "mercedes",    color: "#00D2BE", label: "Mercedes" },
+  { id: "mclaren",     color: "#FF8700", label: "McLaren" },
+  { id: "alpine",      color: "#1F5EFF", label: "Alpine" },
+  { id: "astonmartin", color: "#006F62", label: "Aston Martin" },
+  { id: "williams",    color: "#005AFF", label: "Williams" },
+  { id: "haas",        color: "#B6BABD", label: "Haas" },
+  { id: "rb",          color: "#6692FF", label: "Racing Bulls" },
+  { id: "sauber",      color: "#7CFF4F", label: "Sauber Audi" },
+  { id: "cadillac",    color: "#D4AF37", label: "Cadillac" },
 ] as const;
 
 type TeamId = (typeof TEAMS)[number]["id"];
@@ -238,22 +239,22 @@ export default function MissionControlPage() {
             </button>
           </form>
 
-          {/* Team switcher — text badges */}
-          <div className="flex items-center gap-1 ml-3 overflow-x-auto">
+          {/* Team switcher — pixel icons */}
+          <div className="flex items-center gap-1.5 ml-3">
             {TEAMS.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTheme(t.id as TeamId)}
                 title={t.label}
-                className="readout text-[0.5rem] font-bold uppercase px-1.5 py-0.5 rounded-sm transition-all shrink-0"
+                className="transition-all shrink-0 rounded-sm"
                 style={{
-                  background: theme === t.id ? t.color : "transparent",
-                  color: theme === t.id ? "#080808" : "var(--foreground-faint)",
-                  border: `1px solid ${theme === t.id ? t.color : "var(--border)"}`,
-                  letterSpacing: "0.05em",
+                  opacity: theme === t.id ? 1 : 0.35,
+                  transform: theme === t.id ? "scale(1.5)" : "scale(1)",
+                  outline: theme === t.id ? `1.5px solid ${t.color}` : "none",
+                  outlineOffset: "2px",
                 }}
               >
-                {t.abbr}
+                <TeamIcon id={t.id} size={11} />
               </button>
             ))}
           </div>
@@ -309,13 +310,8 @@ export default function MissionControlPage() {
           style={{ borderBottom: "1px solid var(--border)" }}>
           <div className="flex items-center gap-2 mb-1">
             <p className="label">Strategy HUD</p>
-            {/* Active team badge */}
-            <span
-              className="readout text-[0.5rem] font-bold px-1.5 py-0.5 rounded-sm"
-              style={{ background: activeTeam.color, color: "#080808", letterSpacing: "0.05em" }}
-            >
-              {activeTeam.abbr}
-            </span>
+            {/* Active team icon */}
+            <TeamIcon id={activeTeam.id} size={14} />
           </div>
           <div className="flex justify-between items-baseline">
             <span className="readout text-[0.6rem]" style={{ color: "var(--foreground-dim)" }}>
