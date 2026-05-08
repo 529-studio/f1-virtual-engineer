@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { analyzeTelemetry, getEventsByYear } from "@/services/api";
@@ -288,12 +289,19 @@ export default function MissionControlPage() {
           A
         </div>
         <div className="flex flex-col items-center gap-5" style={{ color: "var(--foreground-dim)" }}>
-          {NAV.map((icon) => (
-            <button key={icon.id} className="p-1 rounded transition-colors hover:text-foreground"
-              style={{ color: icon.id === "telemetry" ? "var(--accent)" : undefined }}>
-              <NavIcon d={icon.d} />
-            </button>
-          ))}
+          {NAV.map((icon) =>
+            icon.id === "home" ? (
+              <Link key={icon.id} href="/" className="p-1 rounded transition-colors hover:text-foreground"
+                style={{ color: "var(--foreground-dim)" }}>
+                <NavIcon d={icon.d} />
+              </Link>
+            ) : (
+              <button key={icon.id} className="p-1 rounded transition-colors hover:text-foreground"
+                style={{ color: icon.id === "telemetry" ? "var(--accent)" : undefined }}>
+                <NavIcon d={icon.d} />
+              </button>
+            )
+          )}
         </div>
         <div className="mt-auto" style={{ color: "var(--foreground-faint)" }}>
           <NavIcon d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" />
