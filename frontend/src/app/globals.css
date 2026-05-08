@@ -18,10 +18,10 @@
   --foreground-dim:  rgba(245, 245, 247, 0.45);
   --foreground-faint:rgba(245, 245, 247, 0.18);
 
-  /* Accent — Apex / default */
-  --accent:     #e8002d; /* Rosso Corsa */
-  --accent-dim: rgba(232, 0, 45, 0.15);
-  --accent-glow:rgba(232, 0, 45, 0.25);
+  /* Accent — monochrome default (no team selected) */
+  --accent:     #f5f5f7;
+  --accent-dim: rgba(245, 245, 247, 0.10);
+  --accent-glow:rgba(245, 245, 247, 0.08);
 
   /* Borders */
   --border:       rgba(255, 255, 255, 0.08);
