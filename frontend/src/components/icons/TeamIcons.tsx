@@ -1,210 +1,146 @@
 /**
- * Pixel-art 11×11 SVG icons for the 2026 F1 season.
+ * SVG icons for the 2026 F1 season.
  * Original artwork — no official trademarks reproduced.
- * Each icon captures the dominant visual identity of the team.
+ * Ferrari, Red Bull, Mercedes, McLaren, Audi: 24×24 viewBox.
+ * All others: 11×11 viewBox.
  */
 
 import type { SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number };
 
-function base(size = 11) {
+function base11(size = 11) {
   return { width: size, height: size, viewBox: "0 0 11 11", fill: "none" } as const;
 }
 
-/** McLaren — papaya speed mark (iconic Speed Mark swoosh) */
+function base24(size = 11) {
+  return { width: size, height: size, viewBox: "0 0 24 24", fill: "none" } as const;
+}
+
 export function McLarenIcon({ size, ...p }: IconProps) {
   return (
-    <svg {...base(size)} {...p} xmlns="http://www.w3.org/2000/svg">
-      {/* Swept swoosh from lower-left to upper-right */}
-      <rect x="8" y="1" width="1" height="1" fill="#FF8700"/>
-      <rect x="7" y="2" width="2" height="1" fill="#FF8700"/>
-      <rect x="6" y="3" width="3" height="1" fill="#FF8700"/>
-      <rect x="5" y="4" width="3" height="1" fill="#FF8700"/>
-      <rect x="3" y="5" width="5" height="1" fill="#FF8700"/>
-      <rect x="2" y="6" width="5" height="1" fill="#FF8700"/>
-      <rect x="1" y="7" width="4" height="1" fill="#FF8700"/>
-      <rect x="2" y="8" width="2" height="1" fill="#FF8700"/>
+    <svg {...base24(size)} {...p} xmlns="http://www.w3.org/2000/svg">
+      <rect width="24" height="24" rx="6" fill="#FF8700"/>
+      <path d="M4 14 C8 10, 13 8, 19 8 L15 12 C13 14, 10 15, 6 15 Z" fill="#111111"/>
     </svg>
   );
 }
 
-/** Ferrari — yellow shield, red top stripe, prancing horse */
 export function FerrariIcon({ size, ...p }: IconProps) {
   return (
-    <svg {...base(size)} {...p} xmlns="http://www.w3.org/2000/svg">
-      {/* Yellow shield body */}
-      <path fill="#FDFF00" d="M1 0H9V7L5 10L1 7Z"/>
-      {/* Red stripe at top */}
-      <rect x="1" y="0" width="8" height="2" fill="#CE1126"/>
-      {/* Prancing horse — head, raised front legs, body, back legs */}
-      <rect x="5" y="2" width="2" height="1" fill="#000000"/>
-      <rect x="4" y="3" width="2" height="1" fill="#000000"/>
-      <rect x="6" y="3" width="2" height="1" fill="#000000"/>
-      <rect x="7" y="4" width="1" height="1" fill="#000000"/>
-      <rect x="3" y="4" width="4" height="1" fill="#000000"/>
-      <rect x="2" y="5" width="5" height="1" fill="#000000"/>
-      <rect x="2" y="6" width="5" height="1" fill="#000000"/>
-      <rect x="2" y="7" width="1" height="1" fill="#000000"/>
-      <rect x="5" y="7" width="1" height="1" fill="#000000"/>
+    <svg {...base24(size)} {...p} xmlns="http://www.w3.org/2000/svg">
+      <rect width="24" height="24" rx="6" fill="#FFD600"/>
+      <rect x="0" y="0" width="24" height="2" fill="#009246"/>
+      <rect x="0" y="2" width="24" height="2" fill="#FFFFFF"/>
+      <rect x="0" y="4" width="24" height="2" fill="#CE2B37"/>
+      <path d="M7 6H17V14C17 17.5 14.5 19.5 12 20C9.5 19.5 7 17.5 7 14V6Z"
+        fill="#FFE44D" stroke="#111111" strokeWidth="0.6"/>
+      <path d="M12 8 L13.2 9.2 L14.2 10 L13.8 12.2 L14.6 14.5 L13.6 16 L12.8 14.4
+               L11.6 15.8 L10.7 14 L9.8 14.8 L10.2 12 L9.3 10.6 L10.2 9 L11 8.2 Z"
+        fill="#111111"/>
+      <text x="12" y="18" textAnchor="middle" fontSize="2.6"
+        fontFamily="Arial, Helvetica, sans-serif" fill="#111111" fontWeight="700">SF</text>
     </svg>
   );
 }
 
-/** Red Bull Racing — dark navy, yellow sun circle, two red bull silhouettes */
 export function RedBullIcon({ size, ...p }: IconProps) {
   return (
-    <svg {...base(size)} {...p} xmlns="http://www.w3.org/2000/svg">
-      <rect width="11" height="11" fill="#0B1F4F"/>
-      {/* Yellow sun */}
-      <circle cx="5.5" cy="4" r="2.5" fill="#FFD600"/>
-      {/* Left bull (red) */}
-      <rect x="1" y="4" width="2" height="1" fill="#CC0000"/>
-      <rect x="1" y="5" width="3" height="1" fill="#CC0000"/>
-      <rect x="1" y="6" width="3" height="1" fill="#CC0000"/>
-      <rect x="2" y="7" width="2" height="1" fill="#CC0000"/>
-      <rect x="1" y="3" width="1" height="1" fill="#CC0000"/>
-      {/* Right bull (red, mirrored) */}
-      <rect x="8" y="4" width="2" height="1" fill="#CC0000"/>
-      <rect x="7" y="5" width="3" height="1" fill="#CC0000"/>
-      <rect x="7" y="6" width="3" height="1" fill="#CC0000"/>
-      <rect x="7" y="7" width="2" height="1" fill="#CC0000"/>
-      <rect x="9" y="3" width="1" height="1" fill="#CC0000"/>
+    <svg {...base24(size)} {...p} xmlns="http://www.w3.org/2000/svg">
+      <rect width="24" height="24" rx="6" fill="#0A1E5A"/>
+      <circle cx="12" cy="12" r="4" fill="#FFD400"/>
+      <path d="M4 12 L7 10 L9 11 L8 13 L6 14 L4 12Z" fill="#E10600" stroke="#FFFFFF" strokeWidth="0.5"/>
+      <path d="M20 12 L17 10 L15 11 L16 13 L18 14 L20 12Z" fill="#E10600" stroke="#FFFFFF" strokeWidth="0.5"/>
+      <rect x="1" y="18" width="22" height="2" rx="1" fill="#031633"/>
     </svg>
   );
 }
 
-/** Mercedes — dark bg, silver ring, three-pointed star (trident Y) */
 export function MercedesIcon({ size, ...p }: IconProps) {
   return (
-    <svg {...base(size)} {...p} xmlns="http://www.w3.org/2000/svg">
-      <rect width="11" height="11" fill="#1A1A1A"/>
-      <circle cx="5.5" cy="5.5" r="4.5" fill="none" stroke="#C0C0C0" strokeWidth="0.8"/>
-      {/* Three-armed star — Y shape, silver */}
-      <path
-        d="M5.5 1V5.5 M5.5 5.5L2 9 M5.5 5.5L9 9"
-        stroke="#C0C0C0"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
+    <svg {...base24(size)} {...p} xmlns="http://www.w3.org/2000/svg">
+      <rect width="24" height="24" rx="6" fill="#0E1117"/>
+      <circle cx="12" cy="12" r="8" stroke="#C7CCD1" strokeWidth="1.4"/>
+      <path d="M12 5L12 12" stroke="#C7CCD1" strokeWidth="1.4" strokeLinecap="round"/>
+      <path d="M12 12L7 17" stroke="#C7CCD1" strokeWidth="1.4" strokeLinecap="round"/>
+      <path d="M12 12L17 17" stroke="#C7CCD1" strokeWidth="1.4" strokeLinecap="round"/>
+      <circle cx="12" cy="12" r="1.3" fill="#00D2BE"/>
     </svg>
   );
 }
 
-/** Aston Martin — dark racing green, white wing silhouettes, AM badge */
 export function AstonMartinIcon({ size, ...p }: IconProps) {
   return (
-    <svg {...base(size)} {...p} xmlns="http://www.w3.org/2000/svg">
-      <rect width="11" height="11" fill="#00443C"/>
-      {/* Left wing */}
-      <path fill="#FFFFFF" d="M1 5L3 3L5 4L5 6L3 7Z"/>
-      {/* Right wing */}
-      <path fill="#FFFFFF" d="M6 4L8 3L10 5L8 7L6 6Z"/>
-      {/* Center body strip */}
-      <rect x="4" y="4" width="3" height="3" fill="#00665C"/>
-      {/* AM text */}
-      <text
-        x="5.5" y="7.2"
-        textAnchor="middle"
-        fontFamily="Arial"
-        fontSize="2.4"
-        fontWeight="bold"
-        fill="#FFFFFF"
-      >AM</text>
+    <svg {...base11(size)} {...p} xmlns="http://www.w3.org/2000/svg">
+      <rect width="11" height="11" rx="2" fill="#006F62"/>
+      <path d="M1.5 4H4.5L5.5 5L6.5 4H9.5" stroke="#D6FFE8" strokeWidth="0.7"/>
+      <path d="M2 6L5.5 7.5L9 6" stroke="#D6FFE8" strokeWidth="0.7"/>
     </svg>
   );
 }
 
-/** Alpine — blue bg, white mountain A logo */
 export function AlpineIcon({ size, ...p }: IconProps) {
   return (
-    <svg {...base(size)} {...p} xmlns="http://www.w3.org/2000/svg">
-      <rect width="11" height="11" fill="#0090D4"/>
-      {/* Bold A shape */}
-      <path fill="#FFFFFF" d="M2 9L5 1H6L9 9H8L7 7H4L3 9Z"/>
-      {/* Crossbar cutout */}
-      <rect x="4.2" y="5.5" width="2.6" height="1.1" fill="#0090D4"/>
+    <svg {...base11(size)} {...p} xmlns="http://www.w3.org/2000/svg">
+      <rect width="11" height="11" rx="2" fill="#186BFF"/>
+      <path d="M2 8L5 3H6.5L9 8H7.5L6.8 6.8H4.2L3.5 8H2Z" fill="#FFFFFF"/>
     </svg>
   );
 }
 
-/** Williams — white bg, royal blue bold W */
 export function WilliamsIcon({ size, ...p }: IconProps) {
   return (
-    <svg {...base(size)} {...p} xmlns="http://www.w3.org/2000/svg">
-      <rect width="11" height="11" fill="#F0F4FF"/>
-      <path
-        fill="#0057A8"
-        d="M1 2H2L3.5 7.5L5.5 4L7.5 7.5L9 2H10L8 10H7L5.5 6.5L4 10H3Z"
-      />
+    <svg {...base11(size)} {...p} xmlns="http://www.w3.org/2000/svg">
+      <rect width="11" height="11" rx="2" fill="#005AFF"/>
+      <path d="M1.5 3L3 8L5.5 4.5L8 8L9.5 3" stroke="#FFFFFF" strokeWidth="1"/>
     </svg>
   );
 }
 
-/** Haas — dark bg, red circular ring, double diagonal slashes */
 export function HaasIcon({ size, ...p }: IconProps) {
   return (
-    <svg {...base(size)} {...p} xmlns="http://www.w3.org/2000/svg">
-      <rect width="11" height="11" fill="#1A1A1A"/>
-      <circle cx="5.5" cy="5.5" r="4.5" fill="none" stroke="#E10600" strokeWidth="0.8"/>
-      {/* Double slash marks */}
-      <path fill="#E10600" d="M3 8L5 2H6L4 8Z M6 8L8 2H9L7 8Z"/>
+    <svg {...base11(size)} {...p} xmlns="http://www.w3.org/2000/svg">
+      <rect width="11" height="11" rx="2" fill="#111111"/>
+      <circle cx="5.5" cy="5.5" r="3" stroke="#E10600" strokeWidth="1"/>
+      <path d="M4 7L7 4" stroke="#E10600" strokeWidth="1"/>
     </svg>
   );
 }
 
-/** Racing Bulls — dark blue bg, white RB lettermark + bull */
 export function RBIcon({ size, ...p }: IconProps) {
   return (
-    <svg {...base(size)} {...p} xmlns="http://www.w3.org/2000/svg">
-      <rect width="11" height="11" fill="#1E3CCB"/>
-      {/* White bull silhouette (simplified) */}
-      <rect x="7" y="2" width="3" height="1" fill="#FFFFFF"/>
-      <rect x="7" y="3" width="3" height="2" fill="#FFFFFF"/>
-      <rect x="8" y="5" width="2" height="1" fill="#FFFFFF"/>
-      <rect x="7" y="6" width="1" height="1" fill="#FFFFFF"/>
-      <rect x="9" y="6" width="1" height="1" fill="#FFFFFF"/>
-      {/* RB lettering */}
-      <text
-        x="0.5" y="8.5"
-        fontFamily="Arial"
-        fontSize="5.5"
-        fontWeight="bold"
-        fill="#FFFFFF"
-      >RB</text>
+    <svg {...base11(size)} {...p} xmlns="http://www.w3.org/2000/svg">
+      <rect width="11" height="11" rx="2" fill="#1A1A1A"/>
+      <path d="M2 6L4 5L5 6L4 7L2 6Z" fill="#FFFFFF"/>
+      <path d="M9 6L7 5L6 6L7 7L9 6Z" fill="#FFFFFF"/>
+      <circle cx="5.5" cy="6" r="1" fill="#C0C0C0"/>
     </svg>
   );
 }
 
-/** Revolut Audi F1 Team — dark bg, silver four-ring Audi logo */
 export function AudiIcon({ size, ...p }: IconProps) {
   return (
-    <svg {...base(size)} {...p} xmlns="http://www.w3.org/2000/svg">
-      <rect width="11" height="11" fill="#111111"/>
-      {/* Audi four rings — silver, slight overlap */}
-      <circle cx="1.5" cy="6" r="1.4" fill="none" stroke="#C8C8C8" strokeWidth="0.9"/>
-      <circle cx="4.0" cy="6" r="1.4" fill="none" stroke="#C8C8C8" strokeWidth="0.9"/>
-      <circle cx="6.5" cy="6" r="1.4" fill="none" stroke="#C8C8C8" strokeWidth="0.9"/>
-      <circle cx="9.0" cy="6" r="1.4" fill="none" stroke="#C8C8C8" strokeWidth="0.9"/>
+    <svg {...base24(size)} {...p} xmlns="http://www.w3.org/2000/svg">
+      <rect width="24" height="24" rx="6" fill="#111111"/>
+      <text x="12" y="7" textAnchor="middle" fontSize="3"
+        fontFamily="Arial, Helvetica, sans-serif" fill="#FFFFFF" fontWeight="700">R</text>
+      <circle cx="6"  cy="14" r="2.5" stroke="#FFFFFF" strokeWidth="0.8"/>
+      <circle cx="10" cy="14" r="2.5" stroke="#FFFFFF" strokeWidth="0.8"/>
+      <circle cx="14" cy="14" r="2.5" stroke="#FFFFFF" strokeWidth="0.8"/>
+      <circle cx="18" cy="14" r="2.5" stroke="#FFFFFF" strokeWidth="0.8"/>
     </svg>
   );
 }
 
-/** Cadillac F1 — dark bg, gold-outlined shield, colored crest bands */
 export function CadillacIcon({ size, ...p }: IconProps) {
   return (
-    <svg {...base(size)} {...p} xmlns="http://www.w3.org/2000/svg">
-      <rect width="11" height="11" fill="#0B0B0B"/>
-      {/* Shield top red band */}
-      <path fill="#CC0000" d="M2 1H9V3H2Z"/>
-      {/* Gold left column */}
-      <rect x="2" y="3" width="2.3" height="6" fill="#D4AF37"/>
-      {/* Blue center column */}
-      <rect x="4.3" y="3" width="2.4" height="6" fill="#002FA7"/>
-      {/* Gold right column */}
-      <rect x="6.7" y="3" width="2.3" height="6" fill="#D4AF37"/>
-      {/* Gold shield outline */}
-      <path fill="none" stroke="#D4AF37" strokeWidth="0.8" d="M2 1H9V7L5.5 10L2 7Z"/>
+    <svg {...base11(size)} {...p} xmlns="http://www.w3.org/2000/svg">
+      <rect width="11" height="11" rx="2" fill="#C0C0C0"/>
+      <rect x="2" y="3" width="2" height="2" fill="#D91C1C"/>
+      <rect x="4" y="3" width="2" height="2" fill="#F5D547"/>
+      <rect x="6" y="3" width="2" height="2" fill="#1C5FD9"/>
+      <rect x="3" y="5" width="2" height="2" fill="#FFFFFF"/>
+      <rect x="5" y="5" width="2" height="2" fill="#D91C1C"/>
     </svg>
   );
 }
