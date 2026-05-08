@@ -37,7 +37,7 @@ export function TeamSwitcher() {
             outlineOffset: "2px",
           }}
         >
-          <TeamIcon id={t.id} size={11} />
+        <TeamIcon id={t.id} size={24} />
         </button>
       ))}
     </div>

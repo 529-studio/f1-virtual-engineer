@@ -36,7 +36,7 @@ def _normalize_telemetry(
     if missing:
         raise ValueError(f"Missing required telemetry channels: {', '.join(missing)}")
 
-    return {
+    result: dict[str, Any] = {
         "driver": driver,
         "year": year,
         "event": event,
@@ -49,6 +49,16 @@ def _normalize_telemetry(
         "fallback": False,
         "fallback_reason": None,
     }
+
+    # Throttle and brake are optional — not all sessions include them
+    if "Throttle" in telemetry.columns:
+        result["throttle"] = _stats(telemetry["Throttle"], "%")
+    if "Brake" in telemetry.columns:
+        # Brake is boolean in FastF1; convert to 0/1 then express as %
+        brake_series = telemetry["Brake"].astype(float) * 100
+        result["brake"] = _stats(brake_series, "%")
+
+    return result
 
 
 def get_year_schedule(year: int) -> list[dict[str, Any]]:
