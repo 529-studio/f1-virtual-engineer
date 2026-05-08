@@ -3,7 +3,7 @@ const capabilityItems = [
     id: "01",
     label: "Telemetry Analysis",
     title: "Compare speed, gear, and RPM across race sessions.",
-    body: "Turn raw FastF1 data into readable performance signals without forcing users to parse charts alone.",
+    body: "Turn raw FastF1 data into readable performance signals — no manual chart parsing.",
   },
   {
     id: "02",
@@ -21,31 +21,39 @@ const capabilityItems = [
     id: "04",
     label: "Race Narrative",
     title: "Understand why the recommendation exists.",
-    body: "Show assumptions, fallback behavior, and reasoning instead of hand-wavy AI output.",
+    body: "Show assumptions, fallback behavior, and reasoning — not hand-wavy AI output.",
   },
 ];
 
 export function CapabilityGrid() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      {capabilityItems.map((item) => (
+    <div className="grid gap-px md:grid-cols-2 xl:grid-cols-4" style={{ border: "1px solid var(--border)" }}>
+      {capabilityItems.map((item, i) => (
         <article
           key={item.id}
-          className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition duration-300 hover:-translate-y-1 hover:border-red-500/30 hover:bg-white/8"
+          className="p-6 transition-colors group"
+          style={{
+            background: "var(--surface)",
+            borderRight: i < capabilityItems.length - 1 ? "1px solid var(--border)" : undefined,
+          }}
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.16),transparent_45%)] opacity-0 transition duration-300 group-hover:opacity-100" />
-          <div className="relative">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-400">
-                {item.label}
-              </span>
-              <span className="font-mono text-sm text-slate-500">{item.id}</span>
-            </div>
-            <h3 className="mt-8 text-xl font-bold tracking-[-0.03em] text-white">
-              {item.title}
-            </h3>
-            <p className="mt-4 text-sm leading-7 text-slate-300">{item.body}</p>
+          <div className="flex items-start justify-between mb-6">
+            <span className="label">{item.label}</span>
+            <span className="readout text-[0.6rem]" style={{ color: "var(--foreground-faint)" }}>
+              {item.id}
+            </span>
           </div>
+          {/* accent rule animates on hover */}
+          <div
+            className="mb-4 h-px transition-all duration-300"
+            style={{ background: "var(--accent)", width: "24px" }}
+          />
+          <h3 className="text-sm font-semibold mb-3 leading-snug" style={{ color: "var(--foreground)" }}>
+            {item.title}
+          </h3>
+          <p className="readout text-[0.65rem] leading-5" style={{ color: "var(--foreground-dim)" }}>
+            {item.body}
+          </p>
         </article>
       ))}
     </div>

@@ -4,269 +4,337 @@ import { FormEvent, useEffect } from "react";
 import { analyzeTelemetry } from "@/services/api";
 import { useMissionStore } from "@/lib/store";
 
-const ICON_SIZE = 20;
+/* ─── Types ────────────────────────────────────────────────── */
+type TeamTheme =
+  | "apex" | "ferrari" | "redbull" | "mercedes" | "mclaren"
+  | "alpine" | "astonmartin" | "williams" | "haas" | "rb" | "sauber";
 
-const SidebarIcon = ({ d }: { d: string }) => (
-  <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d={d} />
-  </svg>
-);
-
-const navIcons = [
-  { id: "dashboard", d: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" },
-  { id: "telemetry", d: "M3 3v18h18M7 16l4-4 4 4 5-8" },
-  { id: "compare", d: "M18 20V10M12 20V4M6 20v-6" },
-  { id: "history", d: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
-  { id: "settings", d: "M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z" },
+const TEAM_THEMES: { id: TeamTheme; color: string; label: string }[] = [
+  { id: "apex",        color: "#E8002D", label: "Apex" },
+  { id: "ferrari",     color: "#E8002D", label: "Ferrari" },
+  { id: "redbull",     color: "#3671C6", label: "Red Bull" },
+  { id: "mercedes",    color: "#00A19B", label: "Mercedes" },
+  { id: "mclaren",     color: "#FF8000", label: "McLaren" },
+  { id: "alpine",      color: "#0090FF", label: "Alpine" },
+  { id: "astonmartin", color: "#358C75", label: "Aston Martin" },
+  { id: "williams",    color: "#64C4FF", label: "Williams" },
+  { id: "haas",        color: "#B6BABD", label: "Haas" },
+  { id: "rb",          color: "#6692FF", label: "RB" },
+  { id: "sauber",      color: "#52E252", label: "Sauber" },
 ];
 
-const TelemetryChart = ({ label, value, unit, color, isLoading, markerLap }: { label: string, value: string, unit: string, color: string, isLoading: boolean, markerLap?: number | null }) => {
-  // Calculate marker X position (simulated: lap / total_laps * 1000)
-  // Total laps fixed at 71 for this demo
+/* ─── Sub-components ───────────────────────────────────────── */
+function NavIcon({ d }: { d: string }) {
+  return (
+    <svg width={18} height={18} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.5"
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d={d} />
+    </svg>
+  );
+}
+
+const NAV_ICONS = [
+  { id: "home",     d: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" },
+  { id: "telemetry",d: "M3 3v18h18M7 16l4-4 4 4 5-8" },
+  { id: "compare",  d: "M18 20V10M12 20V4M6 20v-6" },
+  { id: "history",  d: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
+  { id: "settings", d: "M10.3 3.9L2 18a2 2 0 001.7 3h16.6A2 2 0 0022 18L13.7 3.9a2 2 0 00-3.4 0zM12 9v4M12 17h.01" },
+];
+
+function TelemetryChart({
+  label, value, unit, isLoading, markerLap,
+}: {
+  label: string;
+  value: string;
+  unit: string;
+  isLoading: boolean;
+  markerLap?: number | null;
+}) {
   const markerX = markerLap ? (markerLap / 71) * 1000 : null;
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col group overflow-hidden">
-      <div className="flex justify-between items-end mb-1">
-        <h3 className="readout text-[11px] uppercase tracking-wider text-white/50">{label} ({unit})</h3>
+    <div className="flex flex-col min-h-0 flex-1">
+      {/* Header row */}
+      <div className="flex items-baseline justify-between mb-2 shrink-0">
+        <span className="label">{label}</span>
         <div className="flex items-baseline gap-1">
-          <span className="readout text-2xl font-bold">{isLoading ? "---" : value}</span>
-          <span className="readout text-[10px] uppercase text-white/30">{unit}</span>
+          <span className="readout text-lg font-semibold text-foreground">
+            {isLoading ? "—" : value}
+          </span>
+          <span className="label" style={{ color: "var(--foreground-faint)" }}>{unit}</span>
         </div>
       </div>
-      <div className="flex-1 relative border border-white/5 bg-white/2 backdrop-blur-sm overflow-hidden">
+
+      {/* Chart area */}
+      <div className="flex-1 relative border border-border bg-surface overflow-hidden min-h-0">
         {isLoading ? (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-8 h-[1px] bg-accent/30 animate-pulse" />
+            <div className="w-12 h-px bg-accent/40 animate-pulse" />
           </div>
         ) : (
-          <svg className="w-full h-full" viewBox="0 0 1000 100" preserveAspectRatio="none">
-            <path 
-              d={generateMockPath(label)} 
-              fill="none" 
-              stroke={color} 
-              strokeWidth="1.5" 
-              className="opacity-80"
-            />
-            
+          <svg className="w-full h-full" viewBox="0 0 1000 80" preserveAspectRatio="none">
+            <path d={mockPath(label)} fill="none"
+              stroke="var(--accent)" strokeWidth="1.2" opacity="0.7" />
+
             {markerX && (
-              <g className="animate-in fade-in zoom-in duration-500">
-                <line x1={markerX} y1="0" x2={markerX} y2="100" stroke="#FF2800" strokeWidth="1" strokeDasharray="4 2" />
-                <circle cx={markerX} cy="30%" r="4" fill="#FF2800" className="animate-pulse" />
-                <rect x={markerX + 5} y="20%" width="40" height="14" fill="#FF2800" />
-                <text x={markerX + 8} y="29%" className="readout font-black fill-white text-[9px]" style={{ fontSize: '9px' }}>BOX</text>
-              </g>
+              <>
+                <line x1={markerX} y1="0" x2={markerX} y2="80"
+                  stroke="var(--accent)" strokeWidth="0.8" strokeDasharray="3 2" />
+                <circle cx={markerX} cy="25" r="2.5" fill="var(--accent)" />
+              </>
             )}
 
-            <circle cx="85%" cy="30%" r="3" fill={color} />
-            <text x="86%" y="28%" className="readout text-[24px] fill-white/80" style={{ fontSize: '24px' }}>{value}</text>
+            {/* Live-end dot */}
+            <circle cx="960" cy="30" r="2" fill="var(--foreground-dim)" />
           </svg>
         )}
+        {/* Accent rule at bottom */}
+        <div className="absolute bottom-0 inset-x-0 h-px" style={{ background: "var(--accent)", opacity: 0.15 }} />
       </div>
     </div>
   );
-};
-
-// Helper to generate different "vibe" paths for charts
-function generateMockPath(type: string) {
-  if (type === "Speed") return "M0 80 Q 100 20 200 60 T 400 30 T 600 50 T 800 20 T 1000 40";
-  if (type === "Throttle") return "M0 20 L 50 20 L 55 90 L 100 90 L 105 10 L 300 10 L 310 80 L 500 80 L 510 20 L 800 20 L 810 95 L 1000 95";
-  return "M0 95 L 200 95 L 210 30 L 220 95 L 600 95 L 610 10 L 620 95 L 1000 95";
 }
 
+function mockPath(type: string) {
+  if (type === "Speed")
+    return "M0 60 Q100 15 220 45 T440 22 T620 38 T800 16 T1000 30";
+  if (type === "Throttle")
+    return "M0 15 L60 15 L62 70 L110 70 L112 8 L310 8 L312 65 L500 65 L502 15 L810 15 L812 72 L1000 72";
+  return "M0 74 L210 74 L212 22 L224 74 L600 74 L602 8 L614 74 L1000 74";
+}
+
+/* ─── Page ─────────────────────────────────────────────────── */
 export default function MissionControlPage() {
-  const { 
-    theme, setTheme, 
-    query, setQuery, 
-    result, setResult, 
-    isLoading, setIsLoading 
-  } = useMissionStore();
+  const { theme, setTheme, query, setQuery, result, setResult, isLoading, setIsLoading } =
+    useMissionStore();
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  const handleRunAnalysis = async (e: FormEvent) => {
+  const handleAnalyze = async (e: FormEvent) => {
     e.preventDefault();
-    if (!query) return;
-    
+    if (!query.trim()) return;
     setIsLoading(true);
     try {
-      const response = await analyzeTelemetry({ query });
-      setResult(response);
-    } catch (error) {
-      console.error("Analysis failed:", error);
+      const res = await analyzeTelemetry({ query });
+      setResult(res);
+    } catch {
+      // error kept silent — HUD shows fallback state
     } finally {
       setIsLoading(false);
     }
   };
 
-  const telemetry = result?.telemetry_data;
-  const strategy = result?.strategy_data;
+  const tel = result?.telemetry_data;
+  const strat = result?.strategy_data;
+  const driver = result?.intent?.driver ?? "—";
+  const event  = result?.intent?.event  ?? "—";
 
   return (
-    <main className="h-screen w-screen flex bg-background text-foreground transition-colors duration-500 overflow-hidden">
-      {/* Left Sidebar Rail */}
-      <nav className="w-16 border-r border-border bg-black/50 flex flex-col items-center py-6 gap-8 z-50 shrink-0">
-        <div className="h-8 w-8 bg-accent flex items-center justify-center font-black italic rounded-sm">
+    <div
+      className="h-screen w-screen flex overflow-hidden"
+      style={{ background: "var(--background)", color: "var(--foreground)" }}
+    >
+      {/* ── Sidebar rail ── */}
+      <nav
+        className="w-14 shrink-0 flex flex-col items-center py-5 gap-0 z-40"
+        style={{ borderRight: "1px solid var(--border)", background: "var(--surface)" }}
+      >
+        {/* Logo mark */}
+        <div
+          className="w-8 h-8 flex items-center justify-center font-black italic text-sm rounded-sm mb-8 shrink-0"
+          style={{ background: "var(--accent)", color: "#fff" }}
+        >
           A
         </div>
-        <div className="flex flex-col gap-6 text-white/40">
-          {navIcons.map((icon) => (
-            <button key={icon.id} className={`hover:text-accent transition-colors ${icon.id === "telemetry" ? "text-accent" : ""}`}>
-              <SidebarIcon d={icon.d} />
+
+        {/* Nav icons */}
+        <div className="flex flex-col items-center gap-5" style={{ color: "var(--foreground-dim)" }}>
+          {NAV_ICONS.map((icon) => (
+            <button
+              key={icon.id}
+              className="p-1 rounded transition-colors hover:text-foreground"
+              style={{ color: icon.id === "telemetry" ? "var(--accent)" : undefined }}
+            >
+              <NavIcon d={icon.d} />
             </button>
           ))}
         </div>
-        <div className="mt-auto flex flex-col gap-6 text-white/20">
-          <SidebarIcon d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
+
+        {/* Bottom user icon */}
+        <div className="mt-auto" style={{ color: "var(--foreground-faint)" }}>
+          <NavIcon d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" />
         </div>
       </nav>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full">
-        {/* Header */}
-        <header className="pt-8 px-10 pb-4 shrink-0">
-          <h1 className="monumental leading-[0.85] w-full">
-            {theme === "apex" ? "Apex-Intelligence Mission Control" : "Apex-Intelligence Mercedes Edition"}
-          </h1>
-          <div className="flex items-center gap-6 mt-4">
-            <form onSubmit={handleRunAnalysis} className="flex-1 max-w-xl">
-              <input 
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="PROMPT ENGINEER COMMAND..." 
-                className="w-full bg-white/5 border border-white/10 px-4 py-2 readout text-[10px] uppercase tracking-widest outline-none focus:border-accent/50 transition-colors"
+      {/* ── Main area ── */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+
+        {/* Status bar — compact, no monumental title */}
+        <header
+          className="h-11 shrink-0 flex items-center gap-4 px-6"
+          style={{ borderBottom: "1px solid var(--border)", background: "var(--surface)" }}
+        >
+          {/* Session identity */}
+          <span className="label text-[0.6rem]">Mission Control</span>
+          <div className="w-px h-3" style={{ background: "var(--border-strong)" }} />
+          <span className="readout text-[0.6rem]" style={{ color: "var(--foreground-dim)" }}>
+            {driver} {"//"} {event}
+          </span>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Query input */}
+          <form onSubmit={handleAnalyze} className="flex items-center gap-2">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Query..."
+              className="readout text-[0.65rem] w-56 px-3 py-1.5 outline-none transition-colors"
+              style={{
+                background: "var(--surface-elevated)",
+                border: "1px solid var(--border)",
+                color: "var(--foreground)",
+              }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
+              onBlur={(e)  => (e.currentTarget.style.borderColor = "var(--border)")}
+            />
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="readout text-[0.6rem] px-3 py-1.5 transition-all disabled:opacity-40"
+              style={{ background: "var(--accent)", color: "#fff" }}
+            >
+              {isLoading ? "…" : "RUN"}
+            </button>
+          </form>
+
+          {/* Team theme picker */}
+          <div className="flex items-center gap-1.5 ml-2">
+            {TEAM_THEMES.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTheme(t.id)}
+                title={t.label}
+                className="w-3 h-3 rounded-full transition-transform"
+                style={{
+                  background: t.color,
+                  outline: theme === t.id ? `2px solid ${t.color}` : "none",
+                  outlineOffset: "2px",
+                  transform: theme === t.id ? "scale(1.25)" : "scale(1)",
+                }}
               />
-            </form>
-            <div className="flex items-center gap-3 border-l border-white/10 pl-6">
-              <span className="readout text-[9px] text-white/30 uppercase tracking-widest">Team Theme</span>
-              <button 
-                onClick={() => setTheme("apex")}
-                className={`w-4 h-4 rounded-full border ${theme === "apex" ? "border-white scale-125" : "border-white/20"} bg-[#FF2800] transition-all`}
-                title="Apex Default"
-              />
-              <button 
-                onClick={() => setTheme("mercedes")}
-                className={`w-4 h-4 rounded-full border ${theme === "mercedes" ? "border-white scale-125" : "border-white/20"} bg-[#00A19B] transition-all`}
-                title="Mercedes AMG"
-              />
-            </div>
-            <p className="readout text-[10px] text-white/20 uppercase tracking-[0.2em] ml-auto hidden xl:block">
-              {result?.intent?.driver || "NO_DRIVER"} {"//"} {result?.intent?.event || "NO_EVENT"}
-            </p>
+            ))}
           </div>
         </header>
 
-        {/* Telemetry Canvas */}
-        <div className="flex-1 px-10 pb-6 flex flex-col gap-4 min-h-0 overflow-hidden">
-          <TelemetryChart 
-            label="Speed" 
-            value={telemetry?.speed?.avg.toFixed(0) || "322"} 
-            unit="KPH" 
-            color="currentColor" 
+        {/* ── Telemetry canvas — takes all remaining vertical space ── */}
+        <div className="flex-1 min-h-0 flex flex-col gap-0 px-6 py-4">
+          <TelemetryChart
+            label="Speed" unit="KPH"
+            value={tel?.speed?.avg?.toFixed(0) ?? "322"}
             isLoading={isLoading}
-            markerLap={strategy?.target_lap}
+            markerLap={strat?.target_lap}
           />
-          <TelemetryChart 
-            label="Throttle" 
-            value={telemetry?.throttle?.avg?.toFixed(0) || "98"} 
-            unit="%" 
-            color="currentColor" 
+          <div className="h-3 shrink-0" />
+          <TelemetryChart
+            label="Throttle" unit="%"
+            value={tel?.throttle?.avg?.toFixed(0) ?? "98"}
             isLoading={isLoading}
-            markerLap={strategy?.target_lap}
+            markerLap={strat?.target_lap}
           />
-          <TelemetryChart 
-            label="Brake" 
-            value={telemetry?.brake?.avg?.toFixed(0) || "145"} 
-            unit="BAR" 
-            color="currentColor" 
+          <div className="h-3 shrink-0" />
+          <TelemetryChart
+            label="Brake" unit="BAR"
+            value={tel?.brake?.avg?.toFixed(0) ?? "145"}
             isLoading={isLoading}
-            markerLap={strategy?.target_lap}
+            markerLap={strat?.target_lap}
           />
         </div>
 
-        {/* Bottom Status Bar */}
-        <footer className="h-12 border-t border-border bg-black/30 flex items-center px-10 gap-6 overflow-hidden shrink-0">
-          <div className="flex gap-4 shrink-0 items-center">
-            <span className="readout text-[9px] text-white/30 uppercase">Tyre Temp</span>
-            <div className="flex gap-3 text-[9px] font-bold">
-              <span>FL 102°C</span> <span>FR 104°C</span> <span>RL 98°C</span> <span>RR 99°C</span>
+        {/* ── Footer status strip ── */}
+        <footer
+          className="h-9 shrink-0 flex items-center px-6 gap-5 overflow-hidden"
+          style={{ borderTop: "1px solid var(--border)", background: "var(--surface)" }}
+        >
+          {[
+            { label: "Tyre", value: "FL 102° FR 104° RL 98° RR 99°" },
+            { label: "Fuel", value: "28.5 kg" },
+            { label: "ERS",  value: "85%" },
+          ].map(({ label, value }, i) => (
+            <div key={label} className="flex items-center gap-2">
+              {i > 0 && <div className="w-px h-3" style={{ background: "var(--border)" }} />}
+              <span className="label">{label}</span>
+              <span className="readout text-[0.6rem] text-foreground">{value}</span>
             </div>
-          </div>
-          <div className="w-px h-3 bg-white/10 shrink-0" />
-          <div className="flex gap-2 text-[9px] font-bold shrink-0 items-center">
-            <span className="text-white/30 uppercase">Fuel</span> <span>28.5 KG</span>
-          </div>
-          <div className="w-px h-3 bg-white/10 shrink-0" />
-          <div className="flex gap-2 text-[9px] font-bold shrink-0 items-center">
-            <span className="text-white/30 uppercase">ERS</span> <span>85%</span>
-          </div>
-          <div className="ml-auto flex gap-4 text-[9px] font-bold shrink-0">
-            <span className={strategy?.undercut_risk === "high" ? "text-accent animate-pulse" : "text-accent"}>
-              {strategy?.undercut_risk ? `${strategy.undercut_risk.toUpperCase()} UNDERCUT RISK` : "DRS AVAILABLE"}
-            </span>
-            <span className="text-white/30">WEATHER DRY</span>
+          ))}
+          <div className="ml-auto readout text-[0.6rem]" style={{ color: "var(--accent)" }}>
+            {strat?.undercut_risk === "high" ? "HIGH UNDERCUT RISK" : "DRS AVAILABLE"}
           </div>
         </footer>
       </div>
 
-      {/* Right Strategy HUD */}
-      <aside className="w-[380px] h-full border-l border-border bg-surface/40 backdrop-blur-2xl p-8 flex flex-col shrink-0 overflow-y-auto">
-        <div className="mb-8">
-          <h2 className="monumental text-2xl mb-1 uppercase">Strategy Insights</h2>
-          <p className="readout text-[9px] text-white/30 uppercase tracking-widest">Operator HUD V2.4</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-6 mb-8">
-          <div>
-            <p className="readout text-[9px] text-white/30 uppercase mb-1">Race Status</p>
-            <p className="readout text-xs font-bold uppercase truncate">{result?.intent?.session_type || "RACE"} {"//"} LAP 43/71</p>
-          </div>
-          <div className="text-right">
-            <p className="readout text-[9px] text-white/30 uppercase mb-1">Interval</p>
-            <p className="readout text-xs font-bold">+1.8S</p>
+      {/* ── Strategy HUD ── */}
+      <aside
+        className="w-72 shrink-0 flex flex-col"
+        style={{ borderLeft: "1px solid var(--border)", background: "var(--surface)" }}
+      >
+        {/* HUD header */}
+        <div className="px-5 pt-5 pb-4 shrink-0" style={{ borderBottom: "1px solid var(--border)" }}>
+          <p className="label mb-1">Strategy HUD</p>
+          <div className="flex justify-between items-baseline">
+            <span className="readout text-[0.6rem]" style={{ color: "var(--foreground-dim)" }}>
+              {result?.intent?.session_type ?? "RACE"} {"//"} LAP 43/71
+            </span>
+            <span className="readout text-[0.6rem]" style={{ color: "var(--foreground-dim)" }}>+1.8s</span>
           </div>
         </div>
 
-        {/* Critical Alert Box */}
-        <div className={`border ${strategy?.undercut_risk === "high" ? "border-accent" : "border-white/10"} border-dashed p-5 bg-white/5 mb-8 transition-colors`}>
-          <div className="flex items-center gap-2 mb-2 text-accent">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            <span className="readout text-[10px] font-black uppercase tracking-widest">System Alert</span>
-          </div>
-          <p className="readout text-[11px] font-bold leading-relaxed uppercase">
-            {isLoading ? "UPDATING STRATEGY..." : (result?.agent_response || "Waiting for command input to analyze strategy signals.")}
+        {/* Alert block */}
+        <div className="mx-4 mt-4 p-4 shrink-0" style={{ border: "1px solid var(--border)", background: "var(--accent-dim)" }}>
+          <p className="label mb-2" style={{ color: "var(--accent)" }}>
+            {strat?.undercut_risk === "high" ? "⚠ STRATEGY ALERT" : "SYSTEM STATUS"}
+          </p>
+          <p className="readout text-[0.7rem] font-semibold leading-snug uppercase" style={{ color: "var(--foreground)" }}>
+            {isLoading
+              ? "Updating strategy…"
+              : (result?.agent_response ?? "Waiting for command input.")}
           </p>
         </div>
 
-        {/* AI Reasoning List */}
-        <div className="flex-1 min-h-[200px]">
-          <h4 className="readout text-[10px] text-white/30 uppercase mb-4 tracking-widest">Tactical Rationale</h4>
-          <ul className="space-y-3 readout text-[10px] font-medium leading-relaxed opacity-80">
-            {(strategy?.rationale || [
-              "Awaiting real-time telemetry feed.",
-              "Ready to compute tyre degradation.",
+        {/* Rationale list */}
+        <div className="flex-1 overflow-y-auto px-4 mt-4 min-h-0">
+          <p className="label mb-3">Tactical Rationale</p>
+          <ul className="space-y-2">
+            {(strat?.rationale ?? [
+              "Awaiting telemetry feed.",
+              "Tyre degradation ready.",
               "Pace delta tracking idle.",
-              "Competitor pit windows standby."
-            ]).map((item, i) => (
-              <li key={i} className="flex gap-2">
-                <span className="text-accent">•</span>
-                <span>{item}</span>
+              "Competitor windows standby.",
+            ]).map((line, i) => (
+              <li key={i} className="flex gap-2 readout text-[0.65rem]" style={{ color: "var(--foreground-dim)" }}>
+                <span style={{ color: "var(--accent)" }}>—</span>
+                <span>{line}</span>
               </li>
             ))}
           </ul>
         </div>
 
-        {/* Primary Box Call Button */}
-        <button 
-          disabled={isLoading}
-          onClick={handleRunAnalysis}
-          className="w-full bg-accent py-4 readout text-[11px] font-black uppercase tracking-[0.2em] hover:brightness-110 transition-all active:scale-[0.98] mt-6 disabled:opacity-50"
-        >
-          {isLoading ? "Computing..." : "Confirm Box Call"}
-        </button>
+        {/* Box call CTA */}
+        <div className="p-4 shrink-0">
+          <button
+            onClick={handleAnalyze}
+            disabled={isLoading}
+            className="w-full py-3 readout text-[0.65rem] font-bold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-40"
+            style={{ background: "var(--accent)", color: "#fff" }}
+          >
+            {isLoading ? "Computing…" : "Confirm Box Call"}
+          </button>
+        </div>
       </aside>
-    </main>
+    </div>
   );
 }
