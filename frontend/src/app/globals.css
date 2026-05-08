@@ -105,11 +105,11 @@
   --accent-glow:rgba(102, 146, 255, 0.22);
 }
 
-[data-theme="sauber"] {
-  --accent:     #52E252;
-  --accent-dim: rgba(82, 226, 82, 0.12);
-  --accent-glow:rgba(82, 226, 82, 0.2);
-  --surface:    #08100a;
+[data-theme="audi"] {
+  --accent:     #C8C8C8;
+  --accent-dim: rgba(200, 200, 200, 0.12);
+  --accent-glow:rgba(200, 200, 200, 0.18);
+  --surface:    #0e0e0e;
 }
 
 /* ─────────────────────────────────────────────

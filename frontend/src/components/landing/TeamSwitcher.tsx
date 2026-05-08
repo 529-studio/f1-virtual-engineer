@@ -13,7 +13,7 @@ const TEAMS = [
   { id: "williams",    color: "#005AFF" },
   { id: "haas",        color: "#B6BABD" },
   { id: "rb",          color: "#6692FF" },
-  { id: "sauber",      color: "#7CFF4F" },
+  { id: "audi",        color: "#C8C8C8" },
   { id: "cadillac",    color: "#D4AF37" },
 ] as const;
 

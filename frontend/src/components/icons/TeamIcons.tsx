@@ -176,15 +176,16 @@ export function RBIcon({ size, ...p }: IconProps) {
   );
 }
 
-/** Sauber Audi — black bg, bright green border frame, K letter */
-export function SauberIcon({ size, ...p }: IconProps) {
+/** Revolut Audi F1 Team — dark bg, silver four-ring Audi logo */
+export function AudiIcon({ size, ...p }: IconProps) {
   return (
     <svg {...base(size)} {...p} xmlns="http://www.w3.org/2000/svg">
-      <rect width="11" height="11" fill="#000000"/>
-      <rect x="0.5" y="0.5" width="10" height="10" fill="none" stroke="#00E701" strokeWidth="1"/>
-      {/* K letter */}
-      <rect x="3" y="2" width="1" height="7" fill="#00E701"/>
-      <path fill="#00E701" d="M4 5.5L8 2H9L5.5 5.5L9 9H8Z"/>
+      <rect width="11" height="11" fill="#111111"/>
+      {/* Audi four rings — silver, slight overlap */}
+      <circle cx="1.5" cy="6" r="1.4" fill="none" stroke="#C8C8C8" strokeWidth="0.9"/>
+      <circle cx="4.0" cy="6" r="1.4" fill="none" stroke="#C8C8C8" strokeWidth="0.9"/>
+      <circle cx="6.5" cy="6" r="1.4" fill="none" stroke="#C8C8C8" strokeWidth="0.9"/>
+      <circle cx="9.0" cy="6" r="1.4" fill="none" stroke="#C8C8C8" strokeWidth="0.9"/>
     </svg>
   );
 }
@@ -219,7 +220,7 @@ export const TEAM_ICON_MAP = {
   williams:    WilliamsIcon,
   haas:        HaasIcon,
   rb:          RBIcon,
-  sauber:      SauberIcon,
+  audi:        AudiIcon,
   cadillac:    CadillacIcon,
 } as const;
 

@@ -4,7 +4,7 @@ import { AnalyzeResponse } from "@/services/api";
 
 export type TeamTheme =
   | "ferrari" | "redbull" | "mercedes" | "mclaren" | "alpine"
-  | "astonmartin" | "williams" | "haas" | "rb" | "sauber" | "cadillac";
+  | "astonmartin" | "williams" | "haas" | "rb" | "audi" | "cadillac";
 
 interface MissionControlState {
   theme: TeamTheme;
