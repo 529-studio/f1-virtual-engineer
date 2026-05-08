@@ -1,119 +1,103 @@
 import Link from "next/link";
 
-import { TelemetryRibbon } from "@/components/landing/TelemetryRibbon";
-
 const heroStats = [
   { label: "Live telemetry channels", value: "04" },
-  { label: "Race strategy modules", value: "03" },
-  { label: "Decision window latency", value: "< 5s" },
+  { label: "Strategy modules",        value: "03" },
+  { label: "Decision latency",        value: "<5s" },
 ];
 
 export function LandingHero() {
   return (
-    <section className="relative overflow-hidden px-4 pb-16 pt-10 sm:px-6 lg:px-8 lg:pb-24 lg:pt-16">
-      <div className="hero-grid pointer-events-none absolute inset-0 opacity-50" />
-      <div className="hero-radial pointer-events-none absolute inset-x-0 top-0 h-[32rem]" />
-      <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/6 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.35em] text-slate-300 backdrop-blur">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(74,222,128,0.9)]" />
+    <section className="relative pt-16 pb-20 overflow-hidden">
+      {/* Subtle grid */}
+      <div className="hero-grid pointer-events-none absolute inset-0 opacity-40" />
+
+      <div className="relative z-10 grid gap-14 lg:grid-cols-[1fr_420px] lg:items-center">
+
+        {/* Left — copy */}
+        <div>
+          <div
+            className="inline-flex items-center gap-2.5 px-3 py-1.5 mb-8 text-[0.6rem] readout uppercase tracking-widest"
+            style={{ border: "1px solid var(--border)", color: "var(--foreground-dim)" }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.9)]" />
             Race engineer system online
           </div>
 
-          <h1 className="mt-8 max-w-5xl text-5xl font-black uppercase leading-[0.92] tracking-[-0.07em] text-white sm:text-6xl lg:text-8xl">
+          <h1
+            className="display text-5xl sm:text-6xl lg:text-7xl mb-6"
+            style={{ color: "var(--foreground)" }}
+          >
             Build faster race calls from telemetry, not guesswork.
           </h1>
 
-          <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
+          <p className="text-base leading-7 mb-10 max-w-xl" style={{ color: "var(--foreground-dim)" }}>
             Apex Intelligence turns Formula 1 session data into explainable pit-window,
-            tyre-decay, and undercut insight so solo builders can demo real agentic AI with real motorsport context.
+            tyre-decay, and undercut insight — built for solo devs demoing real agentic AI.
           </p>
 
-          <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-            <Link
-              href="#mission-control"
-              className="inline-flex items-center justify-center rounded-full bg-red-600 px-6 py-3 text-sm font-bold uppercase tracking-[0.22em] text-white transition hover:bg-red-500"
-            >
-              Enter mission control
-            </Link>
-            <Link
-              href="#strategy-story"
-              className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold uppercase tracking-[0.22em] text-slate-200 transition hover:border-white/25 hover:bg-white/10"
-            >
-              See how it thinks
-            </Link>
-          </div>
+          <Link
+            href="/mission-control"
+            className="inline-flex items-center readout text-[0.65rem] font-bold uppercase tracking-widest px-5 py-3 transition-all"
+            style={{ background: "var(--accent)", color: "#fff" }}
+          >
+            Enter Mission Control →
+          </Link>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-3">
-            {heroStats.map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm"
-              >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-                  {stat.label}
-                </p>
-                <p className="mt-3 text-2xl font-black tracking-[-0.05em] text-white">
-                  {stat.value}
-                </p>
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-4 mt-12">
+            {heroStats.map((s) => (
+              <div key={s.label} className="pt-4" style={{ borderTop: "1px solid var(--border)" }}>
+                <p className="display text-2xl mb-1" style={{ color: "var(--foreground)" }}>{s.value}</p>
+                <p className="label">{s.label}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="relative z-10">
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/80 p-5 shadow-[0_40px_80px_rgba(2,6,23,0.6)] backdrop-blur-xl">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.24),transparent_45%)]" />
-            <div className="relative">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-400">
-                    Strategy Core
-                  </p>
-                  <p className="mt-2 text-lg font-semibold text-white">Japanese GP // Race // NOR</p>
-                </div>
-                <span className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.35em] text-emerald-300">
-                  Signal stable
-                </span>
-              </div>
-
-              <div className="mt-6 space-y-4">
-                <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-red-300">
-                    Strategy alert
-                  </p>
-                  <p className="mt-2 text-xl font-bold text-white">Pit window opens in 4 laps.</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">
-                    Medium compound degradation is crossing the threshold where undercut exposure becomes material.
-                  </p>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <MetricPanel label="Tyre delta" value="+0.31s/lap" />
-                  <MetricPanel label="Undercut risk" value="High" />
-                  <MetricPanel label="Traffic loss" value="1.8s" />
-                  <MetricPanel label="Confidence" value="74%" />
-                </div>
-              </div>
+        {/* Right — strategy card preview */}
+        <div
+          className="glass rounded-sm p-6 space-y-4"
+          style={{ background: "var(--surface-elevated)" }}
+        >
+          <div className="flex items-center justify-between pb-4" style={{ borderBottom: "1px solid var(--border)" }}>
+            <div>
+              <p className="label mb-1">Strategy Core</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Japanese GP // Race // NOR</p>
             </div>
+            <span
+              className="readout text-[0.55rem] uppercase tracking-widest px-2.5 py-1"
+              style={{ border: "1px solid rgba(74,222,128,0.3)", color: "#4ade80", background: "rgba(74,222,128,0.08)" }}
+            >
+              Signal stable
+            </span>
+          </div>
+
+          <div className="p-4" style={{ border: "1px solid var(--accent-dim)", background: "var(--accent-dim)" }}>
+            <p className="label mb-1" style={{ color: "var(--accent)" }}>Strategy Alert</p>
+            <p className="text-base font-bold mb-1.5" style={{ color: "var(--foreground)" }}>
+              Pit window opens in 4 laps.
+            </p>
+            <p className="readout text-[0.65rem] leading-5" style={{ color: "var(--foreground-dim)" }}>
+              Medium compound degradation crossing the threshold where undercut exposure becomes material.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { label: "Tyre delta",    value: "+0.31s/lap" },
+              { label: "Undercut risk", value: "High" },
+              { label: "Traffic loss",  value: "1.8s" },
+              { label: "Confidence",    value: "74%" },
+            ].map(({ label, value }) => (
+              <div key={label} className="p-3" style={{ border: "1px solid var(--border)" }}>
+                <p className="label mb-1">{label}</p>
+                <p className="readout text-sm font-semibold" style={{ color: "var(--foreground)" }}>{value}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
-
-      <div className="mx-auto mt-10 max-w-7xl">
-        <TelemetryRibbon />
-      </div>
     </section>
-  );
-}
-
-function MetricPanel({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
-        {label}
-      </p>
-      <p className="mt-3 text-xl font-bold text-white">{value}</p>
-    </div>
   );
 }

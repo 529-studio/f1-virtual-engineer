@@ -2,7 +2,9 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { AnalyzeResponse } from "@/services/api";
 
-export type TeamTheme = "apex" | "mercedes" | "ferrari" | "redbull";
+export type TeamTheme =
+  | "apex" | "ferrari" | "redbull" | "mercedes" | "mclaren"
+  | "alpine" | "astonmartin" | "williams" | "haas" | "rb" | "sauber";
 
 interface MissionControlState {
   theme: TeamTheme;

@@ -1,135 +1,242 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────
+   BASE DESIGN TOKENS — Apple × F1 Luxury
+   Philosophy: radical subtraction, data as hero.
+   Typography anchored on SF Pro system stack.
+   ───────────────────────────────────────────── */
+
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
-  --accent: #ff2800; /* Apex Red / Ferrari Rosso Corsa */
-  --surface: #0a0a0a;
-  --border: rgba(255, 255, 255, 0.1);
-  --font-sans-app: "Inter", "SF Pro Display", -apple-system, sans-serif;
-  --font-mono-app: "JetBrains Mono", "SFMono-Regular", monospace;
+  /* Canvas */
+  --background: #080808;
+  --surface:    #0f0f0f;
+  --surface-elevated: #161616;
+  --overlay:    rgba(8, 8, 8, 0.85);
+
+  /* Foreground */
+  --foreground:      #f5f5f7;
+  --foreground-dim:  rgba(245, 245, 247, 0.45);
+  --foreground-faint:rgba(245, 245, 247, 0.18);
+
+  /* Accent — Apex / default */
+  --accent:     #e8002d; /* Rosso Corsa */
+  --accent-dim: rgba(232, 0, 45, 0.15);
+  --accent-glow:rgba(232, 0, 45, 0.25);
+
+  /* Borders */
+  --border:       rgba(255, 255, 255, 0.08);
+  --border-strong:rgba(255, 255, 255, 0.14);
+
+  /* Typography */
+  --font-sans: -apple-system, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+
+  /* Spacing rhythm */
+  --page-x: 2.5rem;   /* horizontal page padding */
+}
+
+/* ─────────────────────────────────────────────
+   TEAM THEMES — 2026 F1 Season
+   Each sets accent + surface + border only.
+   Background stays near-black for all.
+   ───────────────────────────────────────────── */
+
+[data-theme="apex"] {
+  --accent:     #e8002d;
+  --accent-dim: rgba(232, 0, 45, 0.15);
+  --accent-glow:rgba(232, 0, 45, 0.25);
+}
+
+[data-theme="redbull"] {
+  --accent:     #3671C6;
+  --accent-dim: rgba(54, 113, 198, 0.15);
+  --accent-glow:rgba(54, 113, 198, 0.25);
+  --surface:    #080d1a;
+}
+
+[data-theme="ferrari"] {
+  --accent:     #E8002D;
+  --accent-dim: rgba(232, 0, 45, 0.15);
+  --accent-glow:rgba(232, 0, 45, 0.3);
 }
 
 [data-theme="mercedes"] {
-  --background: #0b0f10;
-  --foreground: #e1e1e1;
-  --accent: #00a19b; /* Mercedes AMG Petronas Teal */
-  --surface: #1e2528;
-  --border: rgba(0, 161, 155, 0.2);
+  --accent:     #00A19B;
+  --accent-dim: rgba(0, 161, 155, 0.15);
+  --accent-glow:rgba(0, 161, 155, 0.25);
+  --surface:    #080f0e;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-accent: var(--accent);
-  --color-surface: var(--surface);
-  --color-border: var(--border);
-  --font-sans: var(--font-sans-app);
-  --font-mono: var(--font-mono-app);
+[data-theme="mclaren"] {
+  --accent:     #FF8000;
+  --accent-dim: rgba(255, 128, 0, 0.15);
+  --accent-glow:rgba(255, 128, 0, 0.25);
 }
+
+[data-theme="alpine"] {
+  --accent:     #0090FF;
+  --accent-dim: rgba(0, 144, 255, 0.15);
+  --accent-glow:rgba(0, 144, 255, 0.25);
+}
+
+[data-theme="astonmartin"] {
+  --accent:     #358C75;
+  --accent-dim: rgba(53, 140, 117, 0.15);
+  --accent-glow:rgba(53, 140, 117, 0.25);
+  --surface:    #080f0c;
+}
+
+[data-theme="williams"] {
+  --accent:     #64C4FF;
+  --accent-dim: rgba(100, 196, 255, 0.15);
+  --accent-glow:rgba(100, 196, 255, 0.2);
+}
+
+[data-theme="haas"] {
+  --accent:     #B6BABD;
+  --accent-dim: rgba(182, 186, 189, 0.12);
+  --accent-glow:rgba(182, 186, 189, 0.18);
+}
+
+[data-theme="rb"] {
+  --accent:     #6692FF;
+  --accent-dim: rgba(102, 146, 255, 0.15);
+  --accent-glow:rgba(102, 146, 255, 0.22);
+}
+
+[data-theme="sauber"] {
+  --accent:     #52E252;
+  --accent-dim: rgba(82, 226, 82, 0.12);
+  --accent-glow:rgba(82, 226, 82, 0.2);
+  --surface:    #08100a;
+}
+
+/* ─────────────────────────────────────────────
+   TAILWIND THEME BRIDGE
+   ───────────────────────────────────────────── */
+
+@theme inline {
+  --color-background:       var(--background);
+  --color-surface:          var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-foreground:       var(--foreground);
+  --color-foreground-dim:   var(--foreground-dim);
+  --color-foreground-faint: var(--foreground-faint);
+  --color-accent:           var(--accent);
+  --color-accent-dim:       var(--accent-dim);
+  --color-border:           var(--border);
+  --color-border-strong:    var(--border-strong);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+/* ─────────────────────────────────────────────
+   RESET
+   ───────────────────────────────────────────── */
 
 html, body {
   height: 100%;
-  overflow: hidden;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans-app);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Cockpit Glassmorphism */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* ─────────────────────────────────────────────
+   UTILITY CLASSES
+   ───────────────────────────────────────────── */
+
+/* Glassmorphism panel */
 .glass {
-  background: rgba(10, 10, 10, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 0.5px solid var(--border);
+  background: var(--overlay);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border);
 }
 
-/* Monumental Typography */
-.monumental {
-  font-size: 4rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  text-transform: uppercase;
-  line-height: 0.9;
-}
-
-/* Monospace sensor readout */
+/* Monospace sensor readout — always tabular */
 .readout {
-  font-family: var(--font-mono-app);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 
+/* Display headline — editorial, tight */
+.display {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+/* Label — ALLCAPS tracking */
+.label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--foreground-dim);
+}
+
+/* Accent line — 1px horizontal rule in accent color */
+.accent-rule {
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.6;
+}
+
+/* Subtle grid texture for hero areas */
 .hero-grid {
   background-image:
-    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
-  background-size: 72px 72px;
-  mask-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.75), transparent 80%);
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(to bottom, rgba(255,255,255,0.6), transparent 75%);
 }
 
-.hero-radial {
+/* Accent radial glow — top left */
+.hero-glow {
   background:
-    radial-gradient(circle at 25% 10%, rgba(239, 68, 68, 0.18), transparent 28%),
-    radial-gradient(circle at 80% 20%, rgba(56, 189, 248, 0.12), transparent 28%);
-  filter: blur(40px);
+    radial-gradient(circle at 15% 0%, var(--accent-glow), transparent 35%),
+    radial-gradient(circle at 85% 0%, rgba(56, 189, 248, 0.06), transparent 30%);
 }
 
+/* Telemetry marquee ribbon */
 .telemetry-ribbon::before,
 .telemetry-ribbon::after {
   content: "";
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 8rem;
+  top: 0; bottom: 0;
+  width: 6rem;
   z-index: 1;
   pointer-events: none;
 }
-
 .telemetry-ribbon::before {
   left: 0;
-  background: linear-gradient(90deg, rgba(5, 7, 11, 0.95), transparent);
+  background: linear-gradient(90deg, var(--background), transparent);
 }
-
 .telemetry-ribbon::after {
   right: 0;
-  background: linear-gradient(270deg, rgba(5, 7, 11, 0.95), transparent);
+  background: linear-gradient(270deg, var(--background), transparent);
 }
-
 .telemetry-ribbon__track {
-  animation: telemetry-marquee 28s linear infinite;
-}
-
-.story-track {
-  overflow: hidden;
-}
-
-.story-track__progress {
-  width: 64%;
-  box-shadow: 0 0 32px rgba(239, 68, 68, 0.35);
+  animation: telemetry-marquee 32s linear infinite;
 }
 
 @keyframes telemetry-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
-  .telemetry-ribbon__track {
-    animation: none;
-  }
-
-  *,
-  *::before,
-  *::after {
+  html { scroll-behavior: auto; }
+  .telemetry-ribbon__track { animation: none; }
+  *, *::before, *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
