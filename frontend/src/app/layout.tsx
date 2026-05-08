@@ -24,11 +24,12 @@ export const metadata: Metadata = {
   ],
   icons: {
     icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon.ico" },
       { url: "/icon.png", type: "image/png", sizes: "256x256" },
     ],
     apple: [{ url: "/apple-icon.png", sizes: "256x256", type: "image/png" }],
-    shortcut: ["/favicon.ico"],
+    shortcut: ["/favicon.svg"],
   },
   manifest: "/manifest.webmanifest",
   openGraph: {
