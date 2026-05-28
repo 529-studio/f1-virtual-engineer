@@ -26,13 +26,13 @@ export function EvalArcSection({ evalStatus }: { evalStatus: EvalStatus }) {
       <div className="grid gap-10 lg:grid-cols-[1fr_360px] lg:items-start">
         {/* Left: arc narrative */}
         <div>
-          <p className="label mb-2">Eval-driven, not vibe-driven</p>
+          <p className="label mb-2">For the curious</p>
           <h2 className="display mb-6 text-[length:var(--text-h1)] text-foreground">
-            How we got here.
+            Built on real lap data.
           </h2>
           <p className="mb-10 max-w-2xl text-[length:var(--text-body)] leading-7 text-foreground-dim">
-            Every step of the strategy heuristic was gated by a snapshot eval that derives ground
-            truth from FastF1 lap data — no hand-tuned numbers, no &quot;trust me&quot; metrics.
+            Every recommendation regenerates from FastF1 lap data and a regulation-aware corpus.
+            No hand-tuned numbers, no &quot;trust me&quot; metrics — every call traces back to a source.
           </p>
 
           <ol className="grid gap-px border border-border">

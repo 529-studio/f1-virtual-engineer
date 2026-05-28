@@ -9,8 +9,8 @@ import { Footer } from "@/components/Footer";
 import { readEvalStatus } from "@/lib/eval-status";
 
 const navItems = [
-  { label: "How it works", href: "#eval-arc" },
   { label: "Capabilities", href: "#capabilities" },
+  { label: "How it's built", href: "#eval-arc" },
   { label: "Mission Control", href: "/mission-control" },
 ];
 
@@ -66,9 +66,7 @@ export default function Home() {
       </header>
 
       <div className="relative z-10 mx-auto max-w-6xl px-6">
-        <LandingHero evalStatus={evalStatus} />
-
-        <EvalArcSection evalStatus={evalStatus} />
+        <LandingHero />
 
         <section id="capabilities" className="py-20">
           <div className="mb-10">
@@ -79,6 +77,8 @@ export default function Home() {
           </div>
           <CapabilityGrid />
         </section>
+
+        <EvalArcSection evalStatus={evalStatus} />
       </div>
 
       <LandingCTA />
