@@ -330,11 +330,22 @@ def get_year_schedule(year: int) -> list[dict[str, Any]]:
             round_number = int(row["RoundNumber"])
             if round_number == 0:
                 continue
+            try:
+                event_date_raw = row["EventDate"]
+            except (KeyError, IndexError):
+                event_date_raw = None
+            event_date_iso: str | None = None
+            if event_date_raw is not None:
+                try:
+                    event_date_iso = event_date_raw.strftime("%Y-%m-%d")
+                except AttributeError:
+                    event_date_iso = str(event_date_raw)[:10] or None
             events.append({
                 "name": row["EventName"],
                 "location": row["Location"],
                 "round": round_number,
-                "official_name": row["OfficialEventName"]
+                "official_name": row["OfficialEventName"],
+                "event_date": event_date_iso,
             })
         return events
     except Exception as exc:

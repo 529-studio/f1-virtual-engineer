@@ -91,7 +91,22 @@ export default function MissionControlPage() {
   useEffect(() => {
     let cancelled = false;
     getEventsByYear(year)
-      .then((res) => { if (!cancelled) { setEvents(res.events ?? []); setEvent(""); } })
+      .then((res) => {
+        if (cancelled) return;
+        // Hide future / cancelled rounds. FastF1's schedule lists every
+        // planned event for the season, including ones that haven't run
+        // yet (or got pulled — e.g. Bahrain 2026). Surfacing them in
+        // the dropdown lets users pick a session that has no laps,
+        // which then 500s downstream. Filter to events whose date is
+        // <= today; rows missing event_date stay visible (defensive
+        // — old caches may not carry the field).
+        const today = new Date().toISOString().slice(0, 10);
+        const visible = (res.events ?? []).filter(
+          (e) => !e.event_date || e.event_date <= today,
+        );
+        setEvents(visible);
+        setEvent("");
+      })
       .catch(() => { if (!cancelled) setEvents([]); })
       .finally(() => { if (!cancelled) setEventsLoading(false); });
     return () => { cancelled = true; };
