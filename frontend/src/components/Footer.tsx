@@ -1,7 +1,10 @@
 import Link from "next/link";
 
-const GITHUB_URL = process.env.NEXT_PUBLIC_GITHUB_URL;
-const LICENSE_URL = process.env.NEXT_PUBLIC_LICENSE_URL;
+// Footer renders inside a Server Component, so non-NEXT_PUBLIC env vars
+// are fine here — they stay out of the client bundle. Both keys are
+// optional: a missing value just hides the corresponding link.
+const GITHUB_URL = process.env.GITHUB_URL;
+const LICENSE_URL = process.env.LICENSE_URL;
 
 // Standard footer for full-height pages (landing). Mission Control has its
 // own fixed-height MissionFooter with telemetry stats and surfaces the
