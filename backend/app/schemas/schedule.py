@@ -6,6 +6,10 @@ class EventInfo(BaseModel):
     location: str
     round: int
     official_name: str
+    # ISO 8601 date (YYYY-MM-DD) of the race weekend's main event.
+    # Optional because FastF1's schedule may omit it for some
+    # historical/edge rows; the FE treats missing as "show it".
+    event_date: Optional[str] = None
 
 class ScheduleResponse(BaseModel):
     year: int

@@ -111,6 +111,10 @@ export interface EventInfo {
   location: string;
   round: number;
   official_name: string;
+  // ISO date (YYYY-MM-DD) of the race weekend's main event.
+  // Null when the upstream schedule didn't supply one — the UI
+  // treats null as "show it" rather than hiding by default.
+  event_date: string | null;
 }
 
 export interface ScheduleResponse {
