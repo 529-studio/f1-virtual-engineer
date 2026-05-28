@@ -12,13 +12,13 @@ export function LandingCTA() {
 
           <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
-              <p className="label mb-4 text-accent">Final call</p>
+              <p className="label mb-4 text-accent">Pit wall awaits</p>
               <h2 className="display mb-4 text-[length:var(--text-h1)] text-foreground">
-                Turn race data into a mission-control moment.
+                Step into the pit wall.
               </h2>
               <p className="text-[length:var(--text-small)] leading-7 text-foreground-dim">
-                The MVP only gets one first impression. Make it feel like telemetry, strategy,
-                and AI are finally working as one system.
+                One demo session loaded. Pick any race after that — every call is cited, every
+                chart redraws from lap data.
               </p>
             </div>
 
