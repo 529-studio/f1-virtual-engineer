@@ -2,8 +2,8 @@ stages:
   - build
 
 variables:
-  # Kích hoạt BuildKit để build nhanh hơn và tối ưu cache
   DOCKER_BUILDKIT: 1
+  DOCKER_DRIVER: overlay2
 
 .docker-build-template:
   image: docker:24.0.5
@@ -18,17 +18,20 @@ build-backend:
   variables:
     IMAGE_NAME: $CI_REGISTRY_IMAGE/backend
   script:
-    - cd backend
-    - docker build --cache-from $IMAGE_NAME:stg-latest --build-arg BUILDKIT_INLINE_CACHE=1 -t $IMAGE_NAME:sha-$CI_COMMIT_SHORT_SHA -t $IMAGE_NAME:stg-latest .
+    - docker build
+        -f backend/Dockerfile
+        --cache-from $IMAGE_NAME:stg-latest
+        --build-arg BUILDKIT_INLINE_CACHE=1
+        -t $IMAGE_NAME:sha-$CI_COMMIT_SHORT_SHA
+        -t $IMAGE_NAME:stg-latest
+        .
     - docker push $IMAGE_NAME:sha-$CI_COMMIT_SHORT_SHA
     - docker push $IMAGE_NAME:stg-latest
-    - |
-      if [ -n "$DOKPLOY_BE_WEBHOOK_URL" ]; then
-        echo "Triggering Backend Redeploy..."
-        curl -sS -f -X POST "$DOKPLOY_BE_WEBHOOK_URL"
-      else
-        echo "DOKPLOY_BE_WEBHOOK_URL is not set. Skipping webhook."
-      fi
+    # Webhook — uncomment khi deploy setup xong
+    # - |
+    #   if [ -n "$DOKPLOY_BE_WEBHOOK_URL" ]; then
+    #     curl -sS -f -X POST "$DOKPLOY_BE_WEBHOOK_URL"
+    #   fi
   rules:
     - if: '$CI_COMMIT_BRANCH == "dev" || $CI_PIPELINE_SOURCE == "web"'
       changes:
@@ -40,17 +43,22 @@ build-frontend:
   variables:
     IMAGE_NAME: $CI_REGISTRY_IMAGE/frontend
   script:
-    - cd frontend
-    - docker build --cache-from $IMAGE_NAME:stg-latest --build-arg BUILDKIT_INLINE_CACHE=1 -t $IMAGE_NAME:sha-$CI_COMMIT_SHORT_SHA -t $IMAGE_NAME:stg-latest .
+    - docker build
+        -f frontend/Dockerfile
+        --cache-from $IMAGE_NAME:stg-latest
+        --build-arg BUILDKIT_INLINE_CACHE=1
+        --build-arg NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+        --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+        -t $IMAGE_NAME:sha-$CI_COMMIT_SHORT_SHA
+        -t $IMAGE_NAME:stg-latest
+        .
     - docker push $IMAGE_NAME:sha-$CI_COMMIT_SHORT_SHA
     - docker push $IMAGE_NAME:stg-latest
-    - |
-      if [ -n "$DOKPLOY_FE_WEBHOOK_URL" ]; then
-        echo "Triggering Frontend Redeploy..."
-        curl -sS -f -X POST "$DOKPLOY_FE_WEBHOOK_URL"
-      else
-        echo "DOKPLOY_FE_WEBHOOK_URL is not set. Skipping webhook."
-      fi
+    # Webhook — uncomment khi deploy setup xong
+    # - |
+    #   if [ -n "$DOKPLOY_FE_WEBHOOK_URL" ]; then
+    #     curl -sS -f -X POST "$DOKPLOY_FE_WEBHOOK_URL"
+    #   fi
   rules:
     - if: '$CI_COMMIT_BRANCH == "dev" || $CI_PIPELINE_SOURCE == "web"'
       changes:
