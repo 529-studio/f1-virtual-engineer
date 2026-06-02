@@ -185,14 +185,15 @@ export function StrategyHUD({
       })()}
 
       <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-4">
-        <WhyThisCallPanel result={result} strat={strat} hasData={hasData} />
-
-        <TyreCard year={year} event={eventName} session={session} driver={driver} />
-
+        {/* Issue #256: Pit Window is the headline. When the user picked
+            an analysis intent and we have a recommendation, surface the
+            lap range *before* tyre/why-this-call so the panel reads
+            top-down: "here's the call → here's the why → here's the
+            tyre context". */}
         {hasData && strat?.recommended_pit_window_laps?.length === 2 && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="status-bar mb-4 mt-4 border p-3"
+            className="status-bar mt-4 border p-3"
             data-status={strat.fallback ? "warn" : "ok"}
             style={{
               borderColor: strat.fallback ? "var(--status-warn)" : "var(--status-ok)",
@@ -275,6 +276,38 @@ export function StrategyHUD({
               </p>
             )}
           </motion.div>
+        )}
+
+        {/* Issue #256: cold-state CTA. Selectors are picked but the user
+            hasn't pressed Analyze. Without this the panel below would
+            either be empty (no Pit Window yet) or, worse, narrate a tyre
+            warning from an auto-fetched TyreCard — reading as a
+            recommendation the system isn't actually making yet. */}
+        {!hasData && !isLoading && driver && eventName && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="status-bar mt-4 border border-dashed p-3"
+            data-status="info"
+            style={{ borderColor: "var(--border)", background: "transparent" }}
+          >
+            <p className="label mb-1 text-foreground-dim">Awaiting analysis</p>
+            <p className="readout text-[0.7rem] leading-snug text-foreground">
+              Press <span className="font-bold text-accent">Analyze</span> for a
+              full-race pit-strategy recommendation.
+            </p>
+          </motion.div>
+        )}
+
+        <WhyThisCallPanel result={result} strat={strat} hasData={hasData} />
+
+        {/* Issue #256: TyreCard renders only after Analyze. The card used
+            to auto-fetch on year/event/session/driver and read like a
+            standing recommendation — even on finished races it would say
+            "Stint ending within 2 laps of cliff" for a stint that no
+            longer exists. Gating on hasData ties it to the analysis
+            context the user actually requested. */}
+        {hasData && (
+          <TyreCard year={year} event={eventName} session={session} driver={driver} />
         )}
 
         <ReferencesPanel items={result?.citations} />
