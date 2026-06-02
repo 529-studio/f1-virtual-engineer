@@ -33,7 +33,7 @@ build-backend:
     #     curl -sS -f -X POST "$DOKPLOY_BE_WEBHOOK_URL"
     #   fi
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev" || $CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_PIPELINE_SOURCE == "web"'
       changes:
         - backend/**/*
         - .gitlab-ci.yml
@@ -62,7 +62,7 @@ build-frontend:
     #     curl -sS -f -X POST "$DOKPLOY_FE_WEBHOOK_URL"
     #   fi
   rules:
-    - if: '$CI_COMMIT_BRANCH == "dev" || $CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_PIPELINE_SOURCE == "web"'
       changes:
         - frontend/**/*
         - .gitlab-ci.yml
