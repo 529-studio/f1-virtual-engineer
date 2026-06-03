@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BoxBoxEmpty } from "@/components/ui/BoxBoxEmpty";
 import { StartingGridLoader } from "@/components/ui/StartingGridLoader";
+import { JargonTooltip } from "@/components/ui/JargonTooltip";
 
 const CHART_VB_W = 1000;
 const CHART_VB_H = 80;
@@ -110,7 +111,9 @@ export function TelemetryChart({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="mb-2 flex shrink-0 items-baseline justify-between">
         <span className="label">
-          {label}
+          <JargonTooltip term={label.toLowerCase()}>
+            {label}
+          </JargonTooltip>
           {compareLabel ? (
             <span className="ml-2 text-foreground-faint">vs {compareLabel}</span>
           ) : null}
@@ -129,7 +132,7 @@ export function TelemetryChart({
           ) : (
             <motion.span key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               className="label text-foreground-faint">
-              no data
+              {isLoading ? "loading…" : "no data"}
             </motion.span>
           )}
         </AnimatePresence>
