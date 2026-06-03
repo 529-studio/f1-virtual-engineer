@@ -1,9 +1,49 @@
 stages:
+  - test
   - build
 
 variables:
   DOCKER_BUILDKIT: 1
   DOCKER_DRIVER: overlay2
+
+# ── test ──────────────────────────────────────────────────────────────────────
+
+test-backend:
+  image: python:3.13-slim
+  stage: test
+  before_script:
+    - pip install --quiet -r backend/requirements.txt
+  script:
+    - python -m pytest backend/tests -q --no-header
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_PIPELINE_SOURCE == "web"'
+      changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+
+test-frontend:
+  image: node:22-alpine
+  stage: test
+  before_script:
+    - cd frontend && npm install --global yarn && yarn install --frozen-lockfile
+  script:
+    - yarn tsc --noEmit
+    - yarn eslint src --max-warnings 0
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_PIPELINE_SOURCE == "web"'
+      changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+
+# ── build ─────────────────────────────────────────────────────────────────────
 
 .docker-build-template:
   image: docker:24.0.5
