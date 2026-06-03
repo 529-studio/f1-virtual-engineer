@@ -12,10 +12,11 @@ test-backend:
   image: python:3.13-slim
   stage: test
   before_script:
-    # Install app deps + pytest (pytest is a dev dep, not in requirements.txt)
     - pip install --quiet -r backend/requirements.txt pytest
   script:
-    - python -m pytest backend/tests -q --no-header
+    # Run from backend/ so `tests` is importable as a package (conftest.py
+    # does `from tests._helpers import ...` which requires backend/ on sys.path)
+    - cd backend && python -m pytest tests -q --no-header
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
