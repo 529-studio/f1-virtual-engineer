@@ -1,6 +1,7 @@
 "use client";
 
 import type { AnalyzeExecution, AnalyzeResponse, StrategyData } from "@/services/api";
+import { JargonTooltip } from "@/components/ui/JargonTooltip";
 
 const GITHUB_URL = "https://github.com/thdat-vu/f1-virtual-engineer";
 
@@ -31,13 +32,15 @@ export function MissionFooter({
   return (
     <footer className="flex h-9 shrink-0 items-center gap-5 overflow-hidden border-t border-border bg-surface px-6">
       {[
-        { label: "RPM",  value: tel?.rpm    ? `${tel.rpm.avg.toFixed(0)} avg`  : "—" },
-        { label: "Gear", value: tel?.gear   ? `${tel.gear.avg.toFixed(1)} avg` : "—" },
-        { label: "Pts",  value: tel?.sample_points ? `${tel.sample_points} samples` : "—" },
-      ].map(({ label, value }, i) => (
+        { label: "RPM",  term: "rpm",  value: tel?.rpm    ? `${tel.rpm.avg.toFixed(0)} avg`  : "—" },
+        { label: "Gear", term: "gear", value: tel?.gear   ? `${tel.gear.avg.toFixed(1)} avg` : "—" },
+        { label: "Pts",  term: null,   value: tel?.sample_points ? `${tel.sample_points} samples` : "—" },
+      ].map(({ label, term, value }, i) => (
         <div key={label} className="flex items-center gap-2">
           {i > 0 && <div className="h-3 w-px bg-border" />}
-          <span className="label">{label}</span>
+          <span className="label">
+            {term ? <JargonTooltip term={term}>{label}</JargonTooltip> : label}
+          </span>
           <span className="readout text-[length:var(--text-readout)] text-foreground">{value}</span>
         </div>
       ))}

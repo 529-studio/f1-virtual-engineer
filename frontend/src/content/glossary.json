@@ -8,5 +8,10 @@
   "dirty air": "Turbulent airflow behind another car that reduces downforce and overheats tyres.",
   "slipstream": "The low-drag tow created behind another car, used to close a gap on straights.",
   "gap": "Time difference between two cars, measured at a fixed point on track.",
-  "sector": "One of three timed segments that together make up a full lap."
+  "sector": "One of three timed segments that together make up a full lap.",
+  "speed": "Vehicle speed in km/h, sampled at ~200 points across the lap.",
+  "throttle": "Throttle application as a percentage (0–100%) over the lap distance.",
+  "brake": "Brake application as a binary on/off signal over the lap distance.",
+  "rpm": "Revolutions per minute — engine speed. Higher RPM means the engine is working harder.",
+  "gear": "Transmission gear engaged (1–8). Helps read corner-exit traction and acceleration phases."
 }
