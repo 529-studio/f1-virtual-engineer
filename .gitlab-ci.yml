@@ -1,9 +1,54 @@
 stages:
+  - test
   - build
 
 variables:
   DOCKER_BUILDKIT: 1
   DOCKER_DRIVER: overlay2
+
+# ── test ──────────────────────────────────────────────────────────────────────
+
+test-backend:
+  image: python:3.13-slim
+  stage: test
+  before_script:
+    - pip install --quiet -r backend/requirements.txt pytest
+  script:
+    # Run from backend/ so `tests` is importable as a package (conftest.py
+    # does `from tests._helpers import ...` which requires backend/ on sys.path)
+    - cd backend && python -m pytest tests -q --no-header
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_PIPELINE_SOURCE == "web"'
+      changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+
+test-frontend:
+  image: node:22-alpine
+  stage: test
+  before_script:
+    # Project uses Yarn 4 (Berry) via corepack — node:22-alpine ships corepack
+    # but it needs to be enabled explicitly. --frozen-lockfile is Yarn 1 syntax;
+    # Berry uses --immutable.
+    - cd frontend && corepack enable && yarn install --immutable
+  script:
+    - npx tsc --noEmit
+    - yarn lint
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_PIPELINE_SOURCE == "web"'
+      changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+
+# ── build ─────────────────────────────────────────────────────────────────────
 
 .docker-build-template:
   image: docker:24.0.5
