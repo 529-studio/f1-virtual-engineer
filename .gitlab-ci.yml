@@ -12,7 +12,8 @@ test-backend:
   image: python:3.13-slim
   stage: test
   before_script:
-    - pip install --quiet -r backend/requirements.txt
+    # Install app deps + pytest (pytest is a dev dep, not in requirements.txt)
+    - pip install --quiet -r backend/requirements.txt pytest
   script:
     - python -m pytest backend/tests -q --no-header
   rules:
@@ -29,10 +30,13 @@ test-frontend:
   image: node:22-alpine
   stage: test
   before_script:
-    - cd frontend && npm install --global yarn && yarn install --frozen-lockfile
+    # Project uses Yarn 4 (Berry) via corepack — node:22-alpine ships corepack
+    # but it needs to be enabled explicitly. --frozen-lockfile is Yarn 1 syntax;
+    # Berry uses --immutable.
+    - cd frontend && corepack enable && yarn install --immutable
   script:
-    - yarn tsc --noEmit
-    - yarn eslint src --max-warnings 0
+    - npx tsc --noEmit
+    - yarn lint
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
