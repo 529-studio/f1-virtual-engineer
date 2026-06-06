@@ -12,7 +12,7 @@ import {
 import { defaultSeason } from "@/lib/f1-seasons";
 
 export default function MissionControlPage() {
-  const { theme, setTheme, result, setResult, isLoading, setIsLoading } = useMissionStore();
+  const { theme, result, setResult, isLoading, setIsLoading } = useMissionStore();
   const { session: authSession } = useSupabase();
   const [historyRefreshSignal, setHistoryRefreshSignal] = useState(0);
   const [telemetryHistoryRefreshSignal, setTelemetryHistoryRefreshSignal] = useState(0);
