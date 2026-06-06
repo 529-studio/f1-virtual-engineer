@@ -12,7 +12,7 @@ import {
 import { defaultSeason } from "@/lib/f1-seasons";
 
 export default function MissionControlPage() {
-  const { theme, setTheme, result, setResult, isLoading, setIsLoading } = useMissionStore();
+  const { theme, result, setResult, isLoading, setIsLoading } = useMissionStore();
   const { session: authSession } = useSupabase();
   const [historyRefreshSignal, setHistoryRefreshSignal] = useState(0);
   const [telemetryHistoryRefreshSignal, setTelemetryHistoryRefreshSignal] = useState(0);
@@ -438,7 +438,7 @@ export default function MissionControlPage() {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <MissionHeader
           displayDriver={displayDriver} displayEvent={displayEvent} displayLap={displayLap}
-          theme={theme} setTheme={setTheme} weather={weather}
+          weather={weather}
         />
 
         <SelectorBar
