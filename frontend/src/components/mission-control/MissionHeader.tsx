@@ -1,19 +1,16 @@
 "use client";
 
-import { TeamIcon } from "@/components/icons/TeamIcons";
 import { AuthButton } from "@/components/auth/AuthButton";
+import { TeamSwitcher } from "@/components/landing/TeamSwitcher";
 import type { WeatherSummaryResponse } from "@/services/api";
-import { TEAMS, type TeamId } from "./constants";
 import { WeatherPill } from "./WeatherPill";
 
 export function MissionHeader({
-  displayDriver, displayEvent, displayLap, theme, setTheme, weather,
+  displayDriver, displayEvent, displayLap, weather,
 }: {
   displayDriver: string;
   displayEvent: string;
   displayLap: string | null;
-  theme: TeamId;
-  setTheme: (id: TeamId) => void;
   weather: WeatherSummaryResponse | null;
 }) {
   return (
@@ -30,24 +27,7 @@ export function MissionHeader({
 
       <div className="h-3 w-px shrink-0 bg-border-strong" />
 
-      <div className="flex items-center gap-1.5">
-        {TEAMS.map((t) => {
-          const active = theme === t.id;
-          return (
-            <button key={t.id} onClick={() => setTheme(t.id as TeamId)}
-              title={t.label}
-              className="shrink-0 rounded-sm transition-all duration-[var(--dur-fast)]"
-              style={{
-                opacity:       active ? 1 : 0.35,
-                transform:     active ? "scale(1.5)" : "scale(1)",
-                outline:       active ? `1.5px solid ${t.color}` : "none",
-                outlineOffset: "2px",
-              }}>
-              <TeamIcon id={t.id} size={24} />
-            </button>
-          );
-        })}
-      </div>
+      <TeamSwitcher />
     </header>
   );
 }

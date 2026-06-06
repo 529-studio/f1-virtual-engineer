@@ -44,11 +44,16 @@ export function AuthButton() {
   }
 
   if (session) {
-    const email = session.user.email ?? session.user.id;
+    const email = session.user.email ?? "";
+    // Extract name from Google metadata, fall back to the part before @ in email
+    const displayName =
+      session.user.user_metadata?.full_name ||
+      session.user.user_metadata?.name ||
+      (email ? email.split("@")[0] : session.user.id);
     return (
       <div className="flex items-center gap-2">
         <span className="readout shrink-0 text-[length:var(--text-readout)] text-foreground-dim">
-          {email}
+          {displayName}
         </span>
         <button
           type="button"

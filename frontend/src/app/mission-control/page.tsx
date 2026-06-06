@@ -438,7 +438,7 @@ export default function MissionControlPage() {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <MissionHeader
           displayDriver={displayDriver} displayEvent={displayEvent} displayLap={displayLap}
-          theme={theme} setTheme={setTheme} weather={weather}
+          weather={weather}
         />
 
         <SelectorBar
