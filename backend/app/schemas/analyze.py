@@ -6,6 +6,18 @@ from app.schemas.knowledge import KnowledgeCitation
 from app.schemas.telemetry import TelemetrySummary
 
 
+class ControversyFinding(BaseModel):
+    event_type: str = Field(description="Type of detected incident: safety_car_restart | track_limits | vsc_strategy | collision")
+    lap: int
+    drivers: list[str]
+    description: str = Field(description="Plain-English description of the incident")
+    question: str = Field(description="Regulatory question this incident raises")
+    team_argument: str = Field(description="Best argument from the team's perspective")
+    steward_argument: str = Field(description="Best argument from the steward's perspective")
+    regulation_cited: str = Field(description="Most relevant regulation title and article")
+    verdict_likelihood: str = Field(description="team favoured | steward favoured | contested")
+
+
 class AnalyzeSessionInfo(BaseModel):
     event: str = Field(..., min_length=2, max_length=120, description="Grand Prix or event name, e.g. Japanese Grand Prix")
     year: int = Field(..., ge=2018, le=2100, description="Championship season year")
@@ -158,4 +170,8 @@ class AnalyzeResponse(BaseModel):
     citations: list[KnowledgeCitation] = Field(
         default_factory=list,
         description="FIA regulation citations retrieved for the query; empty when the query is telemetry-only or no entries matched.",
+    )
+    controversy_analysis: list[ControversyFinding] = Field(
+        default_factory=list,
+        description="Rule-based detected incidents with dual-perspective regulatory analysis. Empty when no controversies were detected or session is not a Race.",
     )
