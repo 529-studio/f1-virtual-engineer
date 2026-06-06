@@ -442,6 +442,7 @@ async def analyze_race_data(
             "execution": result.get("execution"),
             "retry": result.get("retry"),
             "citations": result.get("citations", []),
+            "controversy_analysis": result.get("controversy_analysis", []),
         }
     except Exception:
         # If the agent run blew up, drop the pending key so a client
