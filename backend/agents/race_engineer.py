@@ -1,16 +1,21 @@
 import copy
+import logging
 import re
 from collections import deque
 from time import monotonic, sleep
 from typing import Any, TypedDict
 
+_logger = logging.getLogger(__name__)
+
 from langgraph.graph import END, StateGraph
 
-from core.llm import generate_rationale
+from core.llm import generate_rationale, generate_structured
 from core.trace import start_trace, get_trace, traced
 from tools.fastf1_helper import get_session_telemetry_summary as _raw_get_telemetry
 from tools.knowledge_retriever import lookup as _raw_knowledge_lookup
 from tools.strategy_helper import strategy_analyzer as _raw_strategy_analyzer
+from tools.controversy_detector import detect_controversies
+from tools.vector_store import semantic_lookup
 
 get_session_telemetry_summary = traced("telemetry")(_raw_get_telemetry)
 strategy_analyzer = traced("strategy")(_raw_strategy_analyzer)
@@ -628,6 +633,69 @@ def analyze_query(
             "fallback_reason": strategy_bundle.get("fallback_reason"),
         }
 
+    # ── Controversy analysis (Race sessions only) ──────────────────────────
+    # Rule-based event detection → semantic regulation lookup → Gemini dual-
+    # perspective analysis. Fail-closed: any error returns empty list.
+    controversy_analysis: list[dict] = []
+    intent_data = result.get("intent") or {}
+    _session_type = intent_data.get("session_type") or overrides.get("session_type", "")
+    if _session_type == "R" and not result.get("error"):
+        try:
+            import fastf1 as _ff1  # noqa: PLC0415
+            _year = intent_data.get("year") or overrides.get("year", DEFAULT_YEAR)
+            _event = intent_data.get("event") or overrides.get("event", DEFAULT_EVENT)
+            _session = _ff1.get_session(_year, _event, "R")
+            _session.load(laps=True, telemetry=False, weather=False, messages=False)
+            _events = detect_controversies(_session)
+        except Exception:
+            _logger.warning("controversy detection failed", exc_info=True)
+            _events = []
+
+        if _events:
+            _CONTROVERSY_SYSTEM_PROMPT = (
+                "You are an FIA steward and F1 team lawyer. "
+                "Given a detected race incident and the relevant FIA Sporting Regulation excerpts, "
+                "produce a JSON object with exactly these fields: "
+                "\"question\" (string — the regulatory question this raises), "
+                "\"team_argument\" (string — strongest argument from the team's perspective), "
+                "\"steward_argument\" (string — strongest argument from the steward's perspective), "
+                "\"regulation_cited\" (string — most relevant regulation title and article number), "
+                "\"verdict_likelihood\" (string — one of: team favoured | steward favoured | contested). "
+                "Be concise (2-3 sentences per argument). Ground every claim in the regulation excerpts supplied. "
+                "Do NOT invent article numbers or rule text not in the excerpts."
+            )
+            for ev in _events:
+                try:
+                    reg_hits = semantic_lookup(ev.regulation_hint, k=3)
+                    if not reg_hits:
+                        reg_hits = knowledge_lookup(ev.regulation_hint, 3)
+                    payload = {
+                        "incident": {
+                            "type": ev.type,
+                            "lap": ev.lap,
+                            "drivers": ev.drivers,
+                            "description": ev.description,
+                        },
+                        "regulations": [
+                            {"title": h["title"], "section": h["section"], "snippet": h["snippet"]}
+                            for h in reg_hits
+                        ],
+                    }
+                    analysis = generate_structured(
+                        payload,
+                        system_prompt=_CONTROVERSY_SYSTEM_PROMPT,
+                    )
+                    if analysis and isinstance(analysis, dict):
+                        controversy_analysis.append({
+                            "event_type": ev.type,
+                            "lap": ev.lap,
+                            "drivers": ev.drivers,
+                            "description": ev.description,
+                            **analysis,
+                        })
+                except Exception:
+                    _logger.warning("controversy analysis failed for event %s", ev.type, exc_info=True)
+
     return {
         "intent": result["intent"],
         "telemetry_data": result.get("telemetry_data", {}),
@@ -654,4 +722,5 @@ def analyze_query(
             "retryable_exhausted": result.get("retry_metadata", {}).get("retryable_exhausted", False),
         },
         "citations": citations,
+        "controversy_analysis": controversy_analysis,
     }
