@@ -1,0 +1,113 @@
+stages:
+  - test
+  - build
+
+variables:
+  DOCKER_BUILDKIT: 1
+  DOCKER_DRIVER: overlay2
+
+# ── test ──────────────────────────────────────────────────────────────────────
+
+test-backend:
+  image: python:3.13-slim
+  stage: test
+  before_script:
+    - pip install --quiet -r backend/requirements.txt pytest
+  script:
+    # Run from backend/ so `tests` is importable as a package (conftest.py
+    # does `from tests._helpers import ...` which requires backend/ on sys.path)
+    - cd backend && python -m pytest tests -q --no-header
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_PIPELINE_SOURCE == "web"'
+      changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+
+test-frontend:
+  image: node:22-alpine
+  stage: test
+  before_script:
+    # Project uses Yarn 4 (Berry) via corepack — node:22-alpine ships corepack
+    # but it needs to be enabled explicitly. --frozen-lockfile is Yarn 1 syntax;
+    # Berry uses --immutable.
+    - cd frontend && corepack enable && yarn install --immutable
+  script:
+    - npx tsc --noEmit
+    - yarn lint
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_PIPELINE_SOURCE == "web"'
+      changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+
+# ── build ─────────────────────────────────────────────────────────────────────
+
+.docker-build-template:
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  stage: build
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
+
+build-backend:
+  extends: .docker-build-template
+  variables:
+    IMAGE_NAME: $CI_REGISTRY_IMAGE/backend
+  script:
+    - docker build
+        -f backend/Dockerfile
+        --cache-from $IMAGE_NAME:stg-latest
+        --build-arg BUILDKIT_INLINE_CACHE=1
+        -t $IMAGE_NAME:sha-$CI_COMMIT_SHORT_SHA
+        -t $IMAGE_NAME:stg-latest
+        .
+    - docker push $IMAGE_NAME:sha-$CI_COMMIT_SHORT_SHA
+    - docker push $IMAGE_NAME:stg-latest
+    # Webhook — uncomment khi deploy setup xong
+    # - |
+    #   if [ -n "$DOKPLOY_BE_WEBHOOK_URL" ]; then
+    #     curl -sS -f -X POST "$DOKPLOY_BE_WEBHOOK_URL"
+    #   fi
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_PIPELINE_SOURCE == "web"'
+      changes:
+        - backend/**/*
+        - .gitlab-ci.yml
+
+build-frontend:
+  extends: .docker-build-template
+  variables:
+    IMAGE_NAME: $CI_REGISTRY_IMAGE/frontend
+  script:
+    - docker build
+        -f frontend/Dockerfile
+        --cache-from $IMAGE_NAME:stg-latest
+        --build-arg BUILDKIT_INLINE_CACHE=1
+        --build-arg NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+        --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+        --build-arg NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+        --build-arg BACKEND_INTERNAL_URL=$BACKEND_INTERNAL_URL
+        -t $IMAGE_NAME:sha-$CI_COMMIT_SHORT_SHA
+        -t $IMAGE_NAME:stg-latest
+        .
+    - docker push $IMAGE_NAME:sha-$CI_COMMIT_SHORT_SHA
+    - docker push $IMAGE_NAME:stg-latest
+    # Webhook — uncomment khi deploy setup xong
+    # - |
+    #   if [ -n "$DOKPLOY_FE_WEBHOOK_URL" ]; then
+    #     curl -sS -f -X POST "$DOKPLOY_FE_WEBHOOK_URL"
+    #   fi
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_PIPELINE_SOURCE == "web"'
+      changes:
+        - frontend/**/*
+        - .gitlab-ci.yml

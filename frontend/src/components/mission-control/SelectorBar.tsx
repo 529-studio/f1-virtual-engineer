@@ -169,21 +169,31 @@ export function SelectorBar({
           </span>
         ) : null}
 
-        <VDivider />
+        {/* Issue #256: lap selector is hidden when the user is asking for
+            a pit-strategy recommendation. Strategy is a full-race
+            prediction; the placeholder "Fastest" silently anchored the
+            analysis to a single best lap and biased the result. The
+            telemetry intent keeps the selector — fastest-lap default
+            is the correct anchor for a chart compare. */}
+        {intent === "telemetry" && (
+          <>
+            <VDivider />
 
-        <Select<string>
-          value={lap}
-          onChange={(v) => {
-            setLap(v);
-            if (v && result) setLapOverlayLoading(true);
-          }}
-          options={lapOptions}
-          loading={lapsLoading}
-          placeholder="Fastest"
-        />
-        {lapOverlayLoading ? (
-          <span className="label shrink-0 text-foreground-faint">syncing…</span>
-        ) : null}
+            <Select<string>
+              value={lap}
+              onChange={(v) => {
+                setLap(v);
+                if (v && result) setLapOverlayLoading(true);
+              }}
+              options={lapOptions}
+              loading={lapsLoading}
+              placeholder="Fastest lap"
+            />
+            {lapOverlayLoading ? (
+              <span className="label shrink-0 text-foreground-faint">syncing…</span>
+            ) : null}
+          </>
+        )}
 
         <VDivider />
 

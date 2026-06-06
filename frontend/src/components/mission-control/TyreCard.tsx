@@ -37,6 +37,11 @@ interface Headline {
 // instruction even though the race finished. When the roster contains
 // actual pit-in laps we know stops already happened, so we drop the
 // imperative and frame the card analytically.
+//
+// Issue #256: the historical branch still narrated in present-progressive
+// ("Stint ending within 2 laps of cliff"), which read as live advice
+// for a stint that no longer exists. Switch to past tense so a finished
+// race never produces forward-looking warnings.
 function deriveHeadline(
   lapsToCliff: number | null,
   hasCliff: boolean,
@@ -53,7 +58,7 @@ function deriveHeadline(
     return {
       tone: "error",
       text: isHistorical
-        ? "Final stint past predicted cliff"
+        ? "Final stint ran past predicted cliff"
         : "Past the cliff · pit now",
     };
   }
@@ -61,11 +66,16 @@ function deriveHeadline(
     return {
       tone: "warn",
       text: isHistorical
-        ? `Stint ending within ${n} lap${n === 1 ? "" : "s"} of cliff`
+        ? `Final stint ended ${n} lap${n === 1 ? "" : "s"} before predicted cliff`
         : `Cliff in ${n} lap${n === 1 ? "" : "s"} · pit window open`,
     };
   }
-  return { tone: "ok", text: `~${n} laps before pace drops` };
+  return {
+    tone: "ok",
+    text: isHistorical
+      ? `~${n} laps of tyre life remained at finish`
+      : `~${n} laps before pace drops`,
+  };
 }
 
 function formatPitLaps(laps: number[]): string {
