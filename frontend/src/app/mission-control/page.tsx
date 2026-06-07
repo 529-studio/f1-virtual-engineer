@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { analyzeTelemetry, getCrossYearLapDelta, getEventDrivers, getEventLaps, getEventsByYear, getLapDelta, getTelemetry, getWeatherSummary, RateLimitError } from "@/services/api";
+import { analyzeTelemetry, getCrossYearLapDelta, getEventLaps, getEventsByYear, getLapDelta, getTelemetry, getWeatherSummary, RateLimitError } from "@/services/api";
 import type { AnalyzeHistoryItem, AnalyzeResponse, EventInfo, LapDeltaCrossYearResponse, LapDeltaResponse, LapInfo, SavedQueryItem, TelemetryHistoryItem, WeatherSummaryResponse } from "@/services/api";
 import { useMissionStore } from "@/lib/store";
 import { useSupabase } from "@/components/auth/SupabaseProvider";
@@ -10,6 +10,7 @@ import {
   SelectorBar, StrategyHUD, TelemetryChartGrid, type SessionId,
 } from "@/components/mission-control";
 import { defaultSeason } from "@/lib/f1-seasons";
+import { useDriverRoster } from "@/hooks/useDriverRoster";
 
 export default function MissionControlPage() {
   const { theme, result, setResult, isLoading, setIsLoading } = useMissionStore();
@@ -27,9 +28,14 @@ export default function MissionControlPage() {
   const [events, setEvents]               = useState<EventInfo[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
 
-  const [fetchedDrivers, setFetchedDrivers]   = useState<readonly string[] | null>(null);
-  const [driversLoading, setDriversLoading]   = useState(false);
-  const [driversFallback, setDriversFallback] = useState(false);
+  const { fetchedDrivers, driversLoading, driversFallback } = useDriverRoster(year, eventName);
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const setFetchedDrivers = (_v: readonly string[] | null) => { /* managed by hook */ };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const setDriversFallback = (_v: boolean) => { /* managed by hook */ };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const setDriversLoading = (_v: boolean) => { /* managed by hook */ };
 
   const drivers: readonly string[] =
     eventName && fetchedDrivers && fetchedDrivers.length > 0 ? fetchedDrivers : FALLBACK_DRIVERS;
@@ -144,21 +150,7 @@ export default function MissionControlPage() {
     return () => { cancelled = true; };
   }, [compareYear, eventName, session, year]);
 
-  // Live driver roster; falls back to static list if backend has none yet.
-  useEffect(() => {
-    if (!eventName) return;
-    let cancelled = false;
-    getEventDrivers(year, eventName)
-      .then((res) => {
-        if (cancelled) return;
-        const ok = res.drivers.length > 0;
-        setFetchedDrivers(ok ? res.drivers : null);
-        setDriversFallback(ok ? res.fallback : true);
-      })
-      .catch(() => { if (!cancelled) { setFetchedDrivers(null); setDriversFallback(true); } })
-      .finally(() => { if (!cancelled) setDriversLoading(false); });
-    return () => { cancelled = true; };
-  }, [year, eventName]);
+  // Driver roster is now managed by useDriverRoster hook above (localStorage cache + background refresh).
 
   // Lap roster — empty hides the lap selector so the UI doesn't pretend a choice is available.
   useEffect(() => {

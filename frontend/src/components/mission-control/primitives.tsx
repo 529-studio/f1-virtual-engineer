@@ -36,9 +36,9 @@ export function Select<T extends string>({
   const listRef = useRef<HTMLUListElement>(null);
 
   const selectedIdx = options.findIndex((o) => o.id === value);
-  const display = value
-    ? options[selectedIdx]?.label ?? value
-    : loading ? "Loading…" : placeholder;
+  // Never show "Loading…" — show the placeholder and let the skeleton
+  // inside the open dropdown do the communicating.
+  const display = value ? options[selectedIdx]?.label ?? value : placeholder;
 
   useEffect(() => {
     if (!open) return;
@@ -83,7 +83,7 @@ export function Select<T extends string>({
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        disabled={loading}
+        disabled={loading && options.length === 0 && !open}
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => {
@@ -99,7 +99,12 @@ export function Select<T extends string>({
           minWidth: "9rem",
         }}
       >
-        <span className="truncate">{display}</span>
+        <span className="flex items-center gap-2 truncate">
+          {display}
+          {loading && options.length > 0 && (
+            <span className="inline-block h-1 w-1 animate-pulse rounded-full bg-foreground-faint" />
+          )}
+        </span>
         <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="ml-2 shrink-0 opacity-50">
           <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
@@ -112,7 +117,19 @@ export function Select<T extends string>({
           tabIndex={-1}
           className="readout mc-listbox absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-y-auto border border-border bg-surface-elevated text-[length:var(--text-label)] uppercase tracking-[var(--track-wide)] shadow-lg"
         >
-          {options.length === 0 && (
+          {loading && options.length === 0 && (
+            <>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <li key={i} className="px-3 py-1.5">
+                  <div
+                    className="h-2.5 animate-pulse rounded-sm bg-foreground-faint/20"
+                    style={{ width: `${50 + (i * 17) % 40}%` }}
+                  />
+                </li>
+              ))}
+            </>
+          )}
+          {!loading && options.length === 0 && (
             <li className="px-3 py-2 text-foreground-dim">No options</li>
           )}
           {options.map((o, i) => {

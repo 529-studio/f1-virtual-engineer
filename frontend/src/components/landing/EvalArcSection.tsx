@@ -16,6 +16,11 @@ const stops = [
     label: "Live gate",
     body: "25-fixture snapshot now gates merges. Failures regenerate from FastF1 lap data; rationale is grounded in a regulation-aware corpus.",
   },
+  {
+    pct: "RAG",
+    label: "Regulation layer — ChromaDB + Gemini",
+    body: "9 FIA Sporting Regulation articles embedded with Gemini text-embedding-004 and indexed in ChromaDB. Race analysis auto-detects safety car restarts, VSC windows, and track-limit events — then semantic search surfaces the relevant article and Gemini argues both the team and steward case.",
+  },
 ];
 
 export function EvalArcSection({ evalStatus }: { evalStatus: EvalStatus }) {
