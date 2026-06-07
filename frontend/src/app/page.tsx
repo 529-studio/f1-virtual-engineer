@@ -42,7 +42,7 @@ export default function Home() {
                 F1 Virtual Engineer
               </p>
               <p className="readout text-[0.55rem] uppercase tracking-[var(--track-widest)] text-foreground-dim">
-                Telemetry · Strategy · Explainable AI
+                Telemetry · Strategy · Regulation · AI
               </p>
             </div>
           </div>
@@ -68,7 +68,7 @@ export default function Home() {
           <div className="mb-10">
             <p className="label mb-2">Core capabilities</p>
             <h2 className="display text-[length:var(--text-h1)] text-foreground">
-              Telemetry → Decision. No guesswork.
+              Telemetry → Decision → Verdict. No guesswork.
             </h2>
           </div>
           <CapabilityGrid />

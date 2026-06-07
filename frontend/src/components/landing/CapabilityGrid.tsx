@@ -7,6 +7,9 @@ interface CapabilityItem {
   body: string;
   href: string;
   preview: React.ReactNode;
+  fullWidth?: boolean;
+  previewAspect?: string;
+  badge?: string;
 }
 
 const capabilityItems: CapabilityItem[] = [
@@ -42,33 +45,51 @@ const capabilityItems: CapabilityItem[] = [
     href: "/mission-control",
     preview: <WeatherPreview />,
   },
+  {
+    id: "05",
+    label: "Regulation RAG · Controversy",
+    title: "Two arguments, one verdict — grounded in the FIA Sporting Regulations.",
+    body: "Race analysis auto-detects safety car restarts, VSC strategy windows, and track-limit events. For each, semantic search surfaces the relevant article, then Gemini builds both the team and steward case. Abu Dhabi 2021. Spa 2021. Any race you ask.",
+    href: "/mission-control?event=Abu%20Dhabi%20Grand%20Prix&session=R&driver=VER",
+    preview: <RegulationPreview />,
+    fullWidth: true,
+    previewAspect: "aspect-[3/1]",
+    badge: "New",
+  },
 ];
 
 export function CapabilityGrid() {
   return (
-    <div className="grid gap-px border border-border md:grid-cols-2 xl:grid-cols-2">
+    <div className="grid gap-px border border-border md:grid-cols-2">
       {capabilityItems.map((item) => (
         <Link
           key={item.id}
           href={item.href}
-          className="group flex flex-col bg-surface transition-colors hover:bg-surface-elevated"
+          className={`group flex flex-col bg-surface transition-colors hover:bg-surface-elevated${item.fullWidth ? " md:col-span-2" : ""}`}
         >
-          <div className="relative aspect-[2/1] overflow-hidden border-b border-border bg-surface-elevated">
+          <div className={`relative ${item.previewAspect ?? "aspect-[2/1]"} overflow-hidden border-b border-border bg-surface-elevated`}>
             {item.preview}
           </div>
 
           <div className="p-6">
             <div className="mb-6 flex items-start justify-between">
-              <span className="label">{item.label}</span>
+              <div className="flex items-center gap-2">
+                <span className="label">{item.label}</span>
+                {item.badge && (
+                  <span className="readout border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[0.45rem] uppercase tracking-[var(--track-wide)] text-amber-400">
+                    {item.badge}
+                  </span>
+                )}
+              </div>
               <span className="readout text-[length:var(--text-label)] text-foreground-faint">
                 {item.id}
               </span>
             </div>
             <div className="mb-4 h-px w-6 bg-accent transition-all duration-300 group-hover:w-12" />
-            <h3 className="mb-3 text-[length:var(--text-h3)] font-semibold leading-snug text-foreground">
+            <h3 className={`mb-3 text-[length:var(--text-h3)] font-semibold leading-snug text-foreground${item.fullWidth ? " md:max-w-2xl" : ""}`}>
               {item.title}
             </h3>
-            <p className="readout text-[length:var(--text-readout)] leading-5 text-foreground-dim">
+            <p className={`readout text-[length:var(--text-readout)] leading-5 text-foreground-dim${item.fullWidth ? " md:max-w-2xl" : ""}`}>
               {item.body}
             </p>
           </div>
@@ -282,5 +303,58 @@ function DriverChip({ color, code }: { color: string; code: string }) {
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
       {code}
     </span>
+  );
+}
+
+function RegulationPreview() {
+  return (
+    <PreviewFrame caption="">
+      <div className="flex items-center justify-between">
+        <span className="readout text-[0.6rem] uppercase tracking-[var(--track-wide)] text-foreground-dim">
+          Detected · SC restart · Lap 58
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="readout border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[0.45rem] uppercase tracking-[var(--track-wide)] text-amber-400">
+            Controversy
+          </span>
+          <span className="readout border border-border bg-background/60 px-1.5 py-0.5 text-[0.45rem] uppercase tracking-[var(--track-wide)] text-foreground-faint">
+            Art 48.12
+          </span>
+        </div>
+      </div>
+
+      <div className="grid flex-1 grid-cols-2 gap-2">
+        {/* Team argument */}
+        <div className="flex flex-col gap-1 border border-border bg-background/60 p-2">
+          <div className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+            <span className="readout text-[0.5rem] uppercase tracking-[var(--track-wide)] text-foreground-faint">Red Bull · Team</span>
+          </div>
+          <p className="readout text-[0.55rem] leading-[1.4] text-foreground-dim">
+            Art 48.12 permits unlapping — Race Director holds discretion over which lapped cars are released. The five-car instruction was within procedural authority.
+          </p>
+        </div>
+
+        {/* Steward argument */}
+        <div className="flex flex-col gap-1 border border-border bg-background/60 p-2">
+          <div className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-[rgba(0,210,190,0.85)]" />
+            <span className="readout text-[0.5rem] uppercase tracking-[var(--track-wide)] text-foreground-faint">Mercedes · Steward</span>
+          </div>
+          <p className="readout text-[0.55rem] leading-[1.4] text-foreground-dim">
+            Art 48.12 requires <em>all</em> lapped cars to pass before the SC withdraws. Selective release changed the competitive order contrary to the article&apos;s literal text.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between border border-border bg-background/60 px-2 py-1.5">
+        <span className="readout text-[0.5rem] uppercase tracking-[var(--track-wide)] text-foreground-faint">
+          Corpus · 3 articles matched
+        </span>
+        <span className="readout text-[0.55rem] font-semibold text-foreground-dim">
+          Verdict likelihood · Contentious
+        </span>
+      </div>
+    </PreviewFrame>
   );
 }

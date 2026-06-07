@@ -33,7 +33,7 @@ export function LandingHero() {
   const heroStats = [
     { label: "Multi-agent",   value: "4 agents",  hint: "pit · tyre · weather · pace" },
     { label: "Every call",    value: "Cited",     hint: "linked to FastF1 + regs" },
-    { label: "Any race",      value: "Live",      hint: "regenerates from lap data" },
+    { label: "Regulation",    value: "RAG",       hint: "ChromaDB · Gemini embeddings" },
   ];
 
   return (
@@ -61,7 +61,7 @@ export function LandingHero() {
           <FadeUp delay={0.16}>
             <p className="mb-10 max-w-xl text-[length:var(--text-body)] leading-7 text-foreground-dim">
               Compare drivers, replay strategy, read every pit recommendation backed by FastF1
-              telemetry and a regulation-aware corpus. <span className="text-foreground">No spreadsheets.</span>
+              telemetry and a regulation-aware corpus. Race analysis auto-detects controversies — safety car restarts, VSC windows, track limits — and argues both sides from the FIA Sporting Regulations. <span className="text-foreground">No spreadsheets.</span>
             </p>
           </FadeUp>
 
@@ -236,9 +236,13 @@ const ribbonItems: Array<{ text: string; term?: string }> = [
   { text: "PACE DELTA −0.31" },
   { text: "PIT WINDOW LAP 18–22", term: "pit window" },
   { text: "UNDERCUT RISK HIGH", term: "undercut" },
+  { text: "REG ART 48.12 · SC RESTART" },
   { text: "BATTERY DEPLOY PUSH" },
+  { text: "CONTROVERSY · VSC STRATEGY" },
   { text: "GAP TO LEADER 3.4s", term: "gap" },
+  { text: "STEWARD ARGUMENT · ART 33.4" },
   { text: "STINT LENGTH 22 LAPS", term: "stint" },
+  { text: "TEAM ARGUMENT · CITED" },
 ];
 
 function TelemetryRibbon() {
