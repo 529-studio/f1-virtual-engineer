@@ -44,6 +44,18 @@ export interface StrategyData {
   expected_gain_seconds?: number | null;
 }
 
+export interface ControversyFinding {
+  event_type: string;
+  lap: number;
+  drivers: string[];
+  description: string;
+  question: string;
+  team_argument: string;
+  steward_argument: string;
+  regulation_cited: string;
+  verdict_likelihood: string;
+}
+
 export interface AnalyzeResponse {
   status: "success" | "error";
   agent_response: string;
@@ -73,12 +85,10 @@ export interface AnalyzeResponse {
   strategy_data?: StrategyData | null;
   rationale_source?: "llm" | "template";
   rationale_job_id?: string | null;
-  // ID of the persisted analyze_history row when the caller is signed
-  // in. Frontends use this to track which row to poll for the async
-  // rationale upgrade (#139 PR3).
   analyze_history_id?: string | null;
   execution?: AnalyzeExecution | null;
   citations?: KnowledgeCitation[];
+  controversy_analysis?: ControversyFinding[];
   error?: string | null;
 }
 

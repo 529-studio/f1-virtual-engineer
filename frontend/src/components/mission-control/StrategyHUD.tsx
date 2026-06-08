@@ -11,6 +11,7 @@ import { RadioLog } from "./RadioLog";
 import { ReferencesPanel } from "./ReferencesPanel";
 import { SavedQueriesPanel } from "./SavedQueriesPanel";
 import { ScenarioComparison } from "./ScenarioComparison";
+import { StewardsViewPanel } from "./StewardsViewPanel";
 import { TyreCard } from "./TyreCard";
 import { WhyThisCallPanel } from "./WhyThisCallPanel";
 import { TEAMS, type SessionId, type TeamId } from "./constants";
@@ -311,6 +312,10 @@ export function StrategyHUD({
         )}
 
         <ReferencesPanel items={result?.citations} />
+
+        {session === "R" && hasData && (result?.controversy_analysis?.length ?? 0) > 0 && (
+          <StewardsViewPanel findings={result!.controversy_analysis!} />
+        )}
 
         {hasData && result?.intent?.intent_type === "strategy" && driver && eventName && (
           <ScenarioComparison
