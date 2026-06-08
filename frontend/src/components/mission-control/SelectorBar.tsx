@@ -5,7 +5,6 @@ import { SESSIONS, f1Seasons, type SessionId } from "./constants";
 import { Select, VDivider } from "./primitives";
 import { formatLapTime } from "./TelemetryChart";
 import { StarButton } from "./StarButton";
-import { JargonTooltip } from "@/components/ui/JargonTooltip";
 
 export function SelectorBar({
   year, setYear,
@@ -248,15 +247,18 @@ export function SelectorBar({
                 role="tab"
                 aria-selected={active}
                 onClick={() => setIntent(id)}
+                title={
+                  id === "telemetry"
+                    ? "Raw sensor data: speed, throttle, brake, gear, RPM sampled across the lap"
+                    : "Pit window recommendation with undercut math and gap to rival"
+                }
                 className="readout px-2.5 py-1 text-[0.55rem] font-bold uppercase tracking-[var(--track-wide)] transition-colors"
                 style={{
                   background: active ? "var(--accent)" : "transparent",
                   color: active ? "var(--background)" : "var(--foreground-dim)",
                 }}
               >
-                <JargonTooltip term={id === "telemetry" ? "telemetry" : "pit window"}>
-                  {id}
-                </JargonTooltip>
+                {id}
               </button>
             );
           })}
