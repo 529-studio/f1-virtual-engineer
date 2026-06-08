@@ -170,6 +170,14 @@ async def root():
     return {"message": "Welcome to Apex-Intelligence Virtual Race Engineer API"}
 
 
+@app.get("/debug-cors", tags=["system"])
+async def debug_cors():
+    return {
+        "CORS_ALLOWED_ORIGINS": os.getenv("CORS_ALLOWED_ORIGINS", ""),
+        "allowed_origins": allowed_origins,
+    }
+
+
 @app.get(
     "/metrics",
     tags=["system"],
