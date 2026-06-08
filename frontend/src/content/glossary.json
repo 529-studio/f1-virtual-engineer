@@ -13,5 +13,19 @@
   "throttle": "Throttle application as a percentage (0–100%) over the lap distance.",
   "brake": "Brake application as a binary on/off signal over the lap distance.",
   "rpm": "Revolutions per minute — engine speed. Higher RPM means the engine is working harder.",
-  "gear": "Transmission gear engaged (1–8). Helps read corner-exit traction and acceleration phases."
+  "gear": "Transmission gear engaged (1–8). Helps read corner-exit traction and acceleration phases.",
+  "undercut risk": "How likely the car behind is to pit early and emerge ahead on fresh tyres. High = rival can leapfrog you.",
+  "overcut risk": "How likely staying out gains position when rivals pit. High = clean air and tyre life support the overcut.",
+  "confidence band": "Reliability of this strategy call. High = strong telemetry signal. Low = limited data, treat as estimate.",
+  "cliff": "The lap where pace drops sharply as tyre rubber degrades past a threshold. After the cliff, lap times fall fast.",
+  "safety car": "SC — a pace car deployed on track to neutralise the race. Lapped cars may pass before it withdraws.",
+  "vsc": "Virtual Safety Car — all cars must maintain a prescribed delta time without bunching. No physical pace car on track.",
+  "telemetry": "Raw sensor data from the car: speed, throttle position, brake pressure, gear, RPM sampled every 10–20 metres.",
+  "race": "R — the main event. Full race distance, race tyres, pit stops allowed.",
+  "qualifying": "Q — single-lap elimination format to set the grid order. No pit strategy, only fastest time counts.",
+  "fp1": "Free Practice 1 — first of three unclassified practice sessions. Teams gather tyre data and setup balance.",
+  "fp2": "Free Practice 2 — second practice session. Often used for long-run pace and race simulation.",
+  "fp3": "Free Practice 3 — final session before qualifying. Teams finalise setup and test qualifying modes.",
+  "track limits": "Art 33 — a driver must keep at least two wheels on the white line defining the track edge. Exceeding it invalidates the lap time.",
+  "verdict likelihood": "RAG output — whether the cited regulation favours the team, the stewards, or is genuinely contested."
 }

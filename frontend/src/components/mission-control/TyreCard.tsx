@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { analyzeTyre, type TyreAnalyzeResponse } from "@/services/api";
+import { JargonTooltip } from "@/components/ui/JargonTooltip";
+import { HintTooltip } from "@/components/ui/HintTooltip";
 import type { SessionId } from "./constants";
 
 // Story 02 surface: lap-time decay + compound + cliff-lap projection
@@ -148,9 +150,15 @@ export function TyreCard({
       style={{ borderColor: toneVar, background: toneDim }}
     >
       <div className="flex items-center justify-between">
-        <p className="label" style={{ color: toneVar }}>
-          Tyre Status
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="label" style={{ color: toneVar }}>
+            Tyre Status
+          </p>
+          <HintTooltip label="Tyre Status">
+            Tyre wear snapshot from FastF1. Shows current compound, laps on tyre,
+            estimated cliff lap where pace drops sharply, and decay rate per lap.
+          </HintTooltip>
+        </div>
         {compound && (
           <span
             className="readout border px-2 py-0.5 text-[0.55rem] font-bold uppercase tracking-[var(--track-wide)]"
@@ -225,7 +233,7 @@ export function TyreCard({
               </div>
               <div className="mt-1 flex justify-between text-[0.5rem] uppercase tracking-[var(--track-wide)] text-foreground-dim">
                 <span>L{stint} on tyres</span>
-                <span>cliff ~L{cliff}</span>
+                <JargonTooltip term="cliff"><span>cliff ~L{cliff}</span></JargonTooltip>
               </div>
             </>
           )}

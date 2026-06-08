@@ -13,6 +13,8 @@ import { SavedQueriesPanel } from "./SavedQueriesPanel";
 import { ScenarioComparison } from "./ScenarioComparison";
 import { StewardsViewPanel } from "./StewardsViewPanel";
 import { TyreCard } from "./TyreCard";
+import { JargonTooltip } from "@/components/ui/JargonTooltip";
+import { HintTooltip } from "@/components/ui/HintTooltip";
 import { WhyThisCallPanel } from "./WhyThisCallPanel";
 import { TEAMS, type SessionId, type TeamId } from "./constants";
 
@@ -77,7 +79,11 @@ export function StrategyHUD({
           <span className="readout text-[length:var(--text-readout)] text-foreground-dim">
             {session} {"//"} {hasData && strat?.target_lap ? `PIT LAP ${strat.target_lap}` : "NO DATA"}
           </span>
-          <span className="readout text-[length:var(--text-readout)] text-foreground-dim">
+          <span className="readout text-[length:var(--text-readout)] text-foreground-dim flex items-center gap-1">
+            <HintTooltip label="Confidence Band">
+              How reliable this strategy call is. High = strong FastF1 signal.
+              Low = limited data, treat as estimate.
+            </HintTooltip>
             {hasData && strat?.confidence_band ? strat.confidence_band.toUpperCase() : "—"}
           </span>
         </div>
@@ -202,7 +208,7 @@ export function StrategyHUD({
             }}
           >
             <p className="label mb-1" style={{ color: strat.fallback ? "var(--status-warn)" : "var(--status-ok)" }}>
-              Pit Window {strat.fallback ? "· FALLBACK" : ""}
+              <JargonTooltip term="pit window">Pit Window</JargonTooltip> {strat.fallback ? "· FALLBACK" : ""}
             </p>
             <p className="readout text-base font-bold text-accent">
               LAP {strat.recommended_pit_window_laps[0]} – {strat.recommended_pit_window_laps[1]}
@@ -224,7 +230,9 @@ export function StrategyHUD({
                     } · `
                   : "Gap · "}
                 <span className="text-foreground">{strat.current_gap_seconds.toFixed(1)}s</span>
-                {" → undercut "}
+                {" → "}
+                <JargonTooltip term="undercut risk">undercut</JargonTooltip>
+                {" "}
                 <span
                   className="font-bold"
                   style={{
@@ -291,11 +299,13 @@ export function StrategyHUD({
             data-status="info"
             style={{ borderColor: "var(--border)", background: "transparent" }}
           >
-            <p className="label mb-1 text-foreground-dim">Awaiting analysis</p>
-            <p className="readout text-[0.7rem] leading-snug text-foreground">
-              Press <span className="font-bold text-accent">Analyze</span> for a
-              full-race pit-strategy recommendation.
-            </p>
+            <p className="label mb-2 text-foreground-dim">Awaiting analysis</p>
+            <ol className="readout space-y-1 text-[0.6rem] leading-snug text-foreground-dim">
+              <li><span className="text-accent font-bold">1.</span> Pick a <span className="text-foreground">Grand Prix</span> above</li>
+              <li><span className="text-accent font-bold">2.</span> Pick a <span className="text-foreground">session</span> — R = Race, Q = Qualifying</li>
+              <li><span className="text-accent font-bold">3.</span> Pick a <span className="text-foreground">driver</span></li>
+              <li><span className="text-accent font-bold">4.</span> Press <span className="font-bold text-accent">Analyze</span></li>
+            </ol>
           </motion.div>
         )}
 

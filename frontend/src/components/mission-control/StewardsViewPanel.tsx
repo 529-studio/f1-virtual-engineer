@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ControversyFinding } from "@/services/api";
+import { JargonTooltip } from "@/components/ui/JargonTooltip";
+import { HintTooltip } from "@/components/ui/HintTooltip";
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
   safety_car_restart: "SC Restart",
@@ -113,7 +115,9 @@ function FindingCard({ finding, index }: { finding: ControversyFinding; index: n
                 <p className="readout text-[0.48rem] uppercase tracking-[var(--track-wide)] text-foreground-faint truncate">
                   {finding.regulation_cited}
                 </p>
-                <VerdictBadge verdict={finding.verdict_likelihood} />
+                <JargonTooltip term="verdict likelihood">
+                  <VerdictBadge verdict={finding.verdict_likelihood} />
+                </JargonTooltip>
               </div>
             </div>
           </motion.div>
@@ -129,7 +133,14 @@ export function StewardsViewPanel({ findings }: { findings: ControversyFinding[]
   return (
     <div className="mt-4">
       <div className="mb-2 flex items-center justify-between">
-        <p className="label">Steward&apos;s View</p>
+        <div className="flex items-center gap-1.5">
+          <p className="label">Steward&apos;s View</p>
+          <HintTooltip label="Steward's View">
+            RAG-powered analysis: rule-based detection of SC restarts, VSC windows, and
+            track-limit events. Gemini searches the FIA Sporting Regulations corpus and
+            argues both the team and steward case for each incident.
+          </HintTooltip>
+        </div>
         <span className="readout border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[0.45rem] uppercase tracking-[var(--track-wide)] text-amber-400">
           {findings.length} finding{findings.length > 1 ? "s" : ""}
         </span>
