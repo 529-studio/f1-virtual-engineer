@@ -199,6 +199,8 @@ services:
       dockerfile: backend/Dockerfile
     env_file:
       - backend/.env
+    environment:
+      - CORS_ALLOWED_ORIGINS
     ports:
       - "8000:8000"
     volumes:
