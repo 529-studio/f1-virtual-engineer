@@ -170,6 +170,23 @@ async def root():
     return {"message": "Welcome to Apex-Intelligence Virtual Race Engineer API"}
 
 
+@app.get("/debug-cors", tags=["system"])
+async def debug_cors():
+    env_keys = sorted(list(os.environ.keys()))
+    safe_env = {}
+    for k in env_keys:
+        val = os.environ[k]
+        if any(secret in k.lower() for secret in ["key", "pass", "secret", "url", "db"]):
+            safe_env[k] = "[REDACTED]"
+        else:
+            safe_env[k] = val
+    return {
+        "CORS_ALLOWED_ORIGINS": os.getenv("CORS_ALLOWED_ORIGINS", ""),
+        "allowed_origins": allowed_origins,
+        "env_variables": safe_env,
+    }
+
+
 @app.get(
     "/metrics",
     tags=["system"],
