@@ -8,6 +8,7 @@ import {
   type ScenarioSpec,
 } from "@/services/api";
 import { ReferencesPanel } from "./ReferencesPanel";
+import { HintTooltip } from "@/components/ui/HintTooltip";
 
 // Slice B of the Strategy what-if comparison capability (#203). Renders
 // two scenario outcomes side-by-side using the /strategy/compare endpoint
@@ -118,9 +119,15 @@ export function ScenarioComparison({
         aria-expanded={open}
       >
         <p className="label">Compare strategies</p>
-        <span className="readout text-[0.6rem] text-foreground-dim">
-          {open ? "−" : "+"}
-        </span>
+          <div className="flex items-center gap-1.5">
+            <HintTooltip label="Compare strategies">
+              What-if pit call comparison. Two preset scenarios run against the same
+              FastF1 gap data — see which pit timing wins more time against your rival.
+            </HintTooltip>
+            <span className="readout text-[0.6rem] text-foreground-dim">
+              {open ? "−" : "+"}
+            </span>
+          </div>
       </button>
 
       <AnimatePresence initial={false}>
