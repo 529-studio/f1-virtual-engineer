@@ -141,6 +141,22 @@ services:
       dockerfile: backend/Dockerfile
     env_file:
       - backend/.env
+    environment:
+      - CORS_ALLOWED_ORIGINS
+      - GEMINI_API_KEY
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_ROLE_KEY
+      - SUPABASE_JWT_SECRET
+      - SUPABASE_DB_URL
+      - REDIS_PASSWORD
+      - REDIS_URL
+      - CELERY_RESULT_BACKEND
+      - RABBITMQ_DEFAULT_PASS
+      - RATIONALE_ASYNC
+      - RABBITMQ_USER
+      - RABBITMQ_PASSWORD
+      - CELERY_BROKER_URL
+      - RABBITMQ_MGMT_URL
     command:
       - "celery"
       - "-A"
@@ -175,6 +191,22 @@ services:
       dockerfile: backend/Dockerfile
     env_file:
       - backend/.env
+    environment:
+      - CORS_ALLOWED_ORIGINS
+      - GEMINI_API_KEY
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_ROLE_KEY
+      - SUPABASE_JWT_SECRET
+      - SUPABASE_DB_URL
+      - REDIS_PASSWORD
+      - REDIS_URL
+      - CELERY_RESULT_BACKEND
+      - RABBITMQ_DEFAULT_PASS
+      - RATIONALE_ASYNC
+      - RABBITMQ_USER
+      - RABBITMQ_PASSWORD
+      - CELERY_BROKER_URL
+      - RABBITMQ_MGMT_URL
     command:
       - "celery"
       - "-A"
@@ -201,6 +233,20 @@ services:
       - backend/.env
     environment:
       - CORS_ALLOWED_ORIGINS
+      - GEMINI_API_KEY
+      - SUPABASE_URL
+      - SUPABASE_SERVICE_ROLE_KEY
+      - SUPABASE_JWT_SECRET
+      - SUPABASE_DB_URL
+      - REDIS_PASSWORD
+      - REDIS_URL
+      - CELERY_RESULT_BACKEND
+      - RABBITMQ_DEFAULT_PASS
+      - RATIONALE_ASYNC
+      - RABBITMQ_USER
+      - RABBITMQ_PASSWORD
+      - CELERY_BROKER_URL
+      - RABBITMQ_MGMT_URL
     ports:
       - "8000:8000"
     volumes:
