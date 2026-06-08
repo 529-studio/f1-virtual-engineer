@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import type { AnalyzeResponse, EventInfo, LapInfo, SavedQueryItem } from "@/services/api";
 import { SESSIONS, f1Seasons, type SessionId } from "./constants";
 import { Select, VDivider } from "./primitives";
 import { formatLapTime } from "./TelemetryChart";
 import { StarButton } from "./StarButton";
+import { HelpModal } from "./HelpModal";
 
 export function SelectorBar({
   year, setYear,
@@ -64,6 +66,8 @@ export function SelectorBar({
   savedQueries: SavedQueryItem[];
   onSavedQueriesChange: (items: SavedQueryItem[]) => void;
 }) {
+  const [helpOpen, setHelpOpen] = useState(false);
+
   const eventOptions   = events.map((e) => ({ id: e.name, label: e.name }));
   const sessionOptions = SESSIONS.map((s) => ({ id: s.id, label: s.label }));
   const driverOptions  = drivers.map((d) => ({ id: d, label: d }));
@@ -85,6 +89,7 @@ export function SelectorBar({
   });
 
   return (
+    <>
     <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-surface-elevated px-5 py-2.5">
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
         <Select<string>
@@ -234,6 +239,16 @@ export function SelectorBar({
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setHelpOpen(true)}
+          aria-label="Open help"
+          title="Help — selectors, HUD panels, F1 glossary"
+          className="readout flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border text-[0.6rem] text-foreground-faint transition-colors hover:border-foreground-dim hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+        >
+          ?
+        </button>
+
         <div
           role="tablist"
           aria-label="Analysis intent"
@@ -288,5 +303,8 @@ export function SelectorBar({
         </button>
       </div>
     </div>
+
+    {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
+    </>
   );
 }
