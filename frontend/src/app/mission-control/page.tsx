@@ -152,12 +152,21 @@ export default function MissionControlPage() {
 
   // Driver roster is now managed by useDriverRoster hook above (localStorage cache + background refresh).
 
-  // Lap roster — empty hides the lap selector so the UI doesn't pretend a choice is available.
+  // Lap roster — auto-selects lap 1 when roster arrives so the telemetry
+  // chart always anchors to a real lap, not the ambiguous "fastest" sentinel.
   useEffect(() => {
     if (!eventName || !driver) return;
     let cancelled = false;
     getEventLaps(year, eventName, session, driver)
-      .then((res) => { if (!cancelled) { setLaps(res.laps ?? []); setFastestLapNumber(res.fastest_lap_number); } })
+      .then((res) => {
+        if (!cancelled) {
+          const laps = res.laps ?? [];
+          setLaps(laps);
+          setFastestLapNumber(res.fastest_lap_number);
+          // Default to lap 1 so telemetry intent starts on a real lap.
+          if (laps.length > 0) setLap(String(laps[0].lap_number));
+        }
+      })
       .catch(() => { if (!cancelled) { setLaps([]); setFastestLapNumber(null); } })
       .finally(() => { if (!cancelled) setLapsLoading(false); });
     return () => { cancelled = true; };

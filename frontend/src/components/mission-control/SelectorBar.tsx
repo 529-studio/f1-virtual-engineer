@@ -187,7 +187,7 @@ export function SelectorBar({
               }}
               options={lapOptions}
               loading={lapsLoading}
-              placeholder="Fastest lap"
+              placeholder="Lap"
             />
             {lapOverlayLoading ? (
               <span className="label shrink-0 text-foreground-faint">syncing…</span>
