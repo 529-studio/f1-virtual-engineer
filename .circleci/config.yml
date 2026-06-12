@@ -1,0 +1,113 @@
+version: 2.1
+
+executors:
+  docker-executor:
+    docker:
+      - image: cimg/base:current
+    environment:
+      # Biến toàn cục từ gitlab-ci. DOCKER_BUILDKIT và DOCKER_DRIVER
+      DOCKER_BUILDKIT: 1
+      DOCKER_DRIVER: overlay2
+      # Các biến BACKEND_IMAGE_NAME và FRONTEND_IMAGE_NAME được cấu hình trong Project settings
+
+jobs:
+  build-and-push-backend:
+    executor: docker-executor
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: docker24
+      - run:
+          name: Prepare Environment Variables
+          command: |
+            # Tạo biến Short SHA (8 ký tự) tương đương $CI_COMMIT_SHORT_SHA
+            echo 'export SHORT_SHA="${CIRCLE_SHA1:0:8}"' >> $BASH_ENV
+      - run:
+          name: Docker Login
+          command: |
+            echo "$GITLAB_REGISTRY_TOKEN" | docker login registry.gitlab.com -u "$GITLAB_REGISTRY_USER" --password-stdin
+      - run:
+          name: Docker Build
+          command: |
+            docker build \
+              -f backend/Dockerfile \
+              --cache-from "${BACKEND_IMAGE_NAME}:stg-latest" \
+              --build-arg BUILDKIT_INLINE_CACHE=1 \
+              -t "${BACKEND_IMAGE_NAME}:sha-${SHORT_SHA}" \
+              -t "${BACKEND_IMAGE_NAME}:stg-latest" \
+              .
+      - run:
+          name: Docker Push
+          command: |
+            docker push "${BACKEND_IMAGE_NAME}:sha-${SHORT_SHA}"
+            docker push "${BACKEND_IMAGE_NAME}:stg-latest"
+
+  build-and-push-frontend:
+    executor: docker-executor
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: docker24
+      - run:
+          name: Prepare Environment Variables
+          command: |
+            echo 'export SHORT_SHA="${CIRCLE_SHA1:0:8}"' >> $BASH_ENV
+      - run:
+          name: Docker Login
+          command: |
+            echo "$GITLAB_REGISTRY_TOKEN" | docker login registry.gitlab.com -u "$GITLAB_REGISTRY_USER" --password-stdin
+      - run:
+          name: Docker Build
+          command: |
+            docker build \
+              -f frontend/Dockerfile \
+              --cache-from "${FRONTEND_IMAGE_NAME}:stg-latest" \
+              --build-arg BUILDKIT_INLINE_CACHE=1 \
+              --build-arg NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL" \
+              --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+              --build-arg NEXT_PUBLIC_API_BASE_URL="$NEXT_PUBLIC_API_BASE_URL" \
+              --build-arg BACKEND_INTERNAL_URL="$BACKEND_INTERNAL_URL" \
+              -t "${FRONTEND_IMAGE_NAME}:sha-${SHORT_SHA}" \
+              -t "${FRONTEND_IMAGE_NAME}:stg-latest" \
+              .
+      - run:
+          name: Docker Push
+          command: |
+            docker push "${FRONTEND_IMAGE_NAME}:sha-${SHORT_SHA}"
+            docker push "${FRONTEND_IMAGE_NAME}:stg-latest"
+
+  deploy-dokploy:
+    docker:
+      - image: curlimages/curl:latest
+    steps:
+      - run:
+          name: Trigger Deploy Webhook
+          command: |
+            if [ -n "$DOKPLOY_F1_WEBHOOK_URL" ]; then
+              curl -sS -f -X POST "$DOKPLOY_F1_WEBHOOK_URL"
+            else
+              echo "DOKPLOY_F1_WEBHOOK_URL is not set, skipping deployment trigger."
+            fi
+
+workflows:
+  version: 2
+  f1_virtual_engineer_pipeline:
+    jobs:
+      - build-and-push-backend:
+          context: lab-stg
+          filters:
+            branches:
+              only: develop
+      - build-and-push-frontend:
+          context: lab-stg
+          filters:
+            branches:
+              only: develop
+      - deploy-dokploy:
+          context: lab-stg
+          requires:
+            - build-and-push-backend
+            - build-and-push-frontend
+          filters:
+            branches:
+              only: develop
