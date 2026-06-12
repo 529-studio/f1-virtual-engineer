@@ -8,7 +8,9 @@ executors:
       # Biến toàn cục từ gitlab-ci. DOCKER_BUILDKIT và DOCKER_DRIVER
       DOCKER_BUILDKIT: 1
       DOCKER_DRIVER: overlay2
-      # Các biến BACKEND_IMAGE_NAME và FRONTEND_IMAGE_NAME được cấu hình trong Project settings
+      # Định nghĩa trực tiếp tên image
+      BACKEND_IMAGE_NAME: registry.gitlab.com/529-stu/f1-virtual-engineer/backend
+      FRONTEND_IMAGE_NAME: registry.gitlab.com/529-stu/f1-virtual-engineer/frontend
 
 jobs:
   build-and-push-backend:
