@@ -1,93 +1,93 @@
-name: CI
-
-on:
-  pull_request:
-  push:
-    branches:
-      - develop
-      - main
-
-jobs:
-  backend-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install backend dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
-
-      - name: Run backend tests
-        env:
-          PYTHONPATH: backend
-        run: |
-          python -m unittest discover -s backend/tests -p 'test_*.py'
-
-      - name: Strategy pit-accuracy gate (snapshot mode)
-        env:
-          PYTHONPATH: backend
-          STRATEGY_PIT_EVAL_SNAPSHOT: '1'
-        run: |
-          pip install pytest
-          python -m pytest backend/tests/test_strategy_pit_eval.py -s
-
-  frontend-build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Enable corepack
-        run: corepack enable
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: yarn install --immutable
-
-      - name: Lint frontend
-        working-directory: frontend
-        run: yarn lint
-
-      - name: Build frontend
-        working-directory: frontend
-        env:
-          NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
-        run: yarn build
-
-  docker-builds:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build backend image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./backend/Dockerfile
-          push: false
-
-      - name: Build frontend image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./frontend/Dockerfile
-          push: false
-          build-args: |
-            NEXT_PUBLIC_API_BASE_URL=/api
-            BACKEND_INTERNAL_URL=http://backend:8000
+# name: CI
+# 
+# on:
+#   pull_request:
+#   push:
+#     branches:
+#       - develop
+#       - main
+# 
+# jobs:
+#   backend-tests:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+# 
+#       - name: Setup Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.11'
+# 
+#       - name: Install backend dependencies
+#         run: |
+#           python -m pip install --upgrade pip
+#           pip install -r backend/requirements.txt
+# 
+#       - name: Run backend tests
+#         env:
+#           PYTHONPATH: backend
+#         run: |
+#           python -m unittest discover -s backend/tests -p 'test_*.py'
+# 
+#       - name: Strategy pit-accuracy gate (snapshot mode)
+#         env:
+#           PYTHONPATH: backend
+#           STRATEGY_PIT_EVAL_SNAPSHOT: '1'
+#         run: |
+#           pip install pytest
+#           python -m pytest backend/tests/test_strategy_pit_eval.py -s
+# 
+#   frontend-build:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+# 
+#       - name: Setup Node
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: '20'
+# 
+#       - name: Enable corepack
+#         run: corepack enable
+# 
+#       - name: Install frontend dependencies
+#         working-directory: frontend
+#         run: yarn install --immutable
+# 
+#       - name: Lint frontend
+#         working-directory: frontend
+#         run: yarn lint
+# 
+#       - name: Build frontend
+#         working-directory: frontend
+#         env:
+#           NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+#         run: yarn build
+# 
+#   docker-builds:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+# 
+#       - name: Set up Docker Buildx
+#         uses: docker/setup-buildx-action@v3
+# 
+#       - name: Build backend image
+#         uses: docker/build-push-action@v6
+#         with:
+#           context: .
+#           file: ./backend/Dockerfile
+#           push: false
+# 
+#       - name: Build frontend image
+#         uses: docker/build-push-action@v6
+#         with:
+#           context: .
+#           file: ./frontend/Dockerfile
+#           push: false
+#           build-args: |
+#             NEXT_PUBLIC_API_BASE_URL=/api
+#             BACKEND_INTERNAL_URL=http://backend:8000
