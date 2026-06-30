@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { getCrossYearLapDelta, getEventLaps, getEventsByYear, getLapDelta, getTelemetry, getWeatherSummary } from "@/services/api";
 import type { AnalyzeHistoryItem, AnalyzeResponse, EventInfo, LapDeltaCrossYearResponse, LapDeltaResponse, LapInfo, SavedQueryItem, TelemetryHistoryItem, WeatherSummaryResponse } from "@/services/api";
 import { useMissionStore } from "@/lib/store";
 import { useSupabase } from "@/components/auth/SupabaseProvider";
 import {
-  FALLBACK_DRIVERS, MissionFooter, MissionHeader, NavRail,
+  FALLBACK_DRIVERS, IntentTabBar, MissionFooter, MissionHeader, NavRail,
   SelectorBar, StrategyHUD, TelemetryChartGrid, type SessionId,
 } from "@/components/mission-control";
 import { defaultSeason } from "@/lib/f1-seasons";
@@ -26,7 +26,7 @@ export default function MissionControlPage() {
   const [year, setYear]       = useState<number>(defaultSeason());
   const [eventName, setEvent] = useState<string>("");
   const [session, setSession] = useState<SessionId>("R");
-  const [driver, setDriver]   = useState<string>("");
+  const [driver, setDriver]   = useState<string>("VER");
 
   const [events, setEvents]               = useState<EventInfo[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
@@ -97,6 +97,20 @@ export default function MissionControlPage() {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
+  // First-time users: hydrate store from the shipped fixture so charts
+  // appear immediately instead of a blank page. Returning users already
+  // have their last result in localStorage via Zustand persist — skip them.
+  useEffect(() => {
+    if (result !== null) return;
+    fetch("/fixture-default.json")
+      .then((r) => r.json())
+      .then((data) => {
+        if (result === null) setResult(data as AnalyzeResponse);
+      })
+      .catch(() => { /* silent — blank page is the fallback */ });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     getEventsByYear(year)
@@ -114,7 +128,9 @@ export default function MissionControlPage() {
           (e) => !e.event_date || e.event_date <= today,
         );
         setEvents(visible);
-        setEvent("");
+        // Auto-select the most recent completed round so the app
+        // is never empty on first load.
+        setEvent(visible.at(-1)?.name ?? "");
       })
       .catch(() => { if (!cancelled) setEvents([]); })
       .finally(() => { if (!cancelled) setEventsLoading(false); });
@@ -275,6 +291,11 @@ export default function MissionControlPage() {
 
   const canRun = !isLoading && !!eventName && !!driver;
 
+  // Fire analyze once automatically when the page first has a complete
+  // selector set (year + event + session + driver). The ref guards against
+  // re-firing if the user changes a selector before the first result lands.
+  const hasAutoAnalyzed = useRef(false);
+
   // Single source of truth for the analyze call. Takes explicit args so
   // history-click handlers can replay against fresh values without
   // waiting for setState to flush. handleAnalyze and handleSelect*
@@ -323,6 +344,16 @@ export default function MissionControlPage() {
     if (!canRun) return;
     await runAnalyze({ year, eventName, session, driver, targetDriver: compareDriver, intent });
   }, [canRun, year, eventName, session, driver, compareDriver, intent, runAnalyze]);
+
+  // One-shot auto-analyze: fires when the initial defaults are all ready.
+  // hasAutoAnalyzed guards against re-firing on subsequent selector changes.
+  useEffect(() => {
+    if (hasAutoAnalyzed.current) return;
+    if (!eventName || !driver || isLoading) return;
+    hasAutoAnalyzed.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void runAnalyze({ year, eventName, session, driver });
+  }, [eventName, driver, year, session, isLoading, runAnalyze]);
 
   const handleSelectHistory = useCallback((item: AnalyzeHistoryItem) => {
     const nextYear = item.year ?? year;
@@ -454,10 +485,12 @@ export default function MissionControlPage() {
           setCompareSpeedSeries={setCompareSpeedSeries} setCompareLoading={setCompareLoading}
           compareYear={compareYear} setCompareYear={setCompareYear}
           setCrossYearDelta={setCrossYearDelta}
-          intent={intent} setIntent={setIntent}
+          intent={intent}
           result={result} isLoading={isLoading} canRun={canRun} onAnalyze={handleAnalyze}
           savedQueries={savedQueries} onSavedQueriesChange={setSavedQueries}
         />
+
+        <IntentTabBar intent={intent} setIntent={setIntent} />
 
         <TelemetryChartGrid
           tel={tel} isLoading={isLoading} hasData={hasData} animateKey={animKey}

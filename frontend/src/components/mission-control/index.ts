@@ -1,4 +1,5 @@
 export { FALLBACK_DRIVERS, type SessionId, type TeamId } from "./constants";
+export { IntentTabBar } from "./IntentTabBar";
 export { NavRail } from "./NavRail";
 export { MissionHeader } from "./MissionHeader";
 export { SelectorBar } from "./SelectorBar";

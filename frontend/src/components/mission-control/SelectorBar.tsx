@@ -19,7 +19,7 @@ export function SelectorBar({
   compareDriver, setCompareDriver, compareLoading,
   setCompareSpeedSeries, setCompareLoading,
   compareYear, setCompareYear, setCrossYearDelta,
-  intent, setIntent,
+  intent,
   result, isLoading, canRun, onAnalyze,
   savedQueries, onSavedQueriesChange,
 }: {
@@ -58,7 +58,6 @@ export function SelectorBar({
   setCompareYear: (n: number | null) => void;
   setCrossYearDelta: (v: null) => void;
   intent: "telemetry" | "strategy";
-  setIntent: (v: "telemetry" | "strategy") => void;
   result: AnalyzeResponse | null;
   isLoading: boolean;
   canRun: boolean;
@@ -248,36 +247,6 @@ export function SelectorBar({
         >
           ?
         </button>
-
-        <div
-          role="tablist"
-          aria-label="Analysis intent"
-          className="flex shrink-0 overflow-hidden rounded-sm border border-border"
-        >
-          {(["telemetry", "strategy"] as const).map((id) => {
-            const active = intent === id;
-            return (
-              <button
-                key={id}
-                role="tab"
-                aria-selected={active}
-                onClick={() => setIntent(id)}
-                title={
-                  id === "telemetry"
-                    ? "Raw sensor data: speed, throttle, brake, gear, RPM sampled across the lap"
-                    : "Pit window recommendation with undercut math and gap to rival"
-                }
-                className="readout px-2.5 py-1 text-[0.55rem] font-bold uppercase tracking-[var(--track-wide)] transition-colors"
-                style={{
-                  background: active ? "var(--accent)" : "transparent",
-                  color: active ? "var(--background)" : "var(--foreground-dim)",
-                }}
-              >
-                {id}
-              </button>
-            );
-          })}
-        </div>
 
         <StarButton
           kind="analyze"
