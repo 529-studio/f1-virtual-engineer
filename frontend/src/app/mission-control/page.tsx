@@ -6,7 +6,7 @@ import type { AnalyzeHistoryItem, AnalyzeResponse, EventInfo, LapDeltaCrossYearR
 import { useMissionStore } from "@/lib/store";
 import { useSupabase } from "@/components/auth/SupabaseProvider";
 import {
-  FALLBACK_DRIVERS, MissionFooter, MissionHeader, NavRail,
+  FALLBACK_DRIVERS, IntentTabBar, MissionFooter, MissionHeader, NavRail,
   SelectorBar, StrategyHUD, TelemetryChartGrid, type SessionId,
 } from "@/components/mission-control";
 import { defaultSeason } from "@/lib/f1-seasons";
@@ -471,10 +471,12 @@ export default function MissionControlPage() {
           setCompareSpeedSeries={setCompareSpeedSeries} setCompareLoading={setCompareLoading}
           compareYear={compareYear} setCompareYear={setCompareYear}
           setCrossYearDelta={setCrossYearDelta}
-          intent={intent} setIntent={setIntent}
+          intent={intent}
           result={result} isLoading={isLoading} canRun={canRun} onAnalyze={handleAnalyze}
           savedQueries={savedQueries} onSavedQueriesChange={setSavedQueries}
         />
+
+        <IntentTabBar intent={intent} setIntent={setIntent} />
 
         <TelemetryChartGrid
           tel={tel} isLoading={isLoading} hasData={hasData} animateKey={animKey}
