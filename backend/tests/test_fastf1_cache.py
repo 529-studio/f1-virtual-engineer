@@ -13,10 +13,12 @@ we patch the underlying FastF1 entrypoints and assert the wrapper:
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 import unittest
 from unittest.mock import MagicMock, patch
 
+from core import redis_cache
 from tools import fastf1_helper
 from tools.fastf1_helper import (
     _reset_caches_for_tests,
@@ -30,7 +32,13 @@ from tools.fastf1_helper import (
 
 class ScheduleCacheTests(unittest.TestCase):
     def setUp(self) -> None:
+        os.environ.pop("REDIS_URL", None)
+        redis_cache.reset_for_tests()
         _reset_caches_for_tests()
+
+    def tearDown(self) -> None:
+        redis_cache.reset_for_tests()
+        os.environ.pop("REDIS_URL", None)
 
     def test_good_result_cached(self):
         fake_schedule = MagicMock()
@@ -84,7 +92,13 @@ class FallbackBypassTests(unittest.TestCase):
     """Helpers that return {"fallback": True, ...} on error must not cache it."""
 
     def setUp(self) -> None:
+        os.environ.pop("REDIS_URL", None)
+        redis_cache.reset_for_tests()
         _reset_caches_for_tests()
+
+    def tearDown(self) -> None:
+        redis_cache.reset_for_tests()
+        os.environ.pop("REDIS_URL", None)
 
     def test_roster_fallback_not_cached(self):
         with patch.object(fastf1_helper.fastf1, "get_session", side_effect=RuntimeError("boom")) as mock_get:
@@ -162,7 +176,13 @@ class AsyncWrapTests(unittest.IsolatedAsyncioTestCase):
     """Sanity check: cached calls run via asyncio.to_thread without blocking."""
 
     async def asyncSetUp(self) -> None:
+        os.environ.pop("REDIS_URL", None)
+        redis_cache.reset_for_tests()
         _reset_caches_for_tests()
+
+    async def asyncTearDown(self) -> None:
+        redis_cache.reset_for_tests()
+        os.environ.pop("REDIS_URL", None)
 
     async def test_to_thread_serves_cached_result_fast(self):
         fake_schedule = MagicMock()

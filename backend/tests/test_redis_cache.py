@@ -41,6 +41,7 @@ def _install_fake_redis() -> fakeredis.FakeRedis:
 
 class RedisCacheModuleTests(unittest.TestCase):
     def setUp(self) -> None:
+        os.environ.pop("REDIS_URL", None)
         redis_cache.reset_for_tests()
 
     def tearDown(self) -> None:

@@ -22,6 +22,7 @@ export function StrategyHUD({
   result, strat, isLoading, hasData, session, theme, rateLimitMessage,
   retryState = "idle", onRetryClick,
   year, eventName, driver, targetDriver,
+  streamStage = "idle", streamMessage = "", streamTokens = "",
   historyRefreshSignal, onSelectHistory,
   telemetryHistoryRefreshSignal, onSelectTelemetryHistory,
   radioHistoryRefreshSignal,
@@ -40,6 +41,9 @@ export function StrategyHUD({
   eventName: string;
   driver: string;
   targetDriver?: string | null;
+  streamStage?: string;
+  streamMessage?: string;
+  streamTokens?: string;
   historyRefreshSignal?: number;
   onSelectHistory?: (item: AnalyzeHistoryItem) => void;
   telemetryHistoryRefreshSignal?: number;
@@ -62,10 +66,13 @@ export function StrategyHUD({
     initialSource: result?.rationale_source ?? null,
     accessToken,
   });
+  // Priority: streaming tokens (mid-flight) > async upgrade > final result > fallback
   const displayedAgentResponse =
-    upgrade.status === "upgraded" && upgrade.rationaleText
-      ? upgrade.rationaleText
-      : (result?.agent_response ?? "Analysis complete.");
+    (isLoading && streamTokens)
+      ? streamTokens
+      : upgrade.status === "upgraded" && upgrade.rationaleText
+        ? upgrade.rationaleText
+        : (result?.agent_response ?? "Analysis complete.");
 
   return (
     <aside className="flex w-72 shrink-0 flex-col border-l border-border bg-surface">
@@ -106,7 +113,7 @@ export function StrategyHUD({
           : hasData && strat?.undercut_risk === "high"
             ? "⚠ STRATEGY ALERT"
             : isLoading
-              ? "ANALYZING"
+              ? streamStage !== "idle" ? `${streamStage.toUpperCase()}…` : "ANALYZING"
               : hasData
                 ? "ANALYSIS COMPLETE"
                 : "SYSTEM STATUS";
@@ -121,7 +128,7 @@ export function StrategyHUD({
               {rateLimitMessage
                 ? rateLimitMessage
                 : isLoading
-                  ? "Fetching telemetry…"
+                  ? (streamMessage || "Fetching telemetry…")
                   : hasData
                     ? displayedAgentResponse
                     : "Select year, grand prix, session and driver above."}

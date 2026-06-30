@@ -2,14 +2,36 @@ import copy
 import logging
 import re
 from collections import deque
+from contextvars import ContextVar
 from time import monotonic, sleep
-from typing import Any, TypedDict
+from typing import Any, Callable, TypedDict
 
 _logger = logging.getLogger(__name__)
 
+# SSE streaming hook. Set before calling analyze_query() in a thread so
+# run_analysis_node and format_response_node can push intermediate events
+# back to the SSE generator. None means no streaming (standard /analyze path).
+# contextvars propagate correctly into asyncio.to_thread() worker threads.
+_emit_ctx: ContextVar[Callable[[dict[str, Any]], None] | None] = ContextVar(
+    "_emit_ctx", default=None
+)
+
+
+def set_emit_fn(fn: Callable[[dict[str, Any]], None] | None) -> None:
+    _emit_ctx.set(fn)
+
+
+def _emit(event: str, data: Any) -> None:
+    fn = _emit_ctx.get()
+    if fn is not None:
+        try:
+            fn({"event": event, "data": data})
+        except Exception:  # noqa: BLE001 — never let emit crash the agent
+            pass
+
 from langgraph.graph import END, StateGraph
 
-from core.llm import generate_rationale, generate_structured
+from core.llm import generate_rationale, generate_structured, stream_rationale
 from core.trace import start_trace, get_trace, traced
 from tools.fastf1_helper import get_session_telemetry_summary as _raw_get_telemetry
 from tools.knowledge_retriever import lookup as _raw_knowledge_lookup
@@ -306,6 +328,7 @@ def run_analysis_node(state: AgentState) -> AgentState:
         new_memory_vals["last_driver"] = intent["driver"]
     
     if intent.get("intent_type") == "strategy":
+        _emit("status", {"stage": "strategy", "message": "Computing pit strategy…"})
         strategy = strategy_analyzer(
             year=intent["year"],
             event=intent["event"],
@@ -313,6 +336,7 @@ def run_analysis_node(state: AgentState) -> AgentState:
             driver=intent["driver"],
             target_driver=state.get("target_driver"),
         )
+        _emit("strategy", strategy)
         new_memory_vals["last_strategy_data"] = strategy
         memory.update(new_memory_vals)
         return {
@@ -327,12 +351,14 @@ def run_analysis_node(state: AgentState) -> AgentState:
             },
         }
 
+    _emit("status", {"stage": "telemetry", "message": "Fetching lap telemetry…"})
     telemetry, retry_count, retryable_exhausted = _call_with_retry(
         year=intent["year"],
         event=intent["event"],
         session_type=intent["session_type"],
         driver=intent["driver"],
     )
+    _emit("telemetry", telemetry)
     if retryable_exhausted:
         return {
             **state,
@@ -430,19 +456,37 @@ def _build_llm_context(state: AgentState) -> dict[str, Any]:
 
 def format_response_node(state: AgentState) -> AgentState:
     if _is_short_factual(state):
-        return {**state, "response_text": _render_template(state), "rationale_source": "template"}
+        template_text = _render_template(state)
+        _emit("rationale", template_text)
+        return {**state, "response_text": template_text, "rationale_source": "template"}
 
-    # When the caller has opted into the async-rationale path (#139 PR3),
-    # skip the LLM round-trip here and return template synchronously.
-    # The /analyze handler will enqueue a worker task that back-fills the
-    # rationale onto the persisted history row, and the frontend polls
-    # /analyze/history to pick up the upgrade.
     if state.get("force_template"):
-        return {**state, "response_text": _render_template(state), "rationale_source": "template"}
+        template_text = _render_template(state)
+        _emit("rationale", template_text)
+        return {**state, "response_text": template_text, "rationale_source": "template"}
 
-    llm_text = generate_rationale(_build_llm_context(state))
+    llm_context = _build_llm_context(state)
+
+    # When SSE emit_fn is active, stream token-by-token via stream_rationale.
+    # Chunks are emitted as {"event": "token", "data": "<chunk>"} so the
+    # frontend can render progressively. The assembled text is used as the
+    # final response_text so /analyze/stream's done event carries the full string.
+    if _emit_ctx.get() is not None:
+        _emit("status", {"stage": "rationale", "message": "Generating rationale…"})
+        chunks: list[str] = []
+        for chunk in stream_rationale(llm_context):
+            chunks.append(chunk)
+            _emit("token", chunk)
+        llm_text = "".join(chunks) or None
+    else:
+        llm_text = generate_rationale(llm_context)
+
     if llm_text:
         return {**state, "response_text": llm_text, "rationale_source": "llm"}
+
+    template_text = _render_template(state)
+    _emit("rationale", template_text)
+    return {**state, "response_text": template_text, "rationale_source": "template"}
 
     return {**state, "response_text": _render_template(state), "rationale_source": "template"}
 
