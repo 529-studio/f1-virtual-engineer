@@ -97,6 +97,20 @@ export default function MissionControlPage() {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
+  // First-time users: hydrate store from the shipped fixture so charts
+  // appear immediately instead of a blank page. Returning users already
+  // have their last result in localStorage via Zustand persist — skip them.
+  useEffect(() => {
+    if (result !== null) return;
+    fetch("/fixture-default.json")
+      .then((r) => r.json())
+      .then((data) => {
+        if (result === null) setResult(data as AnalyzeResponse);
+      })
+      .catch(() => { /* silent — blank page is the fallback */ });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     getEventsByYear(year)
