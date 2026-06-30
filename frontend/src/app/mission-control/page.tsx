@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { analyzeTelemetry, getCrossYearLapDelta, getEventLaps, getEventsByYear, getLapDelta, getTelemetry, getWeatherSummary, RateLimitError } from "@/services/api";
+import { getCrossYearLapDelta, getEventLaps, getEventsByYear, getLapDelta, getTelemetry, getWeatherSummary } from "@/services/api";
 import type { AnalyzeHistoryItem, AnalyzeResponse, EventInfo, LapDeltaCrossYearResponse, LapDeltaResponse, LapInfo, SavedQueryItem, TelemetryHistoryItem, WeatherSummaryResponse } from "@/services/api";
 import { useMissionStore } from "@/lib/store";
 import { useSupabase } from "@/components/auth/SupabaseProvider";
@@ -11,14 +11,17 @@ import {
 } from "@/components/mission-control";
 import { defaultSeason } from "@/lib/f1-seasons";
 import { useDriverRoster } from "@/hooks/useDriverRoster";
+import { useAnalyzeStream } from "@/hooks/useAnalyzeStream";
 
 export default function MissionControlPage() {
-  const { theme, result, setResult, isLoading, setIsLoading } = useMissionStore();
+  const { theme, result, setResult } = useMissionStore();
   const { session: authSession } = useSupabase();
   const [historyRefreshSignal, setHistoryRefreshSignal] = useState(0);
   const [telemetryHistoryRefreshSignal, setTelemetryHistoryRefreshSignal] = useState(0);
   const [radioHistoryRefreshSignal] = useState(0);
   const [savedQueries, setSavedQueries] = useState<SavedQueryItem[]>([]);
+
+  const { streamState, isLoading, runStream } = useAnalyzeStream();
 
   const [year, setYear]       = useState<number>(defaultSeason());
   const [eventName, setEvent] = useState<string>("");
@@ -284,47 +287,37 @@ export default function MissionControlPage() {
     targetDriver?: string;
     intent?: "telemetry" | "strategy";
   }) => {
-    setIsLoading(true);
     setRateLimitMessage(null);
     setRetryState("idle");
-    try {
-      // Strategy keyword in the query is what makes the backend regex
-      // classifier route to strategy_analyzer (#182). Telemetry mode
-      // keeps the original phrasing so existing history rows still
-      // round-trip with their telemetry intent.
-      const strategyMode = (args.intent ?? intent) === "strategy";
-      const query = strategyMode
-        ? args.targetDriver
-          ? `Pit strategy for ${args.driver} chasing ${args.targetDriver} at ${args.eventName} ${args.year} ${args.session}`
-          : `Pit strategy for ${args.driver} at ${args.eventName} ${args.year} ${args.session}`
-        : `Analyse ${args.driver} ${args.session} session at ${args.eventName} ${args.year}`;
-      const res = await analyzeTelemetry(
-        {
-          query,
-          driver: args.driver,
-          session_info: { event: args.eventName, year: args.year, session_type: args.session },
-          // Slice 1B of #168: when the user picked a "vs" driver, reuse
-          // it as the strategy target so the gap line in the HUD reflects
-          // their actual rival rather than whoever's running ahead.
-          target_driver: args.targetDriver || null,
-        },
-        authSession?.access_token,
-        { onRetry: () => setRetryState("retrying") },
-      );
+    const strategyMode = (args.intent ?? intent) === "strategy";
+    const query = strategyMode
+      ? args.targetDriver
+        ? `Pit strategy for ${args.driver} chasing ${args.targetDriver} at ${args.eventName} ${args.year} ${args.session}`
+        : `Pit strategy for ${args.driver} at ${args.eventName} ${args.year} ${args.session}`
+      : `Analyse ${args.driver} ${args.session} session at ${args.eventName} ${args.year}`;
+
+    const res = await runStream(
+      {
+        query,
+        driver: args.driver,
+        session_info: { event: args.eventName, year: args.year, session_type: args.session },
+        target_driver: args.targetDriver || null,
+      },
+      authSession?.access_token,
+      {
+        onRateLimit: (msg) => { setRateLimitMessage(msg); setRetryState("idle"); },
+        onRetry: () => setRetryState("retrying"),
+      },
+    );
+
+    if (res) {
       setResult(res as AnalyzeResponse);
       setRetryState("idle");
       if (authSession) setHistoryRefreshSignal((n) => n + 1);
-    } catch (err) {
-      if (err instanceof RateLimitError) {
-        setRateLimitMessage(`Rate limited — retry in ${err.retryAfterSeconds}s`);
-        setRetryState("idle");
-      } else {
-        setRetryState("failed");
-      }
-    } finally {
-      setIsLoading(false);
+    } else if (streamState.stage !== "error" && !rateLimitMessage) {
+      setRetryState("failed");
     }
-  }, [setIsLoading, setResult, authSession, intent]);
+  }, [runStream, setResult, authSession, intent, streamState.stage, rateLimitMessage]);
 
   const handleAnalyze = useCallback(async () => {
     if (!canRun) return;
@@ -398,8 +391,10 @@ export default function MissionControlPage() {
   }, [year, eventName, session, driver, runAnalyze]);
 
   const tel     = result?.telemetry_data;
-  const strat   = result?.strategy_data;
-  const hasData = !isLoading && !!result;
+  // During streaming, show partial strategy as soon as the strategy event arrives
+  // so the pit window block reveals before the LLM rationale finishes.
+  const strat   = result?.strategy_data ?? streamState.partialStrategy ?? null;
+  const hasData = !isLoading && (!!result || streamState.stage === "done");
   const animKey = result ? 1 : 0;
 
   // Lap-delta loading is derived, not stored — the chart treats the
@@ -482,6 +477,9 @@ export default function MissionControlPage() {
         retryState={retryState} onRetryClick={handleAnalyze}
         year={year} eventName={eventName} driver={driver}
         targetDriver={compareDriver}
+        streamStage={streamState.stage}
+        streamMessage={streamState.message}
+        streamTokens={streamState.tokens}
         historyRefreshSignal={historyRefreshSignal}
         onSelectHistory={handleSelectHistory}
         telemetryHistoryRefreshSignal={telemetryHistoryRefreshSignal}

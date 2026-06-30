@@ -22,7 +22,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 from core import redis_cache
 
@@ -216,3 +216,54 @@ def generate_structured(
 def _reset_cache_for_tests() -> None:
     """Drop the cache. Used by tests to keep runs deterministic."""
     _cache.clear()
+
+
+def stream_rationale(context: dict[str, Any], *, model: str = "gemini-2.0-flash") -> Iterator[str]:
+    """Stream LLM rationale token-by-token. Yields text chunks as they arrive.
+
+    Falls back to yielding the full generate_rationale() result as a single chunk
+    when streaming is unavailable (no API key, SDK missing, or SDK doesn't support
+    streaming for the given model). Never raises — callers iterate safely.
+    """
+    genai = _ensure_configured()
+    if genai is None:
+        # No API key or SDK — yield whatever the non-streaming path would produce
+        text = generate_rationale(context, model=model)
+        if text:
+            yield text
+        return
+
+    # Check L1/L2 cache first — a cache hit means we already paid for this
+    # call; re-streaming is wasteful when we can yield the full cached text.
+    cache_key = _context_key(context)
+    cached = _cache.get(cache_key)
+    if cached is not None:
+        ts, text = cached
+        if time.time() - ts < _CACHE_TTL_SECONDS:
+            yield text
+            return
+
+    l2_hit = redis_cache.get(_L2_NAMESPACE_RATIONALE, cache_key)
+    if isinstance(l2_hit, str) and l2_hit:
+        _cache[cache_key] = (time.time(), l2_hit)
+        yield l2_hit
+        return
+
+    try:
+        client = genai.GenerativeModel(model_name=model, system_instruction=_SYSTEM_PROMPT)
+        prompt = f"Session context (JSON):\n{json.dumps(context, default=str, indent=2)}"
+        response = client.generate_content(prompt, stream=True)
+        full_text: list[str] = []
+        for chunk in response:
+            chunk_text = (getattr(chunk, "text", None) or "").strip()
+            if chunk_text:
+                full_text.append(chunk_text)
+                yield chunk_text
+        # Cache the assembled text so subsequent identical requests are instant
+        assembled = "".join(full_text)
+        if assembled:
+            _cache[cache_key] = (time.time(), assembled)
+            redis_cache.set(_L2_NAMESPACE_RATIONALE, cache_key, assembled, ttl_seconds=_L2_TTL_SECONDS)
+    except Exception:  # noqa: BLE001 — fail-closed
+        _logger.warning("Gemini streaming call failed; falling back to template", exc_info=True)
+        # Yield nothing — the SSE endpoint will emit a done event with template text

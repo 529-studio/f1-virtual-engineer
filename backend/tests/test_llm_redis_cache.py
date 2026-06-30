@@ -133,9 +133,16 @@ class StructuredL2Tests(unittest.TestCase):
 
 class RedisDisabledTests(unittest.TestCase):
     def setUp(self):
+        import os
+        os.environ.pop("REDIS_URL", None)
         core_llm._reset_cache_for_tests()
         redis_cache.reset_for_tests()
         # Do NOT install fakeredis — Redis stays disabled.
+
+    def tearDown(self):
+        import os
+        redis_cache.reset_for_tests()
+        os.environ.pop("REDIS_URL", None)
 
     def test_l1_only_path_still_works(self):
         ctx = {"intent": {"driver": "ALO"}}
