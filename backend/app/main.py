@@ -1,15 +1,16 @@
 import asyncio
+import json as _json
 import logging
 import os
 from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, Header, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from agents.race_engineer import analyze_query
+from agents.race_engineer import analyze_query, set_emit_fn
 from agents.radio_interpreter import interpret_radio
 from app.schemas.analyze import AnalyzeRequest, AnalyzeResponse
 from app.schemas.history import AnalyzeHistoryResponse, RadioHistoryResponse, TelemetryHistoryResponse
@@ -456,6 +457,131 @@ async def analyze_race_data(
     if idempotency_key:
         idempotency.commit(idempotency_key, response_payload)
     return response_payload
+
+
+@app.post(
+    "/analyze/stream",
+    tags=["analysis"],
+    summary="Stream analyze events via Server-Sent Events",
+    description=(
+        "Same semantics as POST /analyze but returns a `text/event-stream` response. "
+        "Events are emitted as they complete:\n"
+        "- `status` — stage progress (telemetry, strategy, rationale)\n"
+        "- `telemetry` / `strategy` — partial data payloads\n"
+        "- `token` — individual LLM text chunks\n"
+        "- `done` — final AnalyzeResponse payload; connection closes\n"
+        "- `error` — unrecoverable failure\n\n"
+        "No idempotency support on the streaming endpoint. Rate limit: 3/10s."
+    ),
+)
+@limiter.limit("3/10seconds")
+async def analyze_race_data_stream(
+    request: Request,
+    body: AnalyzeRequest,
+    user_id: str | None = Depends(get_optional_user_id),
+):
+    # asyncio.Queue bridges the sync LangGraph thread with this async generator.
+    # The thread calls emit_fn which puts events into the queue; the generator
+    # drains the queue and yields SSE-formatted lines. Sentinel None closes the stream.
+    queue: asyncio.Queue[dict | None] = asyncio.Queue()
+
+    def emit_fn(msg: dict) -> None:
+        queue.put_nowait(msg)
+
+    def _run_agent() -> dict:
+        set_emit_fn(emit_fn)
+        try:
+            session_override = body.session_info.model_dump() if body.session_info else None
+            return analyze_query(
+                body.query,
+                session_override=session_override,
+                driver_override=body.driver,
+                target_driver=body.target_driver,
+                force_template=False,
+            )
+        finally:
+            set_emit_fn(None)
+
+    async def event_generator():
+        # Launch the blocking agent in a thread so the event loop stays free.
+        agent_task = asyncio.create_task(asyncio.to_thread(_run_agent))
+
+        try:
+            while True:
+                # Check for queued intermediate events first (non-blocking).
+                try:
+                    msg = queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    if agent_task.done():
+                        # Drain remaining events before sending done.
+                        while not queue.empty():
+                            msg = queue.get_nowait()
+                            yield f"event: {msg['event']}\ndata: {_json.dumps(msg['data'])}\n\n"
+                        break
+                    # Yield a keepalive comment and wait a bit.
+                    yield ": keepalive\n\n"
+                    await asyncio.sleep(0.05)
+                    continue
+
+                yield f"event: {msg['event']}\ndata: {_json.dumps(msg['data'])}\n\n"
+
+            # Agent finished — build and emit the done event.
+            try:
+                result = agent_task.result()
+            except Exception as exc:
+                yield f"event: error\ndata: {_json.dumps({'message': str(exc)})}\n\n"
+                return
+
+            intent = result.get("intent") or {}
+            response_payload = {
+                "status": "error" if result.get("error") else "success",
+                "agent_response": result["response_text"],
+                "query": body.query,
+                "intent": intent,
+                "telemetry_data": result.get("telemetry_data") or {},
+                "strategy_data": result.get("strategy_data"),
+                "rationale_source": result.get("rationale_source", "template"),
+                "rationale_job_id": None,
+                "analyze_history_id": None,
+                "error": result.get("error"),
+                "memory": result.get("memory"),
+                "execution": result.get("execution"),
+                "retry": result.get("retry"),
+                "citations": result.get("citations", []),
+                "controversy_analysis": result.get("controversy_analysis", []),
+            }
+
+            # Persist history fire-and-forget (same as /analyze, no await blocking SSE).
+            if user_id and not result.get("error"):
+                asyncio.create_task(
+                    insert_analyze_history(
+                        user_id=user_id,
+                        query=body.query,
+                        driver=intent.get("driver") or body.driver,
+                        event=intent.get("event") or (body.session_info.event if body.session_info else None),
+                        year=intent.get("year") or (body.session_info.year if body.session_info else None),
+                        session_type=intent.get("session_type")
+                            or (body.session_info.session_type if body.session_info else None),
+                        agent_response=result["response_text"],
+                        rationale_source=result.get("rationale_source", "template"),
+                        intent_type=intent.get("intent_type"),
+                    )
+                )
+
+            yield f"event: done\ndata: {_json.dumps(response_payload, default=str)}\n\n"
+
+        except asyncio.CancelledError:
+            agent_task.cancel()
+            raise
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.get(

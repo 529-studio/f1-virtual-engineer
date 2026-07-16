@@ -163,6 +163,7 @@ backend/data/
 !tsconfig.json
 !backend/evals/cases/*.json
 !frontend/src/content/*.json
+!frontend/public/fixture-default.json
 
 # Node.js
 node_modules/
