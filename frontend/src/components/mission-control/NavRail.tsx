@@ -11,7 +11,7 @@ export function NavRail() {
       <Link
         href="/"
         title="Home"
-        aria-label="F1 Virtual Engineer — home"
+        aria-label="F1 Race Engineer — home"
         className="mb-8 flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-accent text-[0.65rem] font-black italic tracking-tight text-background"
       >
         F1
