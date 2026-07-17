@@ -1,0 +1,202 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# F1 Virtual Engineer — GitHub Actions CI/CD
+# Replaces: .circleci/config.yml
+# Registry: ghcr.io/529-studio/f1-virtual-engineer (GitHub Container Registry)
+# Deploy:   Dokploy webhook on develop push after both images are pushed
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+# Cancel in-progress runs for the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE: ghcr.io/529-studio/f1-virtual-engineer/backend
+  FRONTEND_IMAGE: ghcr.io/529-studio/f1-virtual-engineer/frontend
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 1: Backend tests
+  # ────────────────────────────────────────────────────────────────────────────
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt pytest
+
+      - name: Run unit tests
+        env:
+          PYTHONPATH: backend
+          # Use CELERY eager mode so Celery tasks run inline without broker
+          CELERY_TASK_ALWAYS_EAGER: "true"
+        run: |
+          python -m pytest backend/tests/ -v --tb=short
+
+      - name: Strategy pit-accuracy gate (snapshot mode)
+        env:
+          PYTHONPATH: backend
+          STRATEGY_PIT_EVAL_SNAPSHOT: "1"
+          CELERY_TASK_ALWAYS_EAGER: "true"
+        run: |
+          python -m pytest backend/tests/test_strategy_pit_eval.py -s -v
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 2: Frontend lint + type-check + build
+  # ────────────────────────────────────────────────────────────────────────────
+  test-frontend:
+    name: Frontend Build & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Enable corepack (Yarn 4)
+        run: corepack enable
+
+      - name: Restore Yarn cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/.yarn/cache
+            frontend/node_modules
+          key: yarn-${{ hashFiles('frontend/yarn.lock') }}
+          restore-keys: yarn-
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: yarn install --immutable
+
+      - name: Lint
+        working-directory: frontend
+        run: yarn lint
+
+      - name: Build (type-check + bundle)
+        working-directory: frontend
+        env:
+          # Only 2 vars are truly inlined into the client JS bundle by webpack.
+          # Everything else has safe Dockerfile defaults or is server-side runtime.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: yarn build
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 3: Build & Push Docker images to GHCR
+  # Only runs on push to develop (not PRs)
+  # ────────────────────────────────────────────────────────────────────────────
+  build-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    # Gate: only push images when both tests pass AND we're on develop
+    needs: [test-backend, test-frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+
+    permissions:
+      contents: read
+      packages: write # Required to push to GHCR
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set SHORT_SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA::8}" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Backend ──────────────────────────────────────────────────────────────
+      - name: Build & Push Backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.BACKEND_IMAGE }}:sha-${{ env.SHORT_SHA }}
+            ${{ env.BACKEND_IMAGE }}:stg-latest
+          # Layer cache backed by GHCR (free, no TTL limit vs. GitHub cache)
+          cache-from: type=registry,ref=${{ env.BACKEND_IMAGE }}:buildcache
+          cache-to: type=registry,ref=${{ env.BACKEND_IMAGE }}:buildcache,mode=max
+          provenance: false
+
+      # ── Frontend ─────────────────────────────────────────────────────────────
+      - name: Build & Push Frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:sha-${{ env.SHORT_SHA }}
+            ${{ env.FRONTEND_IMAGE }}:stg-latest
+          cache-from: type=registry,ref=${{ env.FRONTEND_IMAGE }}:buildcache
+          cache-to: type=registry,ref=${{ env.FRONTEND_IMAGE }}:buildcache,mode=max
+          provenance: false
+          # Only 2 vars get webpack-inlined into the client JS bundle at build time.
+          # - NEXT_PUBLIC_SUPABASE_* used by "use client" supabase/client.ts + SupabaseProvider
+          # - BACKEND_INTERNAL_URL: frozen into routes-manifest.json via next.config.ts rewrites(),
+          #   but Dockerfile already has ARG BACKEND_INTERNAL_URL=http://backend:8000 (correct default)
+          # - NEXT_PUBLIC_API_BASE_URL: has || "/api" fallback in code; Dockerfile ARG default = /api
+          # - NEXT_PUBLIC_SITE_URL: server-side Route Handler only, pure runtime via Dokploy env
+          # - NEXT_PUBLIC_ADMIN_USER_ID: dead code, not referenced in src/
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 4: Trigger Dokploy redeploy via webhook
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy via Dokploy
+    runs-on: ubuntu-latest
+    needs: [build-push]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+
+    steps:
+      - name: Trigger Dokploy webhook
+        run: |
+          if [ -z "${{ secrets.DOKPLOY_F1_WEBHOOK_URL }}" ]; then
+            echo "DOKPLOY_F1_WEBHOOK_URL is not set — skipping deploy trigger."
+            exit 0
+          fi
+          echo "Triggering Dokploy redeploy..."
+          curl -sS -f -X POST "${{ secrets.DOKPLOY_F1_WEBHOOK_URL }}"
+          echo "Dokploy deploy triggered."
