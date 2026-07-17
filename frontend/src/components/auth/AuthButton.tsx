@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSupabase } from "./SupabaseProvider";
 import { getSupabaseEnv } from "@/lib/supabase/client";
 
@@ -11,21 +11,7 @@ export function AuthButton() {
   const { supabase, session, configured } = useSupabase();
   const [busy, setBusy] = useState(false);
 
-  // Debug aid (#auth-prod-unavailable): NEXT_PUBLIC_* are inlined at
-  // `next build` time, not runtime. If prod build doesn't see them,
-  // configured falls to false and the button disables before we ever
-  // hit Google. Surface a one-shot log so devops can confirm the
-  // build-time injection without us leaking the actual values.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const env = getSupabaseEnv();
-    console.log("[auth-debug] supabase env present:", {
-      NEXT_PUBLIC_SUPABASE_URL: Boolean(env.url),
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: Boolean(env.anonKey),
-      configured: env.configured,
-      origin: window.location.origin,
-    });
-  }, []);
+
 
   if (!configured) {
     const env = getSupabaseEnv();

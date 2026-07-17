@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "F1 Virtual Engineer",
-    short_name: "F1 VE",
+    name: "F1 Race Engineer",
+    short_name: "F1 RE",
     description:
       "Virtual F1 race engineer for telemetry, strategy signals, and explainable mission-control workflows.",
     start_url: "/",

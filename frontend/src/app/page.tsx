@@ -31,7 +31,7 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <Image
               src="/icon.png"
-              alt="F1 Virtual Engineer"
+              alt="F1 Race Engineer"
               width={32}
               height={32}
               priority
@@ -39,7 +39,7 @@ export default function Home() {
             />
             <div>
               <p className="text-[0.7rem] font-bold uppercase tracking-[var(--track-wide)] text-foreground">
-                F1 Virtual Engineer
+                F1 Race Engineer
               </p>
               <p className="readout text-[0.55rem] uppercase tracking-[var(--track-widest)] text-foreground-dim">
                 Telemetry · Strategy · Regulation · AI

@@ -3,7 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SupabaseProvider } from "@/components/auth/SupabaseProvider";
 
-const siteTitle = "F1 Virtual Engineer";
+const siteTitle = "F1 Race Engineer";
 const siteDescription =
   "Mission-control UX for telemetry analysis, pit-window reasoning, and explainable Formula 1 strategy signals.";
 
@@ -11,10 +11,10 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://f1-virtual-engineer.local"),
   title: {
     default: siteTitle,
-    template: "%s | F1 Virtual Engineer",
+    template: "%s | F1 Race Engineer",
   },
   description: siteDescription,
-  applicationName: "F1 Virtual Engineer",
+  applicationName: "F1 Race Engineer",
   keywords: [
     "Formula 1",
     "F1 telemetry",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: siteTitle,
     description: siteDescription,
-    siteName: "F1 Virtual Engineer",
+    siteName: "F1 Race Engineer",
     type: "website",
   },
   twitter: {
