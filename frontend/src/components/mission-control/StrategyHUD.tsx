@@ -10,9 +10,8 @@ import { RecentTelemetry } from "./RecentTelemetry";
 import { RadioLog } from "./RadioLog";
 import { ReferencesPanel } from "./ReferencesPanel";
 import { SavedQueriesPanel } from "./SavedQueriesPanel";
-import { ScenarioComparison } from "./ScenarioComparison";
+// ScenarioComparison and TyreCard are promoted to StrategyCanvas (main canvas).
 import { StewardsViewPanel } from "./StewardsViewPanel";
-import { TyreCard } from "./TyreCard";
 import { JargonTooltip } from "@/components/ui/JargonTooltip";
 import { HintTooltip } from "@/components/ui/HintTooltip";
 import { WhyThisCallPanel } from "./WhyThisCallPanel";
@@ -318,15 +317,8 @@ export function StrategyHUD({
 
         <WhyThisCallPanel result={result} strat={strat} hasData={hasData} />
 
-        {/* Issue #256: TyreCard renders only after Analyze. The card used
-            to auto-fetch on year/event/session/driver and read like a
-            standing recommendation — even on finished races it would say
-            "Stint ending within 2 laps of cliff" for a stint that no
-            longer exists. Gating on hasData ties it to the analysis
-            context the user actually requested. */}
-        {hasData && (
-          <TyreCard year={year} event={eventName} session={session} driver={driver} />
-        )}
+        {/* TyreCard + ScenarioComparison are on the StrategyCanvas (main
+            area) in Strategy mode — no need to repeat them here. */}
 
         <ReferencesPanel items={result?.citations} />
 
@@ -334,15 +326,6 @@ export function StrategyHUD({
           <StewardsViewPanel findings={result!.controversy_analysis!} />
         )}
 
-        {hasData && result?.intent?.intent_type === "strategy" && driver && eventName && (
-          <ScenarioComparison
-            year={year}
-            event={eventName}
-            sessionType={session}
-            driver={driver}
-            targetDriver={targetDriver ?? null}
-          />
-        )}
 
         <RecentAnalyses refreshSignal={historyRefreshSignal} onSelect={onSelectHistory} />
         <RecentTelemetry
