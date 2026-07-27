@@ -112,23 +112,33 @@ export function ScenarioComparison({
 
   return (
     <section className="mt-4">
-      <button
-        type="button"
+      {/* Use div+role instead of <button> to avoid nested-button violation:
+          HintTooltip renders its own <button>, which cannot be a descendant
+          of another <button> per the HTML spec. */}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
+        className="flex w-full cursor-pointer items-center justify-between"
         aria-expanded={open}
       >
         <p className="label">Compare strategies</p>
-          <div className="flex items-center gap-1.5">
-            <HintTooltip label="Compare strategies">
-              What-if pit call comparison. Two preset scenarios run against the same
-              FastF1 gap data — see which pit timing wins more time against your rival.
-            </HintTooltip>
-            <span className="readout text-[0.6rem] text-foreground-dim">
-              {open ? "−" : "+"}
-            </span>
-          </div>
-      </button>
+        <div className="flex items-center gap-1.5">
+          <HintTooltip label="Compare strategies">
+            What-if pit call comparison. Two preset scenarios run against the same
+            FastF1 gap data — see which pit timing wins more time against your rival.
+          </HintTooltip>
+          <span className="readout text-[0.6rem] text-foreground-dim">
+            {open ? "−" : "+"}
+          </span>
+        </div>
+      </div>
 
       <AnimatePresence initial={false}>
         {open && (
