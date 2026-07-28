@@ -75,14 +75,19 @@ export function StrategyCanvas({
         />
       </motion.div>
 
-      {/* Row 2 — Tyre Card + Gap Gauge */}
+      {/* Row 2 — Tyre Card + Gap Gauge
+          NOTE: do NOT add min-h-0 here — it causes TyreCard to collapse
+          to zero height when the canvas flex parent doesn't have explicit
+          height, which makes ScenarioComparison visually overlap TyreCard. */}
       <motion.div
-        className="flex min-h-0 gap-4"
+        className="flex gap-4"
         initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER }}
       >
-        <div className="min-w-0 flex-1">
+        {/* TyreCard wrapper: flex-1 for width, but NO min-w-0/min-h-0
+            so the card keeps its natural height. */}
+        <div className="flex-1">
           <TyreCard year={year} event={eventName} session={session} driver={driver} />
         </div>
 
@@ -98,9 +103,13 @@ export function StrategyCanvas({
         )}
       </motion.div>
 
-      {/* Row 3 — Scenario comparison cards */}
+      {/* Row 3 — Scenario comparison cards
+          `isolate` creates a new stacking context so that when
+          AnimatePresence expands ScenarioComparison the animated
+          overflow cannot bleed visually into Row 2 above it. */}
       {showScenario && (
         <motion.div
+          className="isolate"
           initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 2 }}

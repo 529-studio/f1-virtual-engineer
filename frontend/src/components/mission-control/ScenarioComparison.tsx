@@ -111,7 +111,8 @@ export function ScenarioComparison({
   }, [requestKey, open, presetId, year, event, sessionType, driver, targetDriver]);
 
   return (
-    <section className="mt-4">
+    // NOTE: no mt-4 here — StrategyCanvas (parent) uses gap-4 between rows.
+    <section>
       {/* Use div+role instead of <button> to avoid nested-button violation:
           HintTooltip renders its own <button>, which cannot be a descendant
           of another <button> per the HTML spec. */}
