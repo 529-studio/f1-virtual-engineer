@@ -9,6 +9,7 @@ import {
   FALLBACK_DRIVERS, IntentTabBar, MissionFooter, MissionHeader, NavRail,
   SelectorBar, StrategyHUD, TelemetryChartGrid, type SessionId,
 } from "@/components/mission-control";
+import { StrategyCanvas } from "@/components/mission-control/StrategyCanvas";
 import { defaultSeason } from "@/lib/f1-seasons";
 import { useDriverRoster } from "@/hooks/useDriverRoster";
 import { useAnalyzeStream } from "@/hooks/useAnalyzeStream";
@@ -492,14 +493,32 @@ export default function MissionControlPage() {
 
         <IntentTabBar intent={intent} setIntent={setIntent} />
 
-        <TelemetryChartGrid
-          tel={tel} isLoading={isLoading} hasData={hasData} animateKey={animKey}
-          compareDriver={compareDriver} compareSpeedSeries={compareSpeedSeries}
-          driver={driver} lapDelta={lapDelta} lapDeltaLoading={lapDeltaLoading}
-          year={year} compareYear={compareYear}
-          crossYearDelta={crossYearDelta} crossYearLoading={crossYearLoading}
-          weather={weather} compareYearWeather={compareYearWeather}
-        />
+        {/* Task 1 (plan: strategy-canvas-layout): gate canvas on mode.
+            Strategy mode renders StrategyCanvas with pit window timeline,
+            tyre wear, gap gauge, and scenario cards — never blank charts.
+            Telemetry mode is unchanged. */}
+        {intent === "strategy" ? (
+          <StrategyCanvas
+            result={result}
+            strat={strat}
+            hasData={hasData}
+            isLoading={isLoading}
+            year={year}
+            eventName={eventName}
+            session={session}
+            driver={driver}
+            targetDriver={compareDriver || null}
+          />
+        ) : (
+          <TelemetryChartGrid
+            tel={tel} isLoading={isLoading} hasData={hasData} animateKey={animKey}
+            compareDriver={compareDriver} compareSpeedSeries={compareSpeedSeries}
+            driver={driver} lapDelta={lapDelta} lapDeltaLoading={lapDeltaLoading}
+            year={year} compareYear={compareYear}
+            crossYearDelta={crossYearDelta} crossYearLoading={crossYearLoading}
+            weather={weather} compareYearWeather={compareYearWeather}
+          />
+        )}
 
         <MissionFooter tel={tel} strat={strat} hasData={hasData} execution={result?.execution} />
       </div>

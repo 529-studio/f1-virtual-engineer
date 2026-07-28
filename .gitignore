@@ -59,6 +59,9 @@ pytestdebug.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+# ChromaDB vector store — runtime artifact, not source code
+chroma.sqlite3
+backend/rag/vectorstore/
 
 # Flask stuff:
 instance/

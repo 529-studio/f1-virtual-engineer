@@ -143,9 +143,11 @@ export function TyreCard({
   const toneDim = `var(--status-${cardTone}-dim)`;
 
   return (
+    // NOTE: no mt-4 here — StrategyCanvas (parent) uses gap-4 between rows.
+    // Adding mt-4 here would stack on top of the gap and create uneven spacing.
     <motion.section
       initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      className="status-bar mt-4 border p-3"
+      className="status-bar border p-3"
       data-status={cardTone}
       style={{ borderColor: toneVar, background: toneDim }}
     >
