@@ -20,6 +20,7 @@ import { TEAMS, type SessionId, type TeamId } from "./constants";
 export function StrategyHUD({
   result, strat, isLoading, hasData, session, theme, rateLimitMessage,
   retryState = "idle", onRetryClick,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   year: _year, eventName, driver, targetDriver: _targetDriver,
   streamStage = "idle", streamMessage = "", streamTokens = "",
   historyRefreshSignal, onSelectHistory,
