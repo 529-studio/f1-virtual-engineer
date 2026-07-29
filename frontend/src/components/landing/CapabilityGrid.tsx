@@ -1,4 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { motion, useReducedMotion } from "framer-motion";
+
+// Animation constants — no bare literals in render code
+const CARD_ANIM_EASE = [0.22, 0.61, 0.36, 1] as const;
+const CARD_ANIM_DUR = 0.52;
+const CARD_STAGGER = 0.08; // seconds between each card
+const CARD_HOVER_Y = -3;   // px lift on hover
+
 
 interface CapabilityItem {
   id: string;
@@ -59,41 +69,73 @@ const capabilityItems: CapabilityItem[] = [
 ];
 
 export function CapabilityGrid() {
+  const prefersReduced = useReducedMotion();
+
   return (
     <div className="grid gap-px border border-border md:grid-cols-2">
-      {capabilityItems.map((item) => (
-        <Link
+      {capabilityItems.map((item, i) => (
+        <motion.div
           key={item.id}
-          href={item.href}
-          className={`group flex flex-col bg-surface transition-colors hover:bg-surface-elevated${item.fullWidth ? " md:col-span-2" : ""}`}
+          initial={prefersReduced ? { opacity: 1 } : { opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          whileHover={prefersReduced ? {} : { y: CARD_HOVER_Y }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{
+            default: { duration: CARD_ANIM_DUR, delay: i * CARD_STAGGER, ease: CARD_ANIM_EASE },
+            // Hover transition is snappier than the scroll entry
+            y: { duration: 0.18, ease: CARD_ANIM_EASE },
+          }}
+          // NOTE: motion.div wraps the Link so whileHover works on the whole card.
+          // The Link is the actual interactive element for semantics/a11y.
+          className={item.fullWidth ? "md:col-span-2" : ""}
+          style={{
+            // Subtle border brightens on hover via CSS transition on the wrapper
+            transition: "box-shadow 200ms ease",
+          }}
         >
-          <div className={`relative ${item.previewAspect ?? "aspect-[2/1]"} overflow-hidden border-b border-border bg-surface-elevated`}>
-            {item.preview}
-          </div>
-
-          <div className="p-6">
-            <div className="mb-6 flex items-start justify-between">
-              <div className="flex items-center gap-2">
-                <span className="label">{item.label}</span>
-                {item.badge && (
-                  <span className="readout border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[0.45rem] uppercase tracking-[var(--track-wide)] text-amber-400">
-                    {item.badge}
-                  </span>
-                )}
-              </div>
-              <span className="readout text-[length:var(--text-label)] text-foreground-faint">
-                {item.id}
-              </span>
+          <Link
+            href={item.href}
+            className="group flex h-full flex-col bg-surface transition-colors hover:bg-surface-elevated"
+          >
+            <div
+              className={`relative ${item.previewAspect ?? "aspect-[2/1]"} overflow-hidden border-b border-border bg-surface-elevated`}
+            >
+              {item.preview}
             </div>
-            <div className="mb-4 h-px w-6 bg-accent transition-all duration-300 group-hover:w-12" />
-            <h3 className={`mb-3 text-[length:var(--text-h3)] font-semibold leading-snug text-foreground${item.fullWidth ? " md:max-w-2xl" : ""}`}>
-              {item.title}
-            </h3>
-            <p className={`readout text-[length:var(--text-readout)] leading-5 text-foreground-dim${item.fullWidth ? " md:max-w-2xl" : ""}`}>
-              {item.body}
-            </p>
-          </div>
-        </Link>
+
+            <div className="p-6">
+              <div className="mb-6 flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="label">{item.label}</span>
+                  {item.badge && (
+                    <span className="readout border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[0.45rem] uppercase tracking-[var(--track-wide)] text-amber-400">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="readout text-[length:var(--text-label)] text-foreground-faint">
+                  {item.id}
+                </span>
+              </div>
+              {/* Accent underline — expands on hover */}
+              <div className="mb-4 h-px w-6 bg-accent transition-all duration-300 group-hover:w-12" />
+              <h3
+                className={`mb-3 text-[length:var(--text-h3)] font-semibold leading-snug text-foreground${
+                  item.fullWidth ? " md:max-w-2xl" : ""
+                }`}
+              >
+                {item.title}
+              </h3>
+              <p
+                className={`readout text-[length:var(--text-readout)] leading-5 text-foreground-dim${
+                  item.fullWidth ? " md:max-w-2xl" : ""
+                }`}
+              >
+                {item.body}
+              </p>
+            </div>
+          </Link>
+        </motion.div>
       ))}
     </div>
   );
