@@ -326,20 +326,67 @@ button:not(:disabled) { cursor: pointer; }
   border-top: 1px solid var(--border-strong);
 }
 
-/* Subtle grid texture for hero areas */
+/* Sub-pixel dot matrix grid — hero areas. Eliminates banding on OLED.
+   Replaces the old line grid which was too visible and distracting. */
 .hero-grid {
-  background-image:
-    linear-gradient(var(--border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: linear-gradient(to bottom, rgba(255,255,255,0.6), transparent 75%);
+  background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(to bottom, rgba(255,255,255,0.5), transparent 80%);
 }
 
-/* Accent radial glow — top left */
+/* Strong F1 Red ambient glow — fixed to page, covers the full hero.
+   Left column: deep red radial behind headline.
+   Right column: subtle info-blue behind HUD card.
+   Previous version used accent-glow (team color) which was too subtle. */
 .hero-glow {
   background:
-    radial-gradient(circle at 15% 0%, var(--accent-glow), transparent 35%),
-    radial-gradient(circle at 85% 0%, rgba(56, 189, 248, 0.06), transparent 30%);
+    radial-gradient(ellipse 700px 500px at -5% 40%, rgba(225,6,0,0.13) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 400px at 105% 30%, rgba(56,189,248,0.05) 0%, transparent 60%);
+}
+
+/* Red ambient glow placed directly behind the hero headline text.
+   Applied on the left-column inner wrapper, not the page-level overlay.
+   Stronger and more localised than hero-glow so it punches through. */
+.hero-headline-glow {
+  background:
+    radial-gradient(ellipse 480px 320px at 20% 50%, rgba(225,6,0,0.10) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Scanline overlay — applied via ::after on chart/HUD card areas.
+   Mimics the CRT scanline effect on real pit wall monitors.
+   Use with `relative` parent and `overflow-hidden`. */
+.scanline-overlay {
+  position: relative;
+  overflow: hidden;
+}
+.scanline-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(255,255,255,0.018) 3px,
+    rgba(255,255,255,0.018) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* F1 wedge corner cut — 45° top-right clip on CTA buttons and hero cards.
+   Signature F1 graphic language from the brand identity. Use sparingly. */
+.f1-clip {
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+}
+
+/* Speed line group — 1px horizontal red bars bleeding from left edge.
+   Three stacked lines of decreasing width/opacity = motion blur effect. */
+.speed-line {
+  height: 1px;
+  background: linear-gradient(90deg, #E10600 0%, transparent 100%);
+  transform-origin: left center;
 }
 
 /* Telemetry marquee ribbon */
