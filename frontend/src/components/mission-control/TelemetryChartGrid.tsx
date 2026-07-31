@@ -7,12 +7,14 @@ import { LapDeltaChart } from "./LapDeltaChart";
 import { ReferencesPanel } from "./ReferencesPanel";
 import { TelemetryChart } from "./TelemetryChart";
 import { TimeAxis } from "./TimeAxis";
+import { TrackMapPanel } from "./TrackMapPanel";
 import { WeatherMismatchBadge } from "./WeatherMismatchBadge";
 
 export function TelemetryChartGrid({
   tel, isLoading, hasData, animateKey, compareDriver, compareSpeedSeries,
   driver, lapDelta, lapDeltaLoading,
-  year, compareYear, crossYearDelta, crossYearLoading,
+  year, event, session_type, lapNumber,
+  compareYear, crossYearDelta, crossYearLoading,
   weather, compareYearWeather,
 }: {
   tel: AnalyzeResponse["telemetry_data"] | undefined;
@@ -25,6 +27,12 @@ export function TelemetryChartGrid({
   lapDelta: LapDeltaResponse | null;
   lapDeltaLoading: boolean;
   year: number;
+  /** Grand Prix name — passed to TrackMapPanel */
+  event: string;
+  /** Session code (R/Q/FP1 etc.) — passed to TrackMapPanel */
+  session_type: string;
+  /** Currently selected lap number (null = fastest) */
+  lapNumber?: number | null;
   compareYear: number | null;
   crossYearDelta: LapDeltaCrossYearResponse | null;
   crossYearLoading: boolean;
@@ -152,6 +160,30 @@ export function TelemetryChartGrid({
           {crossYearHasData && crossYearCitations && crossYearCitations.length > 0 ? (
             <ReferencesPanel items={crossYearCitations} />
           ) : null}
+        </div>
+      ) : null}
+
+      {/* Track Map — always visible when session params are known.
+           Positioned above TimeAxis so it reads as a spatial context
+           for the telemetry charts below. */}
+      {event && session_type && driver ? (
+        <div className="mt-4 border-t border-border pt-4">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="label">Track Map</span>
+            {hasData && tel?.lap_number ? (
+              <span className="readout border border-border px-1.5 py-0.5 text-[0.5rem] uppercase tracking-widest text-foreground-faint">
+                Lap {tel.lap_number}
+              </span>
+            ) : null}
+          </div>
+          <TrackMapPanel
+            year={year}
+            event={event}
+            session_type={session_type}
+            driver={driver}
+            lap_number={lapNumber ?? null}
+            compare_driver={compareDriver || null}
+          />
         </div>
       ) : null}
 

@@ -64,6 +64,8 @@ from tools.lap_delta_cross_year import compute_cross_year_lap_delta
 from tools.strategy_compare import compare_scenarios as compare_strategy_scenarios
 from tools.tyre_helper import compute_tyre_decay
 from tools.weather_helper import get_weather_summary
+from app.schemas.track_map import TrackMapRequest, TrackMapResponse
+from tools.fastf1_helper import get_track_map_data
 
 
 _logger = logging.getLogger(__name__)
@@ -830,6 +832,38 @@ async def weather_summary(
         status="error" if payload.get("fallback") else "success",
         **payload,
     )
+
+
+@app.post(
+    "/track-map",
+    response_model=TrackMapResponse,
+    tags=["telemetry"],
+    summary="2D circuit track map with telemetry heatmap data",
+    description=(
+        "Returns a normalised 2D circuit trace (X/Y in 0–1000 SVG viewBox) derived from "
+        "FastF1 position data for the requested driver/lap, along with per-point telemetry "
+        "channels (speed, gear, brake, throttle, DRS) and corner annotations from "
+        "circuit_info(). Supports an optional compare_driver overlay using the same "
+        "coordinate system. Fail-closed: returns fallback=true with a human-readable "
+        "reason if position data is unavailable for the session (pre-2018 seasons or "
+        "sessions that have not yet run)."
+    ),
+)
+@limiter.limit("20/10seconds")
+async def track_map(
+    request: Request,
+    body: TrackMapRequest,
+) -> TrackMapResponse:
+    payload = await asyncio.to_thread(
+        get_track_map_data,
+        year=body.year,
+        event=body.event,
+        session_type=body.session_type,
+        driver=body.driver,
+        lap_number=body.lap_number,
+        compare_driver=body.compare_driver,
+    )
+    return TrackMapResponse(**payload)
 
 
 @app.post(

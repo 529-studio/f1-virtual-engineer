@@ -514,7 +514,9 @@ export default function MissionControlPage() {
             tel={tel} isLoading={isLoading} hasData={hasData} animateKey={animKey}
             compareDriver={compareDriver} compareSpeedSeries={compareSpeedSeries}
             driver={driver} lapDelta={lapDelta} lapDeltaLoading={lapDeltaLoading}
-            year={year} compareYear={compareYear}
+            year={year} event={eventName} session_type={session}
+            lapNumber={lap !== "" ? Number(lap) : null}
+            compareYear={compareYear}
             crossYearDelta={crossYearDelta} crossYearLoading={crossYearLoading}
             weather={weather} compareYearWeather={compareYearWeather}
           />

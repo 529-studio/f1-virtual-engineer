@@ -25,6 +25,7 @@ fastf1.Cache.enable_cache(CACHE_DIR)
 
 
 SERIES_POINTS = 200
+TRACK_MAP_POINTS = 500  # max points for track map trace — enough for smooth curvature
 
 # Issue #257: when FastF1 can't resolve a fastest/representative lap (every
 # lap flagged inaccurate, no completed laps yet for a session that hasn't
@@ -81,6 +82,7 @@ _roster_cache: TTLCache = TTLCache(maxsize=128, ttl=86400)
 _lap_list_cache: TTLCache = TTLCache(maxsize=256, ttl=86400)
 _telemetry_cache: TTLCache = TTLCache(maxsize=256, ttl=3600)
 _tyre_features_cache: TTLCache = TTLCache(maxsize=256, ttl=3600)
+_track_map_cache: TTLCache = TTLCache(maxsize=128, ttl=3600)
 _cache_lock = threading.Lock()
 
 # TTL per cache (seconds). Used for Redis SET ex= so the two tiers expire
@@ -92,6 +94,7 @@ _TTL_FOR_NAME: dict[str, int] = {
     "lap_list": 86400,
     "telemetry": 3600,
     "tyre_features": 3600,
+    "track_map": 3600,
 }
 
 
@@ -239,6 +242,7 @@ def _reset_caches_for_tests() -> None:
         _lap_list_cache,
         _telemetry_cache,
         _tyre_features_cache,
+        _track_map_cache,
     ):
         _clear_cache(cache)
 
@@ -953,8 +957,233 @@ def get_gap_to_competitor(
         }
 
 
+# ─── Track Map ────────────────────────────────────────────────────────────────
+# Returns 2D circuit trace from FastF1 position data (X, Y) with per-point
+# telemetry channels (speed, gear, brake, throttle, DRS) and corner annotations.
+# Coordinates are normalised to a 0–1000 SVG viewBox for direct frontend use.
+
+import numpy as np  # noqa: E402 — placed here to avoid top-of-file import churn
+
+
+def _extract_driver_track_points(
+    session,
+    driver: str,
+    lap_number: int | None,
+    *,
+    x_min: float,
+    y_min: float,
+    scale: float,
+    x_offset: float,
+    y_offset: float,
+    max_points: int = TRACK_MAP_POINTS,
+) -> tuple[list[dict], int | None]:
+    """Extract and normalise track points for a single driver.
+
+    Returns (points_list, resolved_lap_number).
+    Caller provides normalisation params so primary and compare drivers
+    share the same coordinate system.
+    """
+    driver = driver.upper()
+    laps = session.laps.pick_driver(driver)
+    if laps.empty:
+        return [], None
+
+    if lap_number is not None:
+        matches = laps[laps["LapNumber"] == lap_number]
+        chosen = matches.iloc[0] if not matches.empty else None
+        resolved_lap = int(lap_number) if not matches.empty else None
+    else:
+        chosen = laps.pick_fastest()
+        resolved_lap = (
+            int(chosen["LapNumber"])
+            if chosen is not None
+            and "LapNumber" in chosen
+            and pd.notna(chosen["LapNumber"])
+            else None
+        )
+
+    if chosen is None:
+        return [], resolved_lap
+
+    tel = chosen.get_telemetry()
+    if tel.empty:
+        return [], resolved_lap
+
+    if "Distance" not in tel.columns:
+        tel = tel.add_distance()
+
+    # Downsample if too many points — linear index sampling preserves shape
+    n = len(tel)
+    if n > max_points:
+        indices = np.linspace(0, n - 1, max_points, dtype=int)
+        tel = tel.iloc[indices].reset_index(drop=True)
+
+    raw_x = tel["X"].to_numpy(dtype=float)
+    raw_y = tel["Y"].to_numpy(dtype=float)
+    norm_x = (raw_x - x_min) * scale + x_offset
+    norm_y = (raw_y - y_min) * scale + y_offset
+
+    points = []
+    for i in range(len(tel)):
+        points.append({
+            "x": round(float(norm_x[i]), 1),
+            "y": round(float(norm_y[i]), 1),
+            "distance": round(float(tel["Distance"].iloc[i]), 1),
+            "speed": round(float(tel["Speed"].iloc[i]), 1),
+            "gear": int(tel["nGear"].iloc[i]) if pd.notna(tel["nGear"].iloc[i]) else 0,
+            "brake": bool(tel["Brake"].iloc[i]) if pd.notna(tel["Brake"].iloc[i]) else False,
+            "throttle": round(float(tel["Throttle"].iloc[i]), 1) if pd.notna(tel["Throttle"].iloc[i]) else 0.0,
+            "drs": int(tel["DRS"].iloc[i]) if "DRS" in tel.columns and pd.notna(tel["DRS"].iloc[i]) else 0,
+        })
+    return points, resolved_lap
+
+
+@_ttl_cached(
+    _track_map_cache,
+    is_good=lambda r: not r.get("fallback"),
+    name="track_map",
+)
+def get_track_map_data(
+    year: int,
+    event: str,
+    session_type: str,
+    driver: str,
+    lap_number: int | None = None,
+    compare_driver: str | None = None,
+) -> dict[str, Any]:
+    """Build a track map response with normalised 2D coordinates (0–1000 viewBox).
+
+    Fetches X/Y position data for the primary driver's fastest (or specified)
+    lap, normalises coordinates for SVG rendering, adds corner annotations from
+    circuit_info(), and optionally includes a compare_driver overlay.
+
+    Returns a fail-closed dict compatible with TrackMapResponse schema.
+    """
+    driver = driver.upper()
+    _fallback_default = "Telemetry not yet published for this session."
+    _base: dict[str, Any] = {
+        "year": year,
+        "event": event,
+        "session_type": session_type,
+        "driver": driver,
+        "lap_number": None,
+        "points": [],
+        "compare_driver": None,
+        "compare_points": [],
+        "corners": [],
+        "circuit_rotation": 0.0,
+        "track_length_m": 0.0,
+        "source": "fastf1",
+    }
+
+    try:
+        session = fastf1.get_session(year, event, session_type)
+        session.load(laps=True, telemetry=True, weather=False, messages=False)
+
+        # Resolve primary driver's lap for coordinate bounds
+        laps = session.laps.pick_driver(driver)
+        if laps.empty:
+            return {**_base, "fallback": True, "fallback_reason": f"No laps found for {driver}."}
+
+        if lap_number is not None:
+            matches = laps[laps["LapNumber"] == lap_number]
+            if matches.empty:
+                return {**_base, "fallback": True, "fallback_reason": f"Lap {lap_number} not found for {driver}."}
+            bounds_lap = matches.iloc[0]
+        else:
+            bounds_lap = laps.pick_fastest()
+            if bounds_lap is None:
+                return {**_base, "fallback": True, "fallback_reason": _sanitize_fallback_reason(None, default=_fallback_default)}
+
+        bounds_tel = bounds_lap.get_telemetry()
+        if bounds_tel.empty or "X" not in bounds_tel.columns or "Y" not in bounds_tel.columns:
+            return {**_base, "fallback": True, "fallback_reason": "Position data (X/Y) not available for this session."}
+
+        if "Distance" not in bounds_tel.columns:
+            bounds_tel = bounds_tel.add_distance()
+
+        # Compute shared normalisation parameters from primary driver bounds
+        raw_x = bounds_tel["X"].to_numpy(dtype=float)
+        raw_y = bounds_tel["Y"].to_numpy(dtype=float)
+        viewbox_size = 1000
+        padding_frac = 0.06
+        x_min_val, x_max_val = float(raw_x.min()), float(raw_x.max())
+        y_min_val, y_max_val = float(raw_y.min()), float(raw_y.max())
+        x_range = x_max_val - x_min_val or 1.0
+        y_range = y_max_val - y_min_val or 1.0
+        scale = viewbox_size * (1 - 2 * padding_frac) / max(x_range, y_range)
+        pad = viewbox_size * padding_frac
+        x_offset = pad + (viewbox_size * (1 - 2 * padding_frac) - x_range * scale) / 2
+        y_offset = pad + (viewbox_size * (1 - 2 * padding_frac) - y_range * scale) / 2
+
+        norm_params: dict[str, Any] = {
+            "x_min": x_min_val,
+            "y_min": y_min_val,
+            "scale": scale,
+            "x_offset": x_offset,
+            "y_offset": y_offset,
+        }
+
+        # Primary driver points
+        primary_points, resolved_lap = _extract_driver_track_points(session, driver, lap_number, **norm_params)
+
+        # Compare driver points (same coord system)
+        compare_points: list[dict] = []
+        compare_drv = compare_driver.upper() if compare_driver else None
+        if compare_drv and compare_drv != driver:
+            compare_points, _ = _extract_driver_track_points(session, compare_drv, lap_number, **norm_params)
+
+        # Corner annotations from circuit_info
+        corners: list[dict] = []
+        circuit_rotation = 0.0
+        try:
+            ci = session.get_circuit_info()
+            circuit_rotation = float(ci.rotation) if hasattr(ci, "rotation") else 0.0
+            if hasattr(ci, "corners") and not ci.corners.empty:
+                for _, row in ci.corners.iterrows():
+                    cx = (float(row["X"]) - x_min_val) * scale + x_offset
+                    cy = (float(row["Y"]) - y_min_val) * scale + y_offset
+                    corners.append({
+                        "number": int(row.get("Number", 0)),
+                        "letter": str(row.get("Letter", "")),
+                        "x": round(cx, 1),
+                        "y": round(cy, 1),
+                        "angle": round(float(row.get("Angle", 0.0)), 1),
+                        # Distance is not always in corners df — skip gracefully
+                        "distance": round(float(row["Distance"]), 1) if "Distance" in row.index else 0.0,
+                    })
+        except Exception:
+            _logger.debug("circuit_info() unavailable for %s %s", year, event, exc_info=True)
+
+        track_length = round(float(bounds_tel["Distance"].max()), 1) if "Distance" in bounds_tel.columns else 0.0
+
+        return {
+            "year": year,
+            "event": event,
+            "session_type": session_type,
+            "driver": driver,
+            "lap_number": resolved_lap,
+            "points": primary_points,
+            "compare_driver": compare_drv,
+            "compare_points": compare_points,
+            "corners": corners,
+            "circuit_rotation": circuit_rotation,
+            "track_length_m": track_length,
+            "source": "fastf1",
+            "fallback": False,
+            "fallback_reason": None,
+        }
+    except Exception as exc:  # noqa: BLE001 — fail-closed
+        reason = _sanitize_fallback_reason(str(exc), default=_fallback_default)
+        return {**_base, "fallback": True, "fallback_reason": reason}
+
+
 if __name__ == "__main__":
     # Test script: Fetch Hamilton's telemetry from 2023 Japan GP
     print("Fetching Lewis Hamilton's telemetry from 2023 Japanese GP...")
     summary = get_session_telemetry_summary(2023, "Japanese Grand Prix", "R", "HAM")
     print(summary)
+
+    summary = get_session_telemetry_summary(2023, "Japanese Grand Prix", "R", "HAM")
+    print(summary)
+
