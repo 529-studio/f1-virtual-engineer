@@ -13,7 +13,7 @@ import { WeatherMismatchBadge } from "./WeatherMismatchBadge";
 export function TelemetryChartGrid({
   tel, isLoading, hasData, animateKey, compareDriver, compareSpeedSeries,
   driver, lapDelta, lapDeltaLoading,
-  year, event, session_type, lapNumber,
+  year, event, session_type,
   compareYear, crossYearDelta, crossYearLoading,
   weather, compareYearWeather,
 }: {
