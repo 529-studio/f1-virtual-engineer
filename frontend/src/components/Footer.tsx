@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-// Footer renders inside a Server Component, so non-NEXT_PUBLIC env vars
-// are fine here — they stay out of the client bundle. Both keys are
+// Footer renders on server/client. Both keys are
 // optional: a missing value just hides the corresponding link.
 const GITHUB_URL = process.env.GITHUB_URL;
 const LICENSE_URL = process.env.LICENSE_URL;
