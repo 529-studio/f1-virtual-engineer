@@ -2,7 +2,7 @@ import Link from "next/link";
 
 // Footer renders on server/client. Both keys are
 // optional: a missing value just hides the corresponding link.
-const GITHUB_URL = process.env.NEXT_PUBLIC_GITHUB_URL || process.env.GITHUB_URL;
+const GITHUB_URL = process.env.GITHUB_URL;
 const LICENSE_URL = process.env.LICENSE_URL;
 
 // Standard footer for full-height pages (landing). Mission Control has its

@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   // into .next/standalone, so the runtime image can drop the full
   // `node_modules` (~500MB) and ship ~80-120MB instead.
   output: "standalone",
+  env: {
+    GITHUB_URL: process.env.GITHUB_URL,
+  },
   async rewrites() {
     return [
       {

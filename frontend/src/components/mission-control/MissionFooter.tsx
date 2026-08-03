@@ -3,7 +3,7 @@
 import type { AnalyzeExecution, AnalyzeResponse, StrategyData } from "@/services/api";
 import { JargonTooltip } from "@/components/ui/JargonTooltip";
 
-const GITHUB_URL = process.env.NEXT_PUBLIC_GITHUB_URL;
+const GITHUB_URL = process.env.GITHUB_URL;
 
 function formatTrace(exec: AnalyzeExecution | null | undefined): string | null {
   if (!exec?.trace?.length) return null;
