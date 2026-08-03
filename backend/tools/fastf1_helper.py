@@ -966,12 +966,12 @@ import numpy as np  # noqa: E402 — placed here to avoid top-of-file import chu
 
 
 def _extract_driver_track_points(
-    session,
+    session: fastf1.core.Session,
     driver: str,
     lap_number: int | None,
     *,
     x_min: float,
-    y_min: float,
+    y_max: float,
     scale: float,
     x_offset: float,
     y_offset: float,
@@ -1021,7 +1021,7 @@ def _extract_driver_track_points(
     raw_x = tel["X"].to_numpy(dtype=float)
     raw_y = tel["Y"].to_numpy(dtype=float)
     norm_x = (raw_x - x_min) * scale + x_offset
-    norm_y = (raw_y - y_min) * scale + y_offset
+    norm_y = (y_max - raw_y) * scale + y_offset
 
     points = []
     for i in range(len(tel)):
@@ -1118,7 +1118,7 @@ def get_track_map_data(
 
         norm_params: dict[str, Any] = {
             "x_min": x_min_val,
-            "y_min": y_min_val,
+            "y_max": y_max_val,
             "scale": scale,
             "x_offset": x_offset,
             "y_offset": y_offset,
@@ -1142,7 +1142,7 @@ def get_track_map_data(
             if hasattr(ci, "corners") and not ci.corners.empty:
                 for _, row in ci.corners.iterrows():
                     cx = (float(row["X"]) - x_min_val) * scale + x_offset
-                    cy = (float(row["Y"]) - y_min_val) * scale + y_offset
+                    cy = (y_max_val - float(row["Y"])) * scale + y_offset
                     corners.append({
                         "number": int(row.get("Number", 0)),
                         "letter": str(row.get("Letter", "")),

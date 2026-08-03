@@ -176,11 +176,11 @@ function SpeedLegend({ min, max }: { min: number; max: number }) {
 
 interface TrackMapCanvasProps {
   data: TrackMapResponse;
-  /** Height class for the SVG wrapper — defaults to "h-[340px]" */
+  /** Height class for the SVG wrapper — defaults to "h-full" */
   heightClass?: string;
 }
 
-export function TrackMapCanvas({ data, heightClass = "h-[340px]" }: TrackMapCanvasProps) {
+export function TrackMapCanvas({ data, heightClass = "h-full" }: TrackMapCanvasProps) {
   const [mode, setMode] = useState<HeatmapMode>("speed");
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);

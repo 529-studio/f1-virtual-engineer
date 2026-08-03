@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import type { AnalyzeHistoryItem, AnalyzeResponse, SavedQueryItem, StrategyData, TelemetryHistoryItem } from "@/services/api";
 import { TeamIcon } from "@/components/icons/TeamIcons";
 import { useSupabase } from "@/components/auth/SupabaseProvider";
@@ -54,6 +56,15 @@ export function StrategyHUD({
   onSelectSaved?: (item: SavedQueryItem) => void;
 }) {
   const activeTeam = TEAMS.find((t) => t.id === theme) ?? TEAMS[0];
+  const [hudTab, setHudTab] = useState<"ai" | "hist" | "radio">("ai");
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // ─── Tab bar config ────────────────────────────────────────────────
+  const HUD_TABS = [
+    { key: "ai"    as const, label: "AI" },
+    { key: "hist"  as const, label: "HIST" },
+    { key: "radio" as const, label: "◉ RADIO" },
+  ] as const;
 
   // Async rationale upgrade (#139 PR4): when /analyze returns
   // rationale_source='template' plus an analyze_history_id, the worker
@@ -75,10 +86,32 @@ export function StrategyHUD({
         : (result?.agent_response ?? "Analysis complete.");
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-l border-border bg-surface">
-
-      <div className="shrink-0 border-b border-border px-5 pt-5 pb-4">
-        <div className="mb-1 flex items-center gap-2">
+    <aside className={`flex shrink-0 flex-col border-l border-border bg-surface transition-[width] duration-300 ease-in-out ${isCollapsed ? "w-12" : "w-72"}`}>
+      {isCollapsed ? (
+        <div className="flex flex-1 flex-col items-center pt-4">
+          <button
+            onClick={() => setIsCollapsed(false)}
+            className="text-foreground-dim hover:text-foreground p-2 transition-colors"
+            title="Expand Strategy HUD"
+          >
+            <PanelRightOpen size={18} />
+          </button>
+          <div className="mt-8 flex flex-col items-center gap-4" style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
+            <span className="label text-[0.65rem] tracking-widest text-foreground-dim uppercase">Strategy HUD</span>
+            <TeamIcon id={activeTeam.id} size={14} className="rotate-90" />
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="shrink-0 border-b border-border px-5 pt-5 pb-4 relative">
+            <button
+              onClick={() => setIsCollapsed(true)}
+              className="absolute right-4 top-4 text-foreground-dim hover:text-foreground transition-colors"
+              title="Collapse Panel"
+            >
+              <PanelRightClose size={16} />
+            </button>
+            <div className="mb-1 flex items-center gap-2">
           <p className="label">Strategy HUD</p>
           <TeamIcon id={activeTeam.id} size={14} />
         </div>
@@ -86,14 +119,34 @@ export function StrategyHUD({
           <span className="readout text-[length:var(--text-readout)] text-foreground-dim">
             {session} {"//"} {hasData && strat?.target_lap ? `PIT LAP ${strat.target_lap}` : "NO DATA"}
           </span>
-          <span className="readout text-[length:var(--text-readout)] text-foreground-dim flex items-center gap-1">
-            <HintTooltip label="Confidence Band">
-              How reliable this strategy call is. High = strong FastF1 signal.
-              Low = limited data, treat as estimate.
-            </HintTooltip>
-            {hasData && strat?.confidence_band ? strat.confidence_band.toUpperCase() : "—"}
-          </span>
+          {hasData && strat?.confidence_band && (
+            <span className="readout text-[length:var(--text-readout)] text-foreground-dim flex items-center gap-1">
+              <HintTooltip label="Confidence Band">
+                How reliable this strategy call is. High = strong FastF1 signal.
+                Low = limited data, treat as estimate.
+              </HintTooltip>
+              {strat.confidence_band.toUpperCase()}
+            </span>
+          )}
         </div>
+      </div>
+
+      {/* ── Tab bar ────────────────────────────────────────────────── */}
+      <div className="flex shrink-0 border-b border-border">
+        {HUD_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setHudTab(tab.key)}
+            className="readout flex-1 py-2 text-[0.55rem] uppercase tracking-widest transition-colors"
+            style={{
+              color: hudTab === tab.key ? "var(--accent)" : "var(--foreground-dim)",
+              borderBottom: hudTab === tab.key ? "2px solid var(--accent)" : "2px solid transparent",
+              background: "transparent",
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {(() => {
@@ -198,7 +251,8 @@ export function StrategyHUD({
         );
       })()}
 
-      <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-4">
+      {/* ── AI Tab ─────────────────────────────────────────────────── */}
+      {hudTab === "ai" && <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-4">
         {/* Issue #256: Pit Window is the headline. When the user picked
             an analysis intent and we have a recommendation, surface the
             lap range *before* tyre/why-this-call so the panel reads
@@ -328,18 +382,32 @@ export function StrategyHUD({
         )}
 
 
-        <RecentAnalyses refreshSignal={historyRefreshSignal} onSelect={onSelectHistory} />
-        <RecentTelemetry
-          refreshSignal={telemetryHistoryRefreshSignal}
-          onSelect={onSelectTelemetryHistory}
-        />
-        <RadioLog refreshSignal={radioHistoryRefreshSignal} />
-        <SavedQueriesPanel
-          items={savedQueries}
-          onItemsChange={onSavedQueriesChange}
-          onSelect={onSelectSaved}
-        />
-      </div>
+      </div>}
+
+      {/* ── HIST Tab ────────────────────────────────────────────────── */}
+      {hudTab === "hist" && (
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2">
+          <RecentAnalyses refreshSignal={historyRefreshSignal} onSelect={onSelectHistory} />
+          <RecentTelemetry
+            refreshSignal={telemetryHistoryRefreshSignal}
+            onSelect={onSelectTelemetryHistory}
+          />
+          <SavedQueriesPanel
+            items={savedQueries}
+            onItemsChange={onSavedQueriesChange}
+            onSelect={onSelectSaved}
+          />
+        </div>
+      )}
+
+      {/* ── RADIO Tab ───────────────────────────────────────────────── */}
+      {hudTab === "radio" && (
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2">
+          <RadioLog refreshSignal={radioHistoryRefreshSignal} />
+        </div>
+      )}
+        </>
+      )}
     </aside>
   );
 }

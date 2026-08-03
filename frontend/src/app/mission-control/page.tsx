@@ -10,6 +10,7 @@ import {
   SelectorBar, StrategyHUD, TelemetryChartGrid, type SessionId,
 } from "@/components/mission-control";
 import { StrategyCanvas } from "@/components/mission-control/StrategyCanvas";
+import { TrackMapPanel } from "@/components/mission-control/TrackMapPanel";
 import { defaultSeason } from "@/lib/f1-seasons";
 import { useDriverRoster } from "@/hooks/useDriverRoster";
 import { useAnalyzeStream } from "@/hooks/useAnalyzeStream";
@@ -497,30 +498,60 @@ export default function MissionControlPage() {
             Strategy mode renders StrategyCanvas with pit window timeline,
             tyre wear, gap gauge, and scenario cards — never blank charts.
             Telemetry mode is unchanged. */}
-        {intent === "strategy" ? (
-          <StrategyCanvas
-            result={result}
-            strat={strat}
-            hasData={hasData}
-            isLoading={isLoading}
-            year={year}
-            eventName={eventName}
-            session={session}
-            driver={driver}
-            targetDriver={compareDriver || null}
-          />
-        ) : (
-          <TelemetryChartGrid
-            tel={tel} isLoading={isLoading} hasData={hasData} animateKey={animKey}
-            compareDriver={compareDriver} compareSpeedSeries={compareSpeedSeries}
-            driver={driver} lapDelta={lapDelta} lapDeltaLoading={lapDeltaLoading}
-            year={year} event={eventName} session_type={session}
-            lapNumber={lap !== "" ? Number(lap) : null}
-            compareYear={compareYear}
-            crossYearDelta={crossYearDelta} crossYearLoading={crossYearLoading}
-            weather={weather} compareYearWeather={compareYearWeather}
-          />
-        )}
+        {/* Content Area — fills remaining height after header + bars + footer */}
+        <div className="flex min-h-0 flex-1 flex-row overflow-hidden">
+          {intent === "strategy" ? (
+            <div className="flex min-h-0 flex-1 flex-col">
+              <StrategyCanvas
+                result={result}
+                strat={strat}
+                hasData={hasData}
+                isLoading={isLoading}
+                year={year}
+                eventName={eventName}
+                session={session}
+                driver={driver}
+                targetDriver={compareDriver || null}
+              />
+            </div>
+          ) : (
+            <>
+              {/* Left: Charts column (60%) */}
+              <div className="flex min-h-0 w-[60%] flex-col border-r border-border">
+                <TelemetryChartGrid
+                  tel={tel} isLoading={isLoading} hasData={hasData} animateKey={animKey}
+                  compareDriver={compareDriver} compareSpeedSeries={compareSpeedSeries}
+                  driver={driver} lapDelta={lapDelta} lapDeltaLoading={lapDeltaLoading}
+                  year={year} compareYear={compareYear}
+                  crossYearDelta={crossYearDelta} crossYearLoading={crossYearLoading}
+                  weather={weather} compareYearWeather={compareYearWeather}
+                />
+              </div>
+
+              {/* Right: Track Map column (40%) */}
+              {eventName && session && driver ? (
+                <div className="flex min-h-0 w-[40%] flex-col px-4 py-4">
+                  <div className="mb-2 flex shrink-0 items-center gap-2">
+                    <span className="label text-[0.6rem] uppercase tracking-widest">Track Map</span>
+                    <span className="readout text-[0.5rem] uppercase tracking-widest text-foreground-faint">Fastest Lap</span>
+                  </div>
+                  <div className="min-h-0 flex-1">
+                    <TrackMapPanel
+                      year={year}
+                      event={eventName}
+                      session_type={session}
+                      driver={driver}
+                      lap_number={null}
+                      compare_driver={compareDriver || null}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex min-h-0 w-[40%] flex-col px-4 py-4" />
+              )}
+            </>
+          )}
+        </div>
 
         <MissionFooter tel={tel} strat={strat} hasData={hasData} execution={result?.execution} />
       </div>
