@@ -971,11 +971,15 @@ export interface TrackMapResponse {
 export async function getTrackMap(
   payload: TrackMapRequest,
 ): Promise<TrackMapResponse> {
-  const response = await fetchWithRetry(`${apiBaseUrl}/track-map`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  const response = await fetchWithRetry(
+    `${apiBaseUrl}/track-map`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    { timeoutMs: 60_000 }
+  );
   if (response.status === 429) throw await readRateLimit(response);
   if (!response.ok) {
     throw new Error(`Track map request failed with status ${response.status}`);
