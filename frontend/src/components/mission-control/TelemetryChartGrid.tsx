@@ -71,7 +71,7 @@ export function TelemetryChartGrid({
     <div className="flex min-h-0 flex-1 flex-col gap-0 px-6 py-4">
       {hasData && fallback && (
         <div
-          className="status-bar mb-3 flex items-center gap-2 border px-3 py-2"
+          className="status-bar mb-3 flex shrink-0 items-center gap-2 border px-3 py-2"
           data-status="warn"
           style={{ borderColor: "var(--status-warn)", background: "var(--status-warn-dim)" }}
         >

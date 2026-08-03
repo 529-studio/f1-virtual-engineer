@@ -904,3 +904,81 @@ export async function compareStrategies(
   }
   return (await response.json()) as StrategyCompareResponse;
 }
+
+// ─── Track Map ────────────────────────────────────────────────────────────────
+
+export interface TrackMapRequest {
+  year: number;
+  event: string;
+  session_type: string;
+  driver: string;
+  lap_number?: number | null;
+  compare_driver?: string | null;
+}
+
+/** A single point on the circuit trace with telemetry channels. */
+export interface TrackMapPoint {
+  /** X coordinate in 0–1000 SVG viewBox */
+  x: number;
+  /** Y coordinate in 0–1000 SVG viewBox */
+  y: number;
+  /** Track distance in meters from S/F line */
+  distance: number;
+  /** Speed in km/h */
+  speed: number;
+  /** Gear (1–8, 0=neutral) */
+  gear: number;
+  /** Brake pedal active */
+  brake: boolean;
+  /** Throttle % (0–100) */
+  throttle: number;
+  /** DRS status code (0=off, 8=eligible, 10/12/14=active) */
+  drs: number;
+}
+
+/** Corner annotation derived from circuit_info(). */
+export interface CornerInfo {
+  number: number;
+  letter: string;
+  x: number;
+  y: number;
+  angle: number;
+  distance: number;
+}
+
+export interface TrackMapResponse {
+  year: number;
+  event: string;
+  session_type: string;
+  driver: string;
+  lap_number: number | null;
+  /** Primary driver circuit trace (≤ 500 points, normalised to 0–1000 viewBox) */
+  points: TrackMapPoint[];
+  compare_driver: string | null;
+  /** Compare driver trace in same coordinate system */
+  compare_points: TrackMapPoint[];
+  /** Corner markers with number/letter annotations */
+  corners: CornerInfo[];
+  /** Rotation angle (degrees) to orient circuit North-up */
+  circuit_rotation: number;
+  /** Approximate circuit length in meters */
+  track_length_m: number;
+  fallback: boolean;
+  fallback_reason: string | null;
+  source: string;
+}
+
+export async function getTrackMap(
+  payload: TrackMapRequest,
+): Promise<TrackMapResponse> {
+  const response = await fetchWithRetry(`${apiBaseUrl}/track-map`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (response.status === 429) throw await readRateLimit(response);
+  if (!response.ok) {
+    throw new Error(`Track map request failed with status ${response.status}`);
+  }
+  return (await response.json()) as TrackMapResponse;
+}
