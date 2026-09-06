@@ -40,6 +40,14 @@ def _make_genai(text: str) -> MagicMock:
     return genai
 
 
+def _cache_key(context: dict, *, namespace: str = "rationale") -> str:
+    return core_llm._context_key(
+        context,
+        namespace=namespace,
+        model=core_llm._resolve_model(),
+    )
+
+
 class RationaleL2Tests(unittest.TestCase):
     def setUp(self):
         core_llm._reset_cache_for_tests()
@@ -51,7 +59,7 @@ class RationaleL2Tests(unittest.TestCase):
 
     def test_l2_hit_skips_gemini_and_seeds_l1(self):
         ctx = {"intent": {"driver": "HAM"}}
-        key = core_llm._context_key(ctx)
+        key = _cache_key(ctx)
         # Pre-populate L2 only — L1 is empty.
         redis_cache.set("rationale", key, "cached engineer call", ttl_seconds=600)
 
@@ -72,7 +80,7 @@ class RationaleL2Tests(unittest.TestCase):
             result = core_llm.generate_rationale(ctx)
 
         self.assertEqual(result, "Box this lap, Max.")
-        key = core_llm._context_key(ctx)
+        key = _cache_key(ctx)
         self.assertIn(key, core_llm._cache)
         self.assertEqual(redis_cache.get("rationale", key), "Box this lap, Max.")
 
@@ -84,7 +92,7 @@ class RationaleL2Tests(unittest.TestCase):
             result = core_llm.generate_rationale(ctx)
 
         self.assertIsNone(result)
-        key = core_llm._context_key(ctx)
+        key = _cache_key(ctx)
         self.assertIsNone(redis_cache.get("rationale", key))
 
 
@@ -100,7 +108,7 @@ class StructuredL2Tests(unittest.TestCase):
     def test_l2_hit_skips_gemini(self):
         prompt = "classify radio"
         payload = {"transcript": "box now"}
-        key = core_llm._context_key({"prompt": prompt, "payload": payload}, namespace="structured")
+        key = _cache_key({"prompt": prompt, "payload": payload}, namespace="structured")
         redis_cache.set(
             "structured", key, '{"classification":"strategy_request","severity":"low"}', ttl_seconds=600
         )
@@ -115,7 +123,7 @@ class StructuredL2Tests(unittest.TestCase):
     def test_corrupt_l2_payload_treated_as_miss(self):
         prompt = "classify radio"
         payload = {"transcript": "tyre gone"}
-        key = core_llm._context_key({"prompt": prompt, "payload": payload}, namespace="structured")
+        key = _cache_key({"prompt": prompt, "payload": payload}, namespace="structured")
         redis_cache.set("structured", key, "{not valid json", ttl_seconds=600)
 
         gemini = _make_genai('{"classification":"tyre_issue","severity":"high"}')
