@@ -48,6 +48,7 @@ _CACHE_TTL_SECONDS = 60
 _L2_TTL_SECONDS = 3600
 _L2_NAMESPACE_RATIONALE = "rationale"
 _L2_NAMESPACE_STRUCTURED = "structured"
+_DEFAULT_MODEL = "gemini-3.6-flash"
 
 _cache: dict[str, tuple[float, str]] = {}
 
@@ -69,8 +70,24 @@ _SYSTEM_PROMPT = (
 )
 
 
-def _context_key(context: dict[str, Any], *, namespace: str = "rationale") -> str:
-    payload = json.dumps({"_ns": namespace, **context}, sort_keys=True, default=str)
+def _resolve_model(model: str | None = None) -> str:
+    """Return an explicit model or the deployment-configured default."""
+    if model and model.strip():
+        return model.strip()
+    return os.environ.get("GEMINI_MODEL", "").strip() or _DEFAULT_MODEL
+
+
+def _context_key(
+    context: dict[str, Any],
+    *,
+    namespace: str = "rationale",
+    model: str | None = None,
+) -> str:
+    payload = json.dumps(
+        {"_ns": namespace, "_model": model, "context": context},
+        sort_keys=True,
+        default=str,
+    )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -102,9 +119,10 @@ def _ensure_configured() -> Any | None:
     return genai
 
 
-def generate_rationale(context: dict[str, Any], *, model: str = "gemini-2.0-flash") -> str | None:
+def generate_rationale(context: dict[str, Any], *, model: str | None = None) -> str | None:
     """Generate a natural-language rationale, or return None to fall back to template."""
-    cache_key = _context_key(context)
+    model = _resolve_model(model)
+    cache_key = _context_key(context, model=model)
     cached = _cache.get(cache_key)
     if cached is not None:
         ts, text = cached
@@ -143,7 +161,7 @@ def generate_structured(
     user_payload: dict[str, Any],
     *,
     system_prompt: str,
-    model: str = "gemini-2.0-flash",
+    model: str | None = None,
 ) -> dict[str, Any] | None:
     """Call Gemini and parse the response as JSON. Returns dict or None.
 
@@ -153,9 +171,11 @@ def generate_structured(
     with ``generate_rationale`` but namespaced by the system prompt so a
     radio classification can't collide with a rationale string.
     """
+    model = _resolve_model(model)
     cache_key = _context_key(
         {"prompt": system_prompt, "payload": user_payload},
         namespace="structured",
+        model=model,
     )
     cached = _cache.get(cache_key)
     if cached is not None:
@@ -218,13 +238,14 @@ def _reset_cache_for_tests() -> None:
     _cache.clear()
 
 
-def stream_rationale(context: dict[str, Any], *, model: str = "gemini-2.0-flash") -> Iterator[str]:
+def stream_rationale(context: dict[str, Any], *, model: str | None = None) -> Iterator[str]:
     """Stream LLM rationale token-by-token. Yields text chunks as they arrive.
 
     Falls back to yielding the full generate_rationale() result as a single chunk
     when streaming is unavailable (no API key, SDK missing, or SDK doesn't support
     streaming for the given model). Never raises — callers iterate safely.
     """
+    model = _resolve_model(model)
     genai = _ensure_configured()
     if genai is None:
         # No API key or SDK — yield whatever the non-streaming path would produce
@@ -235,7 +256,7 @@ def stream_rationale(context: dict[str, Any], *, model: str = "gemini-2.0-flash"
 
     # Check L1/L2 cache first — a cache hit means we already paid for this
     # call; re-streaming is wasteful when we can yield the full cached text.
-    cache_key = _context_key(context)
+    cache_key = _context_key(context, model=model)
     cached = _cache.get(cache_key)
     if cached is not None:
         ts, text = cached
