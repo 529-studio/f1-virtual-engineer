@@ -66,6 +66,22 @@ class TelemetryApiTests(unittest.TestCase):
         self.assertEqual(payload["error"]["code"], "TELEMETRY_UNAVAILABLE")
         self.assertTrue(payload["data"]["fallback"])
 
+    @patch("app.main.get_session_telemetry_summary")
+    def test_telemetry_timeout_returns_typed_fallback(self, mock_summary):
+        mock_summary.side_effect = TimeoutError
+
+        response = self.client.post(
+            "/telemetry",
+            json={"year": 2023, "event": "Japanese Grand Prix", "session_type": "R", "driver": "HAM"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["status"], "error")
+        self.assertTrue(payload["data"]["fallback"])
+        self.assertEqual(payload["error"]["code"], "TELEMETRY_UNAVAILABLE")
+        self.assertIn("timed out", payload["data"]["fallback_reason"].lower())
+
 
 if __name__ == "__main__":
     unittest.main()

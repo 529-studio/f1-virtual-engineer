@@ -6,6 +6,7 @@ import pandas as pd
 from tools.fastf1_helper import (
     SERIES_POINTS,
     _downsample,
+    _get_loaded_telemetry_session,
     _reset_caches_for_tests,
     extract_tyre_wear_features,
     get_current_gap_to_ahead,
@@ -86,6 +87,18 @@ class FastF1HelperTests(unittest.TestCase):
 
     def test_downsample_empty_series(self):
         self.assertEqual(_downsample(pd.Series([], dtype=float)), [])
+
+    @patch("tools.fastf1_helper.fastf1.get_session")
+    def test_loaded_telemetry_session_is_shared_for_same_session(self, mock_get_session):
+        session = MagicMock()
+        mock_get_session.return_value = session
+
+        first = _get_loaded_telemetry_session(2024, "Italian Grand Prix", "R")
+        second = _get_loaded_telemetry_session(2024, "Italian Grand Prix", "R")
+
+        self.assertIs(first, second)
+        mock_get_session.assert_called_once_with(2024, "Italian Grand Prix", "R")
+        session.load.assert_called_once_with(laps=True, telemetry=True, weather=False, messages=False)
 
     @patch("tools.fastf1_helper.fastf1.get_session")
     def test_get_session_telemetry_summary_fallback_when_no_laps(self, mock_get_session):
