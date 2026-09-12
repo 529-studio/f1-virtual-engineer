@@ -740,14 +740,29 @@ async def get_telemetry(
     body: TelemetryQueryRequest,
     user_id: str | None = Depends(get_optional_user_id),
 ):
-    telemetry = await asyncio.to_thread(
-        get_session_telemetry_summary,
-        year=body.year,
-        event=body.event,
-        session_type=body.session_type,
-        driver=body.driver,
-        lap_number=body.lap_number,
-    )
+    try:
+        telemetry = await asyncio.wait_for(
+            asyncio.to_thread(
+                get_session_telemetry_summary,
+                year=body.year,
+                event=body.event,
+                session_type=body.session_type,
+                driver=body.driver,
+                lap_number=body.lap_number,
+            ),
+            timeout=45,
+        )
+    except TimeoutError:
+        telemetry = {
+            "driver": body.driver.upper(), "year": body.year, "event": body.event,
+            "session_type": body.session_type, "sample_points": 0,
+            "speed": {"min": 0.0, "max": 0.0, "avg": 0.0, "unit": "km/h", "series": []},
+            "gear": {"min": 0.0, "max": 0.0, "avg": 0.0, "unit": "gear", "series": []},
+            "rpm": {"min": 0.0, "max": 0.0, "avg": 0.0, "unit": "rpm", "series": []},
+            "source": "fastf1", "fallback": True,
+            "fallback_reason": "Telemetry request timed out; please try again shortly.",
+            "lap_number": body.lap_number, "lap_duration_s": None, "sector_boundaries_s": [],
+        }
     summary = TelemetrySummary(**telemetry)
     if summary.fallback:
         return TelemetryResponse(
@@ -854,15 +869,21 @@ async def track_map(
     request: Request,
     body: TrackMapRequest,
 ) -> TrackMapResponse:
-    payload = await asyncio.to_thread(
-        get_track_map_data,
-        year=body.year,
-        event=body.event,
-        session_type=body.session_type,
-        driver=body.driver,
-        lap_number=body.lap_number,
-        compare_driver=body.compare_driver,
-    )
+    try:
+        payload = await asyncio.wait_for(asyncio.to_thread(
+            get_track_map_data, year=body.year, event=body.event,
+            session_type=body.session_type, driver=body.driver,
+            lap_number=body.lap_number, compare_driver=body.compare_driver,
+        ), timeout=45)
+    except TimeoutError:
+        payload = {
+            "year": body.year, "event": body.event, "session_type": body.session_type,
+            "driver": body.driver.upper(), "lap_number": body.lap_number, "points": [],
+            "compare_driver": body.compare_driver.upper() if body.compare_driver else None,
+            "compare_points": [], "corners": [], "circuit_rotation": 0.0,
+            "track_length_m": 0.0, "source": "fastf1", "fallback": True,
+            "fallback_reason": "Track-map request timed out; please try again shortly.",
+        }
     return TrackMapResponse(**payload)
 
 

@@ -83,7 +83,9 @@ _lap_list_cache: TTLCache = TTLCache(maxsize=256, ttl=86400)
 _telemetry_cache: TTLCache = TTLCache(maxsize=256, ttl=3600)
 _tyre_features_cache: TTLCache = TTLCache(maxsize=256, ttl=3600)
 _track_map_cache: TTLCache = TTLCache(maxsize=128, ttl=3600)
+_loaded_session_cache: TTLCache = TTLCache(maxsize=8, ttl=3600)
 _cache_lock = threading.Lock()
+_session_load_locks: dict[tuple[int, str, str], threading.Lock] = {}
 
 # TTL per cache (seconds). Used for Redis SET ex= so the two tiers expire
 # on the same schedule. Keep this aligned with the TTLCache definitions
@@ -234,6 +236,32 @@ def _clear_cache(cache: TTLCache) -> None:
         cache.clear()
 
 
+def _get_loaded_telemetry_session(year: int, event: str, session_type: str):
+    """Load one telemetry-capable FastF1 session per key and share it safely.
+
+    FastF1's disk cache prevents repeated downloads after the first load, but
+    concurrent requests still each parse the same payload. This single-flight
+    cache prevents the Mission Control telemetry, map, and analysis requests
+    from doing that work in parallel on a cold production instance.
+    """
+    key = (year, event, session_type)
+    with _cache_lock:
+        cached = _loaded_session_cache.get(key)
+        if cached is not None:
+            return cached
+        load_lock = _session_load_locks.setdefault(key, threading.Lock())
+    with load_lock:
+        with _cache_lock:
+            cached = _loaded_session_cache.get(key)
+            if cached is not None:
+                return cached
+        session = fastf1.get_session(year, event, session_type)
+        session.load(laps=True, telemetry=True, weather=False, messages=False)
+        with _cache_lock:
+            _loaded_session_cache[key] = session
+        return session
+
+
 def _reset_caches_for_tests() -> None:
     """Wipe every helper cache. Tests call this in setUp to isolate state."""
     for cache in (
@@ -243,6 +271,7 @@ def _reset_caches_for_tests() -> None:
         _telemetry_cache,
         _tyre_features_cache,
         _track_map_cache,
+        _loaded_session_cache,
     ):
         _clear_cache(cache)
 
@@ -446,9 +475,7 @@ def get_session_telemetry_summary(
     driver = driver.upper()
 
     try:
-        session = fastf1.get_session(year, event, session_type)
-        # Optimization: only load laps and telemetry for this summary
-        session.load(laps=True, telemetry=True, weather=False, messages=False)
+        session = _get_loaded_telemetry_session(year, event, session_type)
         laps = session.laps.pick_driver(driver)
         if laps.empty:
             return {
@@ -1077,8 +1104,7 @@ def get_track_map_data(
     }
 
     try:
-        session = fastf1.get_session(year, event, session_type)
-        session.load(laps=True, telemetry=True, weather=False, messages=False)
+        session = _get_loaded_telemetry_session(year, event, session_type)
 
         # Resolve primary driver's lap for coordinate bounds
         laps = session.laps.pick_driver(driver)
@@ -1186,4 +1212,3 @@ if __name__ == "__main__":
 
     summary = get_session_telemetry_summary(2023, "Japanese Grand Prix", "R", "HAM")
     print(summary)
-
