@@ -71,7 +71,26 @@ from tools.fastf1_helper import get_track_map_data
 _logger = logging.getLogger(__name__)
 
 
-limiter = Limiter(key_func=get_remote_address, headers_enabled=False)
+def _real_client_ip(request: Request) -> str:
+    """Extract the real client IP behind a reverse proxy.
+
+    Trusts the first entry in X-Forwarded-For (set by the outermost proxy
+    closest to the client). Falls back to ``request.client.host`` for
+    direct connections (local dev).
+    """
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    return get_remote_address(request)
+
+
+limiter = Limiter(
+    key_func=_real_client_ip,
+    # Share counters across all workers / containers via Redis.  Falls back
+    # to in-memory (per-worker) if REDIS_URL is unset (e.g. local dev).
+    storage_uri=os.environ.get("REDIS_URL") or "memory://",
+    headers_enabled=False,
+)
 
 
 def _retry_after_seconds(exc: RateLimitExceeded) -> int:
@@ -110,6 +129,8 @@ async def _lifespan(app: FastAPI):
     yield
 
 
+_is_production = os.getenv("ENVIRONMENT", "").lower() == "production"
+
 app = FastAPI(
     lifespan=_lifespan,
     title="Apex-Intelligence: Virtual Race Engineer API",
@@ -119,8 +140,11 @@ app = FastAPI(
         "response envelopes used by the frontend mission-control experience."
     ),
     version="0.1.0",
-    docs_url="/docs",
-    openapi_url="/openapi.json",
+    # Security: disable interactive docs in production to avoid leaking the
+    # full API surface (request/response schemas, auth requirements, routes)
+    # to unauthenticated visitors.
+    docs_url=None if _is_production else "/docs",
+    openapi_url=None if _is_production else "/openapi.json",
     contact={"name": "Apex-Intelligence", "url": "https://github.com/thdat-vu/f1-virtual-engineer"},
     openapi_tags=[
         {"name": "system", "description": "Basic service discovery and health-style endpoints."},
@@ -143,7 +167,7 @@ else:
         "http://127.0.0.1:3001",
     ]
 
-print(f"INFO: CORS enabled for origins: {allowed_origins}")
+_logger.info("CORS enabled for origins: %s", allowed_origins)
 
 app.add_middleware(
     CORSMiddleware,
@@ -186,7 +210,11 @@ async def root():
         "scale. Set `METRICS_ENABLED=false` to disable both header and collection."
     ),
 )
-async def get_metrics():
+@limiter.limit("10/10seconds")
+async def get_metrics(
+    request: Request,
+    user_id: str = Depends(get_required_user_id),
+):
     return {
         "routes": snapshot_metrics(),
         "cache": {"redis_enabled": redis_cache.is_enabled()},
@@ -257,7 +285,8 @@ async def _snapshot_workers() -> dict[str, int | bool]:
     summary="Fetch race schedule for a specific year",
     description="Returns a list of all Grand Prix events for the requested year.",
 )
-async def get_schedule(year: int):
+@limiter.limit("30/10seconds")
+async def get_schedule(request: Request, year: int):
     events = await asyncio.to_thread(get_year_schedule, year)
     if not events:
         return ScheduleResponse(
@@ -280,7 +309,8 @@ async def get_schedule(year: int):
         "fallback reason if neither session yields data (e.g. event hasn't run yet)."
     ),
 )
-async def get_event_roster(year: int, event: str):
+@limiter.limit("30/10seconds")
+async def get_event_roster(request: Request, year: int, event: str):
     roster = await asyncio.to_thread(get_event_drivers, year=year, event=event)
     return RosterResponse(
         year=roster["year"],
@@ -531,7 +561,10 @@ async def analyze_race_data_stream(
             try:
                 result = agent_task.result()
             except Exception as exc:
-                yield f"event: error\ndata: {_json.dumps({'message': str(exc)})}\n\n"
+                # Log the full exception server-side but emit only a generic
+                # message to the client to avoid leaking internal stack info.
+                _logger.warning("Agent task raised an exception in SSE stream", exc_info=True)
+                yield f"event: error\ndata: {_json.dumps({'message': 'Analysis encountered an internal error. Please try again.'})}\n\n"
                 return
 
             intent = result.get("intent") or {}
@@ -596,6 +629,7 @@ async def analyze_race_data_stream(
         "newest-first. Requires a valid Supabase JWT — anonymous callers receive 401."
     ),
 )
+@limiter.limit("30/10seconds")
 async def get_analyze_history(
     request: Request,
     limit: int = Query(20, ge=1, le=50),
@@ -668,6 +702,7 @@ async def analyze_radio(
         "newest-first. Optionally filtered by driver code. Requires a valid Supabase JWT."
     ),
 )
+@limiter.limit("30/10seconds")
 async def get_radio_history(
     request: Request,
     limit: int = Query(20, ge=1, le=50),
@@ -993,6 +1028,7 @@ async def lap_delta_cross_year(
         "newest-first. Requires a valid Supabase JWT — anonymous callers receive 401."
     ),
 )
+@limiter.limit("30/10seconds")
 async def get_telemetry_history(
     request: Request,
     limit: int = Query(20, ge=1, le=50),
@@ -1026,6 +1062,7 @@ async def get_telemetry_history(
         "Returns the created row so the frontend can render the star as 'already saved'."
     ),
 )
+@limiter.limit("10/10seconds")
 async def create_saved_query(
     request: Request,
     body: SavedQueryCreateRequest,
@@ -1070,6 +1107,7 @@ async def create_saved_query(
     tags=["analysis"],
     summary="List the signed-in user's saved queries",
 )
+@limiter.limit("30/10seconds")
 async def get_saved_queries(
     request: Request,
     limit: int = Query(50, ge=1, le=100),
@@ -1103,6 +1141,7 @@ async def get_saved_queries(
         "leaking id existence to non-owners."
     ),
 )
+@limiter.limit("10/10seconds")
 async def remove_saved_query(
     request: Request,
     query_id: str,
