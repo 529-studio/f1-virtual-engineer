@@ -80,9 +80,14 @@ def _build_client() -> Any:
         client.ping()
         return client
     except Exception:  # noqa: BLE001 — fail-closed
+        # Mask credentials before logging — REDIS_URL may contain
+        # redis://:password@host:port/0.
+        from urllib.parse import urlsplit, urlunsplit
+        parts = urlsplit(url)
+        safe_url = urlunsplit(parts._replace(netloc=parts.hostname or "<unknown>"))
         _logger.warning(
             "Redis init failed for REDIS_URL=%r; falling back to in-process cache only",
-            url,
+            safe_url,
             exc_info=True,
         )
         return None

@@ -7,17 +7,29 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 // bounced to `https://0.0.0.0:3000/?auth_error=…` after Google login,
 // which is unreachable. Order of trust:
 //   1. NEXT_PUBLIC_SITE_URL — explicit canonical override, set this in
-//      prod compose to the public URL (e.g. https://f1-virtual-engineer.duckdns.org).
-//   2. X-Forwarded-Host + X-Forwarded-Proto — what a well-configured
-//      reverse proxy sets.
+//      prod compose to the public URL (e.g. https://f1.529studio.site).
+//   2. X-Forwarded-Host + X-Forwarded-Proto — ONLY accepted when it matches
+//      the hostname of NEXT_PUBLIC_SITE_URL (prevents open-redirect via
+//      spoofed X-Forwarded-Host header).
 //   3. request.url's origin — last resort; fine for local dev.
 function resolveOrigin(request: Request): string {
   const override = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (override) return override.replace(/\/$/, "");
+  const canonicalOrigin = override?.replace(/\/$/, "");
+
+  // If a canonical URL is configured, always use it — no header needed.
+  if (canonicalOrigin) return canonicalOrigin;
 
   const host = request.headers.get("x-forwarded-host");
   const proto = request.headers.get("x-forwarded-proto") ?? "https";
-  if (host) return `${proto}://${host}`;
+
+  // Security: only trust X-Forwarded-Host when it resolves to the same
+  // hostname as request.url, preventing host-header injection open redirects.
+  if (host) {
+    const requestHostname = new URL(request.url).hostname;
+    if (host.split(":")[0] === requestHostname) {
+      return `${proto}://${host}`;
+    }
+  }
 
   return new URL(request.url).origin;
 }
