@@ -28,7 +28,7 @@ class AnalyzeSessionInfo(BaseModel):
 
 
 class AnalyzeRequest(BaseModel):
-    query: str = Field(..., min_length=3, description="Natural language telemetry or strategy question")
+    query: str = Field(..., min_length=3, max_length=2000, description="Natural language telemetry or strategy question")
     driver: str | None = Field(default=None, min_length=3, max_length=3, description="Optional 3-letter driver code")
     session_info: AnalyzeSessionInfo | None = Field(
         default=None,

@@ -1,0 +1,25 @@
+# Prevent sensitive files from being accidentally copied into Docker image
+# when building with `docker build -f backend/Dockerfile .` from a subdirectory.
+.env
+.env.*
+!.env.example
+*.bak
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyc
+
+# Test artefacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# Data cache (pre-baked snapshots are volume-mounted at runtime, not baked in)
+data/

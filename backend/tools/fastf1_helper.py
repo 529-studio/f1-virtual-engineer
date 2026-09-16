@@ -44,6 +44,16 @@ _RAW_PYTHON_ERROR_FRAGMENTS = (
     "keyerror",
     "indexerror",
     "typeerror",
+    # OS-level errors that can leak internal paths / hostnames
+    "filenotfounderror",
+    "permissionerror",
+    "connectionerror",
+    "connectionreset",
+    "connectionrefused",
+    "oserror",
+    "/app/",
+    "/home/",
+    "/usr/",
 )
 
 
