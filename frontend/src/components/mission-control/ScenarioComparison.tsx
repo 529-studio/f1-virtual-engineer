@@ -33,7 +33,7 @@ const PRESETS: Preset[] = [
     id: "undercut_timing",
     label: "Undercut timing",
     scenarios: [
-      { label: "Undercut now", gap_override_seconds: 0.8 },
+      { label: "Pit now", gap_override_seconds: 0.8 },
       { label: "Hold +3 laps", gap_override_seconds: 2.5 },
     ],
   },
@@ -53,14 +53,16 @@ export function ScenarioComparison({
   sessionType,
   driver,
   targetDriver,
+  initialOutcomes,
 }: {
   year: number;
   event: string;
   sessionType: string;
   driver: string;
   targetDriver: string | null;
+  initialOutcomes?: ScenarioOutcome[] | null;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [presetId, setPresetId] = useState<PresetId>("undercut_timing");
 
   // requestKey changes whenever any input that should re-fetch changes.
@@ -74,7 +76,11 @@ export function ScenarioComparison({
     key: string;
     outcomes: ScenarioOutcome[] | null;
     error: string | null;
-  }>({ key: "", outcomes: null, error: null });
+  }>({
+    key: initialOutcomes ? requestKey : "",
+    outcomes: initialOutcomes ?? null,
+    error: null,
+  });
 
   const loading = open && result.key !== requestKey;
   const outcomes = result.key === requestKey ? result.outcomes : null;
@@ -82,6 +88,7 @@ export function ScenarioComparison({
 
   useEffect(() => {
     if (!open) return;
+    if (initialOutcomes && result.key === requestKey && result.outcomes) return;
     const preset = PRESETS.find((p) => p.id === presetId);
     if (!preset) return;
     let cancelled = false;
@@ -108,7 +115,7 @@ export function ScenarioComparison({
     return () => {
       cancelled = true;
     };
-  }, [requestKey, open, presetId, year, event, sessionType, driver, targetDriver]);
+  }, [requestKey, open, presetId, year, event, sessionType, driver, targetDriver, initialOutcomes, result.key, result.outcomes]);
 
   return (
     // NOTE: no mt-4 here — StrategyCanvas (parent) uses gap-4 between rows.

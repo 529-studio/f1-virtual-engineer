@@ -1,17 +1,24 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { getCrossYearLapDelta, getEventLaps, getEventsByYear, getLapDelta, getTelemetry, getWeatherSummary } from "@/services/api";
-import type { AnalyzeHistoryItem, AnalyzeResponse, EventInfo, LapDeltaCrossYearResponse, LapDeltaResponse, LapInfo, SavedQueryItem, TelemetryHistoryItem, WeatherSummaryResponse } from "@/services/api";
+import {
+  getCrossYearLapDelta, getEventLaps, getEventsByYear, getLapDelta,
+  getPitExitProjection, getTelemetry, getWeatherSummary,
+} from "@/services/api";
+import type {
+  AnalyzeHistoryItem, AnalyzeResponse, ControversyFinding, EventInfo,
+  LapDeltaCrossYearResponse, LapDeltaResponse, LapInfo, PitExitResponse,
+  SavedQueryItem, StrategyData, TelemetryHistoryItem, TyreAnalyzeResponse, WeatherSummaryResponse,
+} from "@/services/api";
 import { useMissionStore } from "@/lib/store";
 import { useSupabase } from "@/components/auth/SupabaseProvider";
 import {
-  FALLBACK_DRIVERS, IntentTabBar, MissionFooter, MissionHeader, NavRail,
+  CoachmarksModal,
+  FALLBACK_DRIVERS, IntentTabBar, MissionBoard, MissionFooter, MissionHeader, NavRail,
   SelectorBar, StrategyHUD, TelemetryChartGrid, type SessionId,
 } from "@/components/mission-control";
 import { StrategyCanvas } from "@/components/mission-control/StrategyCanvas";
 import { TrackMapPanel } from "@/components/mission-control/TrackMapPanel";
-import { defaultSeason } from "@/lib/f1-seasons";
 import { useDriverRoster } from "@/hooks/useDriverRoster";
 import { useAnalyzeStream } from "@/hooks/useAnalyzeStream";
 
@@ -25,10 +32,11 @@ export default function MissionControlPage() {
 
   const { streamState, isLoading, runStream } = useAnalyzeStream();
 
-  const [year, setYear]       = useState<number>(defaultSeason());
-  const [eventName, setEvent] = useState<string>("");
+  // F4: DECIDED DEMO RACE: 2024 Italian Grand Prix (Monza) LEC
+  const [year, setYear]       = useState<number>(2024);
+  const [eventName, setEvent] = useState<string>("Italian Grand Prix");
   const [session, setSession] = useState<SessionId>("R");
-  const [driver, setDriver]   = useState<string>("VER");
+  const [driver, setDriver]   = useState<string>("LEC");
 
   const [events, setEvents]               = useState<EventInfo[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
@@ -45,16 +53,15 @@ export default function MissionControlPage() {
   const drivers: readonly string[] =
     eventName && fetchedDrivers && fetchedDrivers.length > 0 ? fetchedDrivers : FALLBACK_DRIVERS;
 
-  // lap === "" means "Fastest" (default — analyze already picks fastest).
-  // A non-empty value triggers a /telemetry override patching the chart series.
-  const [lap, setLap]                           = useState<string>("");
+  // F1: Shared lap cursor scrubbed across Strategy and Telemetry
+  const [lap, setLap]                           = useState<string>("15");
   const [laps, setLaps]                         = useState<LapInfo[]>([]);
-  const [fastestLapNumber, setFastestLapNumber] = useState<number | null>(null);
+  const [fastestLapNumber, setFastestLapNumber] = useState<number | null>(33);
   const [lapsLoading, setLapsLoading]           = useState(false);
   const [lapOverlayLoading, setLapOverlayLoading] = useState(false);
 
   // When set, the Speed chart overlays this driver's fastest-lap trace as a dashed muted line.
-  const [compareDriver, setCompareDriver]             = useState<string>("");
+  const [compareDriver, setCompareDriver]             = useState<string>("PIA");
   const [compareSpeedSeries, setCompareSpeedSeries]   = useState<number[] | null>(null);
   const [compareLoading, setCompareLoading]           = useState(false);
 
@@ -81,11 +88,9 @@ export default function MissionControlPage() {
   // two seasons. Stays null until cross-year mode is active.
   const [compareYearWeather, setCompareYearWeather] = useState<WeatherSummaryResponse | null>(null);
 
-  // Issue #182: explicit intent toggle. Default "telemetry" preserves the
-  // legacy fastest-lap compare behavior; "strategy" routes the analyze
-  // query through the regex classifier into strategy_analyzer so the Pit
-  // Window block + slice 1A→1D fields actually render.
-  const [intent, setIntent] = useState<"telemetry" | "strategy">("telemetry");
+  // Issue #182: explicit intent toggle. Default "strategy" routes to the Strategy HUD
+  // and reveals the pit window + pit exit card immediately on first run.
+  const [intent, setIntent] = useState<"telemetry" | "strategy">("strategy");
 
   // Cleared on the next successful Analyze; surfaced in StrategyHUD when set.
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
@@ -95,21 +100,90 @@ export default function MissionControlPage() {
   // didn't surface a response — drives the "Try again" CTA in the HUD.
   const [retryState, setRetryState] = useState<"idle" | "retrying" | "failed">("idle");
 
+  // F4: Static pre-baked demo race bundle for instant zero-latency cold landing
+  const [demoRaceData, setDemoRaceData] = useState<{
+    total_laps: number;
+    fastest_lap_number: number;
+    pit_loss_seconds: number;
+    laps: LapInfo[];
+    pit_exit_by_lap: Record<string, PitExitResponse>;
+    tyre_status_by_lap: Record<string, TyreAnalyzeResponse>;
+    stewards_findings: ControversyFinding[];
+    strategy_data: StrategyData;
+    compare_scenarios: unknown[];
+    telemetry_data: AnalyzeResponse["telemetry_data"];
+  } | null>(null);
+
+  const [livePitExit, setLivePitExit] = useState<PitExitResponse | null>(null);
+  const [pitExitLoading, setPitExitLoading] = useState(false);
+
+  const isDemoRace =
+    year === 2024 &&
+    eventName === "Italian Grand Prix" &&
+    session === "R" &&
+    driver === "LEC" &&
+    Boolean(demoRaceData);
+
+  const currentPitExit: PitExitResponse | null = isDemoRace
+    ? demoRaceData?.pit_exit_by_lap?.[lap || "15"] ?? null
+    : !eventName || !driver || !lap
+    ? null
+    : livePitExit;
+
+  const currentTyreStatus: TyreAnalyzeResponse | null = isDemoRace
+    ? demoRaceData?.tyre_status_by_lap?.[lap || "15"] ?? null
+    : null;
+
+  const stewardsFindings: ControversyFinding[] =
+    result?.controversy_analysis && result.controversy_analysis.length > 0
+      ? result.controversy_analysis
+      : demoRaceData?.stewards_findings ?? [];
+
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  // First-time users: hydrate store from the shipped fixture so charts
-  // appear immediately instead of a blank page. Returning users already
-  // have their last result in localStorage via Zustand persist — skip them.
+  // F4: First-run users: hydrate immediately from static demo-race.json for zero-latency
+  // cold paint with zero network/FastF1 calls.
   useEffect(() => {
-    if (result !== null) return;
-    fetch("/fixture-default.json")
+    fetch("/demo-race.json")
       .then((r) => r.json())
-      .then((data) => {
-        if (result === null) setResult(data as AnalyzeResponse);
+      .then((demo) => {
+        setDemoRaceData(demo);
+        if (result === null) {
+          setResult({
+            status: "success",
+            agent_response: "Italian Grand Prix 2024: Charles Leclerc pit strategy (Ferrari). Pitted on Lap 15 from Mediums to Hards, executing a winning 1-stop strategy.",
+            query: "Pit strategy for LEC at Italian Grand Prix 2024 R",
+            intent: {
+              intent: "strategy_query",
+              intent_type: "strategy",
+              driver: "LEC",
+              year: 2024,
+              event: "Italian Grand Prix",
+              session_type: "R",
+            },
+            strategy_data: demo.strategy_data,
+            telemetry_data: demo.telemetry_data,
+            controversy_analysis: demo.stewards_findings,
+          });
+        }
+        if (demo.laps && demo.laps.length > 0) {
+          setLaps(demo.laps);
+        }
+        if (demo.fastest_lap_number) {
+          setFastestLapNumber(demo.fastest_lap_number);
+        }
       })
-      .catch(() => { /* silent — blank page is the fallback */ });
+      .catch(() => {
+        if (result !== null) return;
+        fetch("/fixture-default.json")
+          .then((r) => r.json())
+          .then((data) => {
+            if (result === null) setResult(data as AnalyzeResponse);
+          })
+          .catch(() => {});
+      });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -118,80 +192,109 @@ export default function MissionControlPage() {
     getEventsByYear(year)
       .then((res) => {
         if (cancelled) return;
-        // Hide future / cancelled rounds. FastF1's schedule lists every
-        // planned event for the season, including ones that haven't run
-        // yet (or got pulled — e.g. Bahrain 2026). Surfacing them in
-        // the dropdown lets users pick a session that has no laps,
-        // which then 500s downstream. Filter to events whose date is
-        // <= today; rows missing event_date stay visible (defensive
-        // — old caches may not carry the field).
         const today = new Date().toISOString().slice(0, 10);
         const visible = (res.events ?? []).filter(
           (e) => !e.event_date || e.event_date <= today,
         );
         setEvents(visible);
-        // Auto-select the most recent completed round so the app
-        // is never empty on first load.
-        setEvent(visible.at(-1)?.name ?? "");
+        if (!eventName) {
+          setEvent(visible.at(-1)?.name ?? "");
+        }
       })
       .catch(() => { if (!cancelled) setEvents([]); })
       .finally(() => { if (!cancelled) setEventsLoading(false); });
     return () => { cancelled = true; };
-  }, [year]);
+  }, [year, eventName]);
 
-  // Issue #235: weather fetch. Same fail-closed envelope as the rest;
-  // we keep the previous payload on error so a transient blip doesn't
-  // make the pill flicker. The `WeatherPill` component itself hides on
-  // fallback, so a never-populated state simply renders nothing.
+  // Issue #235: weather fetch.
   useEffect(() => {
-    if (!eventName) {
-      return;
-    }
+    if (isDemoRace) return;
+    if (!eventName) return;
     let cancelled = false;
     getWeatherSummary({ year, event: eventName, session_type: session })
       .then((res) => { if (!cancelled) setWeather(res); })
       .catch(() => { /* keep last good payload */ });
     return () => { cancelled = true; };
-  }, [year, eventName, session]);
+  }, [year, eventName, session, isDemoRace]);
 
-  // Issue #242: parallel fetch for `compareYear` so the mismatch badge
-  // has both summaries to compare. Same fail-closed envelope; the
-  // badge itself hides on either fallback so a transient miss just
-  // means no badge, not a half-rendered chip. We don't synchronously
-  // reset on cross-year-off — the badge gates on `compareYear` and
-  // crossYearHasData, so a stale payload can't surface.
+  // Issue #242: parallel fetch for `compareYear`.
   useEffect(() => {
-    if (!eventName || !compareYear || compareYear === year) {
-      return;
-    }
+    if (isDemoRace) return;
+    if (!eventName || !compareYear || compareYear === year) return;
     let cancelled = false;
     getWeatherSummary({ year: compareYear, event: eventName, session_type: session })
       .then((res) => { if (!cancelled) setCompareYearWeather(res); })
       .catch(() => { /* keep last good payload */ });
     return () => { cancelled = true; };
-  }, [compareYear, eventName, session, year]);
+  }, [compareYear, eventName, session, year, isDemoRace]);
 
   // Driver roster is now managed by useDriverRoster hook above (localStorage cache + background refresh).
 
-  // Lap roster — auto-selects lap 1 when roster arrives so the telemetry
-  // chart always anchors to a real lap, not the ambiguous "fastest" sentinel.
+  // Lap roster — on demo race, laps are already hydrated from demo-race.json
   useEffect(() => {
+    if (isDemoRace) return;
     if (!eventName || !driver) return;
     let cancelled = false;
     getEventLaps(year, eventName, session, driver)
       .then((res) => {
         if (!cancelled) {
-          const laps = res.laps ?? [];
-          setLaps(laps);
+          const loadedLaps = res.laps ?? [];
+          setLaps(loadedLaps);
           setFastestLapNumber(res.fastest_lap_number);
-          // Default to lap 1 so telemetry intent starts on a real lap.
-          if (laps.length > 0) setLap(String(laps[0].lap_number));
+          if (loadedLaps.length > 0) setLap(String(loadedLaps[0].lap_number));
         }
       })
       .catch(() => { if (!cancelled) { setLaps([]); setFastestLapNumber(null); } })
       .finally(() => { if (!cancelled) setLapsLoading(false); });
     return () => { cancelled = true; };
-  }, [year, eventName, session, driver]);
+  }, [year, eventName, session, driver, isDemoRace]);
+
+  // Live Pit Exit projection when not on demo race
+  useEffect(() => {
+    if (isDemoRace) return;
+    if (!eventName || !driver || !lap) return;
+    const lapNumber = Number(lap);
+    if (!Number.isFinite(lapNumber) || lapNumber <= 0) return;
+    let cancelled = false;
+    queueMicrotask(() => setPitExitLoading(true));
+    getPitExitProjection(
+      { year, event: eventName, session: session as "R" | "S", driver, lap: lapNumber },
+      authSession?.access_token,
+    )
+      .then((res) => {
+        if (!cancelled) setLivePitExit(res);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setLivePitExit({
+            as_of_lap: lapNumber,
+            total_laps: laps.length || 53,
+            current_position: 0,
+            projected_position: 0,
+            position_delta: 0,
+            position_is_contested: false,
+            car_ahead: null,
+            car_behind: null,
+            traffic_state: "TRAFFIC",
+            pit_loss_s: 22.0,
+            pit_loss_source: `per-track table: ${eventName}`,
+            confidence: "LOW",
+            confidence_reasons: [],
+            assumptions: ["rivals hold pace", "no safety car"],
+            field: [],
+            notes: [],
+            fallback: true,
+            fallback_reason: err instanceof Error ? err.message : "Projection failed",
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setPitExitLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isDemoRace, year, eventName, session, driver, lap, authSession?.access_token, laps.length]);
 
   // Patch only `telemetry_data` on the existing analysis when a non-fastest lap is picked.
   // Agent narrative intentionally stays untouched — that requires a fresh /analyze run.
@@ -350,12 +453,12 @@ export default function MissionControlPage() {
   // One-shot auto-analyze: fires when the initial defaults are all ready.
   // hasAutoAnalyzed guards against re-firing on subsequent selector changes.
   useEffect(() => {
-    if (hasAutoAnalyzed.current) return;
+    if (hasAutoAnalyzed.current || isDemoRace) return;
     if (!eventName || !driver || isLoading) return;
     hasAutoAnalyzed.current = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void runAnalyze({ year, eventName, session, driver });
-  }, [eventName, driver, year, session, isLoading, runAnalyze]);
+  }, [eventName, driver, year, session, isLoading, runAnalyze, isDemoRace]);
 
   const handleSelectHistory = useCallback((item: AnalyzeHistoryItem) => {
     const nextYear = item.year ?? year;
@@ -455,19 +558,35 @@ export default function MissionControlPage() {
 
   const displayDriver = result?.intent?.driver ?? driver ?? "—";
   const displayEvent  = result?.intent?.event  ?? eventName ?? "—";
-  const displayLap =
-    tel?.lap_number != null
-      ? `LAP ${tel.lap_number}${tel.lap_number === fastestLapNumber ? " · FAST" : ""}`
-      : hasData ? "FAST LAP" : null;
+  const displayLap = lap
+    ? `LAP ${lap}${Number(lap) === fastestLapNumber ? " · FAST" : ""}`
+    : tel?.lap_number != null
+    ? `LAP ${tel.lap_number}${tel.lap_number === fastestLapNumber ? " · FAST" : ""}`
+    : hasData ? "FAST LAP" : null;
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
+      <CoachmarksModal />
       <NavRail />
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <MissionHeader
           displayDriver={displayDriver} displayEvent={displayEvent} displayLap={displayLap}
           weather={weather}
+        />
+
+        {/* F4: First-run Mission Board (3 story cards: Pit Exit, Tyre Status, Steward's View) */}
+        <MissionBoard
+          lap={Number(lap) || 15}
+          totalLaps={laps.length || demoRaceData?.total_laps || 53}
+          pitExit={currentPitExit}
+          tyreStatus={currentTyreStatus}
+          stewardsFindings={stewardsFindings}
+          isLoading={isLoading && !demoRaceData}
+          year={year}
+          eventName={eventName}
+          session={session}
+          driver={driver}
         />
 
         <SelectorBar
@@ -512,6 +631,10 @@ export default function MissionControlPage() {
                 session={session}
                 driver={driver}
                 targetDriver={compareDriver || null}
+                pitExit={currentPitExit}
+                selectedLap={Number(lap) || 15}
+                pitExitLoading={!isDemoRace && pitExitLoading}
+                initialTyreData={currentTyreStatus}
               />
             </div>
           ) : (

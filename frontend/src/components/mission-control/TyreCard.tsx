@@ -85,17 +85,20 @@ function formatPitLaps(laps: number[]): string {
 }
 
 export function TyreCard({
-  year, event, session, driver,
+  year, event, session, driver, lap, initialData,
 }: {
   year: number;
   event: string;
   session: SessionId;
   driver: string;
+  lap?: number | null;
+  initialData?: TyreAnalyzeResponse | null;
 }) {
-  const [data, setData] = useState<TyreAnalyzeResponse | null>(null);
+  const [liveData, setLiveData] = useState<TyreAnalyzeResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (initialData) return;
     if (!event || !driver) return;
     let cancelled = false;
     queueMicrotask(async () => {
@@ -103,17 +106,19 @@ export function TyreCard({
       setLoading(true);
       try {
         const res = await analyzeTyre({ year, event, session_type: session, driver });
-        if (!cancelled) setData(res);
+        if (!cancelled) setLiveData(res);
       } catch {
-        if (!cancelled) setData(null);
+        if (!cancelled) setLiveData(null);
       } finally {
         if (!cancelled) setLoading(false);
       }
     });
     return () => { cancelled = true; };
-  }, [year, event, session, driver]);
+  }, [year, event, session, driver, initialData]);
 
   if (!event || !driver) return null;
+
+  const data = initialData ?? liveData;
 
   const compound = data?.compound;
   const decay = data?.decay_seconds_per_lap ?? 0;
@@ -197,7 +202,11 @@ export function TyreCard({
               Issue #223: spell out "race finish" for historical sessions
               so "as of L58" doesn't read as a live snapshot. */}
           <p className="readout mt-1 text-[0.55rem] uppercase tracking-[var(--track-wide)] text-foreground-faint">
-            {data.last_lap_number != null
+            {lap != null
+              ? isHistorical && data.last_lap_number != null && lap >= data.last_lap_number
+                ? `as of L${lap} · race finish`
+                : `as of L${lap}`
+              : data.last_lap_number != null
               ? isHistorical
                 ? `as of L${data.last_lap_number} · race finish`
                 : `as of L${data.last_lap_number}`

@@ -905,6 +905,66 @@ export async function compareStrategies(
   return (await response.json()) as StrategyCompareResponse;
 }
 
+// ─── Pit Exit Projection (#17 / PR 2) ─────────────────────────────────────────
+
+export interface PitExitRequest {
+  year: number;
+  event: string;
+  session: "R" | "S";
+  driver: string;
+  lap: number;
+  include_rivals?: number;
+}
+
+export interface RivalSlot {
+  driver_code: string;
+  gap_s: number;
+  is_lapped: boolean;
+  has_pitted: boolean;
+  pace_confidence: "high" | "low";
+}
+
+export interface PitExitResponse {
+  as_of_lap: number;
+  total_laps: number;
+  current_position: number;
+  projected_position: number;
+  position_delta: number;
+  position_is_contested: boolean;
+  car_ahead: RivalSlot | null;
+  car_behind: RivalSlot | null;
+  traffic_state: "CLEAR_AIR" | "DRS_RANGE" | "TRAFFIC";
+  pit_loss_s: number;
+  pit_loss_source: string;
+  confidence: "HIGH" | "MEDIUM" | "LOW";
+  confidence_reasons: string[];
+  assumptions: string[];
+  field: RivalSlot[];
+  notes: string[];
+  fallback: boolean;
+  fallback_reason?: string | null;
+}
+
+export async function getPitExitProjection(
+  payload: PitExitRequest,
+  token?: string,
+): Promise<PitExitResponse> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const response = await fetch(`${apiBaseUrl}/strategy/pit-exit`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  if (response.status === 429) throw await readRateLimit(response);
+  if (!response.ok) {
+    throw new Error(`Pit exit projection request failed with status ${response.status}`);
+  }
+  return (await response.json()) as PitExitResponse;
+}
+
 // ─── Track Map ────────────────────────────────────────────────────────────────
 
 export interface TrackMapRequest {

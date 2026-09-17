@@ -167,6 +167,7 @@ backend/data/
 !backend/evals/cases/*.json
 !frontend/src/content/*.json
 !frontend/public/fixture-default.json
+!frontend/public/demo-race.json
 
 # Node.js
 node_modules/

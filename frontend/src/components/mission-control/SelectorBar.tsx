@@ -19,7 +19,6 @@ export function SelectorBar({
   compareDriver, setCompareDriver, compareLoading,
   setCompareSpeedSeries, setCompareLoading,
   compareYear, setCompareYear, setCrossYearDelta,
-  intent,
   result, isLoading, canRun, onAnalyze,
   savedQueries, onSavedQueriesChange,
 }: {
@@ -179,25 +178,51 @@ export function SelectorBar({
             analysis to a single best lap and biased the result. The
             telemetry intent keeps the selector — fastest-lap default
             is the correct anchor for a chart compare. */}
-        {intent === "telemetry" && (
-          <>
-            <VDivider />
+        <VDivider />
 
-            <Select<string>
-              value={lap}
-              onChange={(v) => {
-                setLap(v);
-                if (v && result) setLapOverlayLoading(true);
-              }}
-              options={lapOptions}
-              loading={lapsLoading}
-              placeholder="Lap"
-            />
-            {lapOverlayLoading ? (
-              <span className="label shrink-0 text-foreground-faint">syncing…</span>
-            ) : null}
-          </>
-        )}
+        {/* F1: Shared Lap Selector & Scrubber (available across both Telemetry & Strategy) */}
+        <div className="flex items-center gap-2">
+          <Select<string>
+            value={lap}
+            onChange={(v) => {
+              setLap(v);
+              if (v && result) setLapOverlayLoading(true);
+            }}
+            options={lapOptions}
+            loading={lapsLoading}
+            placeholder="Lap"
+          />
+
+          {laps.length > 1 && (
+            <div className="flex items-center gap-1.5 pl-1" title="Drag to scrub race laps">
+              <span className="readout text-[0.55rem] font-mono text-foreground-faint">
+                L1
+              </span>
+              <input
+                type="range"
+                min={1}
+                max={laps.length}
+                value={Number(lap) || 1}
+                onChange={(e) => {
+                  setLap(e.target.value);
+                  if (result) setLapOverlayLoading(true);
+                }}
+                className="h-1.5 w-24 md:w-32 cursor-pointer appearance-none rounded-lg bg-surface-elevated accent-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                aria-label="Lap scrubber"
+              />
+              <span className="readout text-[0.55rem] font-mono font-bold text-foreground">
+                L{lap || 1}
+              </span>
+              <span className="readout text-[0.5rem] font-mono text-foreground-faint">
+                /{laps.length}
+              </span>
+            </div>
+          )}
+
+          {lapOverlayLoading ? (
+            <span className="label shrink-0 text-foreground-faint">syncing…</span>
+          ) : null}
+        </div>
 
         <VDivider />
 
