@@ -1,0 +1,595 @@
+{
+  "2024-italy-r-lec": {
+    "id": "2024-italy-r-lec",
+    "year": 2024,
+    "event": "Italian Grand Prix",
+    "session_type": "R",
+    "driver": "LEC",
+    "pit_lap": 15,
+    "actual_rejoin_pos": 7,
+    "projected_position": 7,
+    "position_delta": -4,
+    "position_is_contested": false,
+    "car_ahead": {
+      "driver_code": "OCO",
+      "gap_s": 1.62,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "car_behind": {
+      "driver_code": "STR",
+      "gap_s": -1.07,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "confidence": "HIGH",
+    "confidence_reasons": [
+      ">= 3 green laps of pace data for driver and neighbours, no SC/VSC in window."
+    ],
+    "traffic_state": "TRAFFIC",
+    "pit_loss_s": 22.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2023-japan-r-ver": {
+    "id": "2023-japan-r-ver",
+    "year": 2023,
+    "event": "Japanese Grand Prix",
+    "session_type": "R",
+    "driver": "VER",
+    "pit_lap": 16,
+    "actual_rejoin_pos": 5,
+    "projected_position": 5,
+    "position_delta": -4,
+    "position_is_contested": false,
+    "car_ahead": {
+      "driver_code": "RUS",
+      "gap_s": 6.38,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "car_behind": {
+      "driver_code": "PIA",
+      "gap_s": -1.61,
+      "is_lapped": false,
+      "has_pitted": true,
+      "pace_confidence": "high"
+    },
+    "confidence": "HIGH",
+    "confidence_reasons": [
+      ">= 3 green laps of pace data for driver and neighbours, no SC/VSC in window."
+    ],
+    "traffic_state": "CLEAR_AIR",
+    "pit_loss_s": 22.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2024-spain-r-nor": {
+    "id": "2024-spain-r-nor",
+    "year": 2024,
+    "event": "Spanish Grand Prix",
+    "session_type": "R",
+    "driver": "NOR",
+    "pit_lap": 23,
+    "actual_rejoin_pos": 6,
+    "projected_position": 6,
+    "position_delta": -5,
+    "position_is_contested": false,
+    "car_ahead": {
+      "driver_code": "SAI",
+      "gap_s": 6.49,
+      "is_lapped": false,
+      "has_pitted": true,
+      "pace_confidence": "high"
+    },
+    "car_behind": {
+      "driver_code": "GAS",
+      "gap_s": -1.73,
+      "is_lapped": false,
+      "has_pitted": true,
+      "pace_confidence": "high"
+    },
+    "confidence": "HIGH",
+    "confidence_reasons": [
+      ">= 3 green laps of pace data for driver and neighbours, no SC/VSC in window."
+    ],
+    "traffic_state": "CLEAR_AIR",
+    "pit_loss_s": 22.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2024-britain-r-ham": {
+    "id": "2024-britain-r-ham",
+    "year": 2024,
+    "event": "British Grand Prix",
+    "session_type": "R",
+    "driver": "HAM",
+    "pit_lap": 27,
+    "actual_rejoin_pos": 3,
+    "projected_position": 3,
+    "position_delta": -1,
+    "position_is_contested": false,
+    "car_ahead": {
+      "driver_code": "NOR",
+      "gap_s": 3.24,
+      "is_lapped": false,
+      "has_pitted": true,
+      "pace_confidence": "high"
+    },
+    "car_behind": {
+      "driver_code": "RUS",
+      "gap_s": -3.88,
+      "is_lapped": false,
+      "has_pitted": true,
+      "pace_confidence": "high"
+    },
+    "confidence": "HIGH",
+    "confidence_reasons": [
+      ">= 3 green laps of pace data for driver and neighbours, no SC/VSC in window."
+    ],
+    "traffic_state": "CLEAR_AIR",
+    "pit_loss_s": 22.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2024-bahrain-r-ver": {
+    "id": "2024-bahrain-r-ver",
+    "year": 2024,
+    "event": "Bahrain Grand Prix",
+    "session_type": "R",
+    "driver": "VER",
+    "pit_lap": 17,
+    "actual_rejoin_pos": 1,
+    "projected_position": 1,
+    "position_delta": 0,
+    "position_is_contested": false,
+    "car_ahead": null,
+    "car_behind": {
+      "driver_code": "PER",
+      "gap_s": -5.0,
+      "is_lapped": false,
+      "has_pitted": true,
+      "pace_confidence": "high"
+    },
+    "confidence": "HIGH",
+    "confidence_reasons": [
+      ">= 3 green laps of pace data for driver and neighbours, no SC/VSC in window."
+    ],
+    "traffic_state": "CLEAR_AIR",
+    "pit_loss_s": 22.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2024-australia-r-sai": {
+    "id": "2024-australia-r-sai",
+    "year": 2024,
+    "event": "Australian Grand Prix",
+    "session_type": "R",
+    "driver": "SAI",
+    "pit_lap": 16,
+    "actual_rejoin_pos": 1,
+    "projected_position": 7,
+    "position_delta": -6,
+    "position_is_contested": true,
+    "car_ahead": {
+      "driver_code": "RUS",
+      "gap_s": 0.9,
+      "is_lapped": false,
+      "has_pitted": true,
+      "pace_confidence": "high"
+    },
+    "car_behind": {
+      "driver_code": "GAS",
+      "gap_s": -0.77,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "confidence": "LOW",
+    "confidence_reasons": [
+      "Safety Car/VSC active at lap 16.",
+      "Projected exit is within 0.8s of a position boundary."
+    ],
+    "traffic_state": "DRS_RANGE",
+    "pit_loss_s": 22.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2024-china-r-ver": {
+    "id": "2024-china-r-ver",
+    "year": 2024,
+    "event": "Chinese Grand Prix",
+    "session_type": "R",
+    "driver": "VER",
+    "pit_lap": 13,
+    "actual_rejoin_pos": 3,
+    "projected_position": 5,
+    "position_delta": -4,
+    "position_is_contested": false,
+    "car_ahead": {
+      "driver_code": "SAI",
+      "gap_s": 2.74,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "car_behind": {
+      "driver_code": "PER",
+      "gap_s": -9.7,
+      "is_lapped": false,
+      "has_pitted": true,
+      "pace_confidence": "high"
+    },
+    "confidence": "HIGH",
+    "confidence_reasons": [
+      ">= 3 green laps of pace data for driver and neighbours, no SC/VSC in window."
+    ],
+    "traffic_state": "CLEAR_AIR",
+    "pit_loss_s": 22.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2024-imola-r-ver": {
+    "id": "2024-imola-r-ver",
+    "year": 2024,
+    "event": "Emilia Romagna Grand Prix",
+    "session_type": "R",
+    "driver": "VER",
+    "pit_lap": 24,
+    "actual_rejoin_pos": 4,
+    "projected_position": 4,
+    "position_delta": -3,
+    "position_is_contested": false,
+    "car_ahead": {
+      "driver_code": "HAM",
+      "gap_s": 7.99,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "car_behind": {
+      "driver_code": "NOR",
+      "gap_s": -5.81,
+      "is_lapped": false,
+      "has_pitted": true,
+      "pace_confidence": "high"
+    },
+    "confidence": "HIGH",
+    "confidence_reasons": [
+      ">= 3 green laps of pace data for driver and neighbours, no SC/VSC in window."
+    ],
+    "traffic_state": "CLEAR_AIR",
+    "pit_loss_s": 22.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2024-austria-r-rus": {
+    "id": "2024-austria-r-rus",
+    "year": 2024,
+    "event": "Austrian Grand Prix",
+    "session_type": "R",
+    "driver": "RUS",
+    "pit_lap": 22,
+    "actual_rejoin_pos": 4,
+    "projected_position": 4,
+    "position_delta": -1,
+    "position_is_contested": false,
+    "car_ahead": {
+      "driver_code": "PIA",
+      "gap_s": 16.46,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "car_behind": {
+      "driver_code": "SAI",
+      "gap_s": -2.69,
+      "is_lapped": false,
+      "has_pitted": true,
+      "pace_confidence": "high"
+    },
+    "confidence": "HIGH",
+    "confidence_reasons": [
+      ">= 3 green laps of pace data for driver and neighbours, no SC/VSC in window."
+    ],
+    "traffic_state": "CLEAR_AIR",
+    "pit_loss_s": 19.5,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2024-hungary-r-nor": {
+    "id": "2024-hungary-r-nor",
+    "year": 2024,
+    "event": "Hungarian Grand Prix",
+    "session_type": "R",
+    "driver": "NOR",
+    "pit_lap": 17,
+    "actual_rejoin_pos": 5,
+    "projected_position": 5,
+    "position_delta": -3,
+    "position_is_contested": false,
+    "car_ahead": {
+      "driver_code": "SAI",
+      "gap_s": 9.89,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "car_behind": {
+      "driver_code": "TSU",
+      "gap_s": -1.14,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "confidence": "HIGH",
+    "confidence_reasons": [
+      ">= 3 green laps of pace data for driver and neighbours, no SC/VSC in window."
+    ],
+    "traffic_state": "CLEAR_AIR",
+    "pit_loss_s": 20.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2024-belgium-r-ham": {
+    "id": "2024-belgium-r-ham",
+    "year": 2024,
+    "event": "Belgian Grand Prix",
+    "session_type": "R",
+    "driver": "HAM",
+    "pit_lap": 11,
+    "actual_rejoin_pos": 5,
+    "projected_position": 7,
+    "position_delta": -5,
+    "position_is_contested": true,
+    "car_ahead": {
+      "driver_code": "STR",
+      "gap_s": 3.19,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "car_behind": {
+      "driver_code": "MAG",
+      "gap_s": -0.07,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "confidence": "LOW",
+    "confidence_reasons": [
+      "Projected exit is within 0.8s of a position boundary."
+    ],
+    "traffic_state": "CLEAR_AIR",
+    "pit_loss_s": 21.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2024-singapore-r-nor": {
+    "id": "2024-singapore-r-nor",
+    "year": 2024,
+    "event": "Singapore Grand Prix",
+    "session_type": "R",
+    "driver": "NOR",
+    "pit_lap": 30,
+    "actual_rejoin_pos": 1,
+    "projected_position": 2,
+    "position_delta": -1,
+    "position_is_contested": false,
+    "car_ahead": {
+      "driver_code": "PIA",
+      "gap_s": 2.45,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "car_behind": {
+      "driver_code": "LEC",
+      "gap_s": -17.76,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "confidence": "HIGH",
+    "confidence_reasons": [
+      ">= 3 green laps of pace data for driver and neighbours, no SC/VSC in window."
+    ],
+    "traffic_state": "TRAFFIC",
+    "pit_loss_s": 26.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2024-mexico-r-sai": {
+    "id": "2024-mexico-r-sai",
+    "year": 2024,
+    "event": "Mexico City Grand Prix",
+    "session_type": "R",
+    "driver": "SAI",
+    "pit_lap": 32,
+    "actual_rejoin_pos": 1,
+    "projected_position": 1,
+    "position_delta": 0,
+    "position_is_contested": false,
+    "car_ahead": null,
+    "car_behind": {
+      "driver_code": "NOR",
+      "gap_s": -11.44,
+      "is_lapped": false,
+      "has_pitted": true,
+      "pace_confidence": "high"
+    },
+    "confidence": "HIGH",
+    "confidence_reasons": [
+      ">= 3 green laps of pace data for driver and neighbours, no SC/VSC in window."
+    ],
+    "traffic_state": "CLEAR_AIR",
+    "pit_loss_s": 21.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2024-vegas-r-rus": {
+    "id": "2024-vegas-r-rus",
+    "year": 2024,
+    "event": "Las Vegas Grand Prix",
+    "session_type": "R",
+    "driver": "RUS",
+    "pit_lap": 12,
+    "actual_rejoin_pos": 2,
+    "projected_position": 4,
+    "position_delta": -3,
+    "position_is_contested": false,
+    "car_ahead": {
+      "driver_code": "PER",
+      "gap_s": 3.15,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "car_behind": {
+      "driver_code": "MAG",
+      "gap_s": -3.84,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "confidence": "HIGH",
+    "confidence_reasons": [
+      ">= 3 green laps of pace data for driver and neighbours, no SC/VSC in window."
+    ],
+    "traffic_state": "CLEAR_AIR",
+    "pit_loss_s": 22.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2023-bahrain-r-ver": {
+    "id": "2023-bahrain-r-ver",
+    "year": 2023,
+    "event": "Bahrain Grand Prix",
+    "session_type": "R",
+    "driver": "VER",
+    "pit_lap": 14,
+    "actual_rejoin_pos": 2,
+    "projected_position": 2,
+    "position_delta": -1,
+    "position_is_contested": false,
+    "car_ahead": {
+      "driver_code": "PER",
+      "gap_s": 13.54,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "car_behind": {
+      "driver_code": "STR",
+      "gap_s": -5.25,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "confidence": "HIGH",
+    "confidence_reasons": [
+      ">= 3 green laps of pace data for driver and neighbours, no SC/VSC in window."
+    ],
+    "traffic_state": "CLEAR_AIR",
+    "pit_loss_s": 22.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2026-miami-r-ant": {
+    "id": "2026-miami-r-ant",
+    "year": 2026,
+    "event": "Miami Grand Prix",
+    "session_type": "R",
+    "driver": "ANT",
+    "pit_lap": 26,
+    "actual_rejoin_pos": 4,
+    "projected_position": 10,
+    "position_delta": -8,
+    "position_is_contested": false,
+    "car_ahead": {
+      "driver_code": "COL",
+      "gap_s": 5.27,
+      "is_lapped": false,
+      "has_pitted": false,
+      "pace_confidence": "high"
+    },
+    "car_behind": {
+      "driver_code": "RUS",
+      "gap_s": -1.6,
+      "is_lapped": false,
+      "has_pitted": true,
+      "pace_confidence": "high"
+    },
+    "confidence": "HIGH",
+    "confidence_reasons": [
+      ">= 3 green laps of pace data for driver and neighbours, no SC/VSC in window."
+    ],
+    "traffic_state": "CLEAR_AIR",
+    "pit_loss_s": 21.0,
+    "fallback": false,
+    "fallback_reason": null,
+    "out_of_scope": false
+  },
+  "2024-saudi-r-ver": {
+    "id": "2024-saudi-r-ver",
+    "year": 2024,
+    "event": "Saudi Arabian Grand Prix",
+    "session_type": "R",
+    "driver": "VER",
+    "pit_lap": 7,
+    "actual_rejoin_pos": 2,
+    "out_of_scope": true,
+    "reason": "Pit stop taken under Safety Car (SC delta applies, not green pit loss)"
+  },
+  "2024-miami-r-nor": {
+    "id": "2024-miami-r-nor",
+    "year": 2024,
+    "event": "Miami Grand Prix",
+    "session_type": "R",
+    "driver": "NOR",
+    "pit_lap": 29,
+    "actual_rejoin_pos": 1,
+    "out_of_scope": true,
+    "reason": "Pit stop taken under Safety Car"
+  },
+  "2024-canada-r-rus": {
+    "id": "2024-canada-r-rus",
+    "year": 2024,
+    "event": "Canadian Grand Prix",
+    "session_type": "R",
+    "driver": "RUS",
+    "pit_lap": 25,
+    "actual_rejoin_pos": 3,
+    "out_of_scope": true,
+    "reason": "Pit stop taken under Safety Car / wet conditions"
+  },
+  "2024-brazil-r-ver": {
+    "id": "2024-brazil-r-ver",
+    "year": 2024,
+    "event": "S\u00e3o Paulo Grand Prix",
+    "session_type": "R",
+    "driver": "VER",
+    "pit_lap": 32,
+    "actual_rejoin_pos": 2,
+    "out_of_scope": true,
+    "reason": "Pit stop taken under VSC/SC / wet conditions"
+  }
+}
