@@ -65,7 +65,9 @@ from tools.strategy_compare import compare_scenarios as compare_strategy_scenari
 from tools.tyre_helper import compute_tyre_decay
 from tools.weather_helper import get_weather_summary
 from app.schemas.track_map import TrackMapRequest, TrackMapResponse
+from app.schemas.pit_exit import PitExitRequest, PitExitResponse
 from tools.fastf1_helper import get_track_map_data
+from tools.pit_exit_helper import get_pit_exit_projection
 
 
 _logger = logging.getLogger(__name__)
@@ -953,6 +955,34 @@ async def compare_strategies(
         "status": "success",
         "scenarios": outcomes,
     }
+
+
+@app.post(
+    "/strategy/pit-exit",
+    response_model=PitExitResponse,
+    tags=["analysis"],
+    summary="Predict pit exit position and immediate rivals on track",
+    description=(
+        "Projects where a driver rejoins if pitting at the end of lap N: "
+        "rejoin position, position delta, nearest rivals ahead and behind with gaps, "
+        "and traffic/contested status. Deterministic, L1+L2 cached, fail-closed."
+    ),
+)
+@limiter.limit("5/10seconds")
+async def project_pit_exit_route(
+    request: Request,
+    body: PitExitRequest,
+):
+    result = await asyncio.to_thread(
+        get_pit_exit_projection,
+        year=body.year,
+        event=body.event,
+        session=body.session,
+        driver=body.driver,
+        lap=body.lap,
+        include_rivals=body.include_rivals,
+    )
+    return result
 
 
 @app.post(
