@@ -220,6 +220,45 @@ def main() -> int:
     except Exception:
         track_map = None
 
+    # 11. Weather snapshot
+    print("9. Extracting weather snapshot...")
+    try:
+        from tools.weather_helper import get_weather_summary
+        weather_data = get_weather_summary(
+            year=DEMO_RACE["year"],
+            event=DEMO_RACE["event"],
+            session_type=DEMO_RACE["session"],
+        )
+    except Exception:
+        weather_data = None
+
+    # 12. Lap delta & compare speed
+    print("10. Extracting lap delta & rival telemetry...")
+    try:
+        from tools.lap_delta import compute_lap_delta
+        lap_delta = compute_lap_delta(
+            year=DEMO_RACE["year"],
+            event=DEMO_RACE["event"],
+            session_type=DEMO_RACE["session"],
+            reference_driver=DEMO_RACE["driver"],
+            compare_driver=DEMO_RACE["rival"],
+        )
+    except Exception:
+        lap_delta = None
+
+    try:
+        rival_tel_res = get_session_telemetry_summary(
+            DEMO_RACE["year"],
+            DEMO_RACE["event"],
+            DEMO_RACE["session"],
+            DEMO_RACE["rival"],
+        )
+        compare_speed_series = (
+            rival_tel_res.get("data", {}).get("speed", {}).get("series") or []
+        )
+    except Exception:
+        compare_speed_series = []
+
     # Assemble bundle
     demo_bundle = {
         "demo_race": DEMO_RACE,
@@ -235,6 +274,9 @@ def main() -> int:
         "compare_scenarios": compare_scenarios_data,
         "telemetry_data": telemetry_data,
         "track_map": track_map,
+        "weather": weather_data,
+        "lap_delta": lap_delta,
+        "compare_speed_series": compare_speed_series,
         "baked_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
 

@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { Server } from "lucide-react";
+import { useSupabase } from "@/components/auth/SupabaseProvider";
 import { NavIcon } from "./primitives";
 import { HOME_ICON_D, TELEMETRY_ICON_D } from "./constants";
 
 export function NavRail() {
+  const { session } = useSupabase();
+
   return (
     <nav className="z-40 flex w-14 shrink-0 flex-col items-center gap-0 border-r border-border bg-surface py-5">
       <Link
@@ -23,9 +26,11 @@ export function NavRail() {
         <span title="Telemetry (current view)" aria-current="page" className="rounded p-1 text-accent">
           <NavIcon d={TELEMETRY_ICON_D} />
         </span>
-        <Link href="/observability" title="Observability" className="rounded p-1 text-foreground-dim transition-colors hover:text-foreground">
-          <Server size={18} strokeWidth={1.5} />
-        </Link>
+        {session && (
+          <Link href="/observability" title="Observability" className="rounded p-1 text-foreground-dim transition-colors hover:text-foreground">
+            <Server size={18} strokeWidth={1.5} />
+          </Link>
+        )}
       </div>
     </nav>
   );

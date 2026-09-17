@@ -14,6 +14,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { getMetrics, type MetricsResponse, type MetricsRouteSummary } from "@/services/api";
+import { useSupabase } from "@/components/auth/SupabaseProvider";
+import { AuthButton } from "@/components/auth/AuthButton";
 
 const REFRESH_MS = 5_000;
 const ERROR_RATE_WARN = 0.05;
@@ -28,6 +30,7 @@ function freshnessStatus(updatedAt: number | null): "ok" | "warn" | "info" {
 }
 
 export default function ObservabilityPage() {
+  const { session } = useSupabase();
   const [data, setData] = useState<MetricsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -35,11 +38,12 @@ export default function ObservabilityPage() {
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
 
   useEffect(() => {
+    if (!session) return;
     let cancelled = false;
     const run = async () => {
       setLoading(true);
       try {
-        const res = await getMetrics();
+        const res = await getMetrics(session.access_token);
         if (cancelled) return;
         setData(res);
         setError(null);
@@ -52,17 +56,55 @@ export default function ObservabilityPage() {
     };
     run();
     return () => { cancelled = true; };
-  }, [tick]);
+  }, [tick, session]);
 
   useEffect(() => {
+    if (!session) return;
     const id = setInterval(() => setTick((n) => n + 1), REFRESH_MS);
     return () => clearInterval(id);
-  }, []);
+  }, [session]);
 
   const rows = useMemo(
     () => (data ? Object.entries(data.routes).sort(([a], [b]) => a.localeCompare(b)) : []),
     [data],
   );
+
+  if (!session) {
+    return (
+      <main className="min-h-screen overflow-x-hidden bg-background text-foreground">
+        <div className="hero-glow pointer-events-none fixed inset-0 opacity-40" />
+
+        <header className="sticky top-0 z-40 border-b border-border bg-overlay backdrop-blur-xl">
+          <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
+            <Link
+              href="/"
+              className="readout text-[length:var(--text-readout)] uppercase tracking-[var(--track-widest)] text-foreground-dim transition-colors hover:text-foreground"
+            >
+              ← Back to home
+            </Link>
+          </div>
+        </header>
+
+        <section className="relative z-10 mx-auto max-w-md px-6 pt-24 pb-20 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-surface-elevated">
+            <Server size={20} className="text-accent" />
+          </div>
+          <p className="label mb-2 flex items-center justify-center gap-2 text-foreground-dim">
+            Internal · Observability
+          </p>
+          <h1 className="display mb-3 text-xl font-bold text-foreground">
+            Authentication Required
+          </h1>
+          <p className="mb-6 text-sm text-foreground-dim">
+            Access to server latency, endpoint timing metrics, and Celery worker telemetry is restricted to authenticated team members.
+          </p>
+          <div className="flex justify-center">
+            <AuthButton />
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-background text-foreground">
@@ -81,7 +123,7 @@ export default function ObservabilityPage() {
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div>
             <p className="label mb-2 flex items-center gap-2">
-              <Server size={12} /> Public · Observability
+              <Server size={12} /> Internal · Observability
             </p>
             <h1 className="display text-[length:var(--text-h1)] text-foreground">
               Request volume &amp; latency

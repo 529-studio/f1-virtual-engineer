@@ -8,7 +8,7 @@ import {
 import type {
   AnalyzeHistoryItem, AnalyzeResponse, ControversyFinding, EventInfo,
   LapDeltaCrossYearResponse, LapDeltaResponse, LapInfo, PitExitResponse,
-  SavedQueryItem, StrategyData, TelemetryHistoryItem, TyreAnalyzeResponse, WeatherSummaryResponse,
+  SavedQueryItem, StrategyData, TelemetryHistoryItem, TrackMapResponse, TyreAnalyzeResponse, WeatherSummaryResponse,
 } from "@/services/api";
 import { useMissionStore } from "@/lib/store";
 import { useSupabase } from "@/components/auth/SupabaseProvider";
@@ -112,17 +112,22 @@ export default function MissionControlPage() {
     strategy_data: StrategyData;
     compare_scenarios: unknown[];
     telemetry_data: AnalyzeResponse["telemetry_data"];
+    track_map?: TrackMapResponse;
+    weather?: WeatherSummaryResponse;
+    lap_delta?: LapDeltaResponse;
+    compare_speed_series?: number[];
   } | null>(null);
 
   const [livePitExit, setLivePitExit] = useState<PitExitResponse | null>(null);
   const [pitExitLoading, setPitExitLoading] = useState(false);
 
-  const isDemoRace =
+  const isDemoSession =
     year === 2024 &&
     eventName === "Italian Grand Prix" &&
     session === "R" &&
-    driver === "LEC" &&
-    Boolean(demoRaceData);
+    driver === "LEC";
+
+  const isDemoRace = isDemoSession && Boolean(demoRaceData);
 
   const currentPitExit: PitExitResponse | null = isDemoRace
     ? demoRaceData?.pit_exit_by_lap?.[lap || "15"] ?? null
@@ -174,6 +179,15 @@ export default function MissionControlPage() {
         if (demo.fastest_lap_number) {
           setFastestLapNumber(demo.fastest_lap_number);
         }
+        if (demo.weather) {
+          setWeather(demo.weather);
+        }
+        if (demo.lap_delta) {
+          setLapDelta(demo.lap_delta);
+        }
+        if (demo.compare_speed_series) {
+          setCompareSpeedSeries(demo.compare_speed_series);
+        }
       })
       .catch(() => {
         if (result !== null) return;
@@ -208,31 +222,31 @@ export default function MissionControlPage() {
 
   // Issue #235: weather fetch.
   useEffect(() => {
-    if (isDemoRace) return;
+    if (isDemoSession) return;
     if (!eventName) return;
     let cancelled = false;
     getWeatherSummary({ year, event: eventName, session_type: session })
       .then((res) => { if (!cancelled) setWeather(res); })
       .catch(() => { /* keep last good payload */ });
     return () => { cancelled = true; };
-  }, [year, eventName, session, isDemoRace]);
+  }, [year, eventName, session, isDemoSession]);
 
   // Issue #242: parallel fetch for `compareYear`.
   useEffect(() => {
-    if (isDemoRace) return;
+    if (isDemoSession) return;
     if (!eventName || !compareYear || compareYear === year) return;
     let cancelled = false;
     getWeatherSummary({ year: compareYear, event: eventName, session_type: session })
       .then((res) => { if (!cancelled) setCompareYearWeather(res); })
       .catch(() => { /* keep last good payload */ });
     return () => { cancelled = true; };
-  }, [compareYear, eventName, session, year, isDemoRace]);
+  }, [compareYear, eventName, session, year, isDemoSession]);
 
   // Driver roster is now managed by useDriverRoster hook above (localStorage cache + background refresh).
 
   // Lap roster — on demo race, laps are already hydrated from demo-race.json
   useEffect(() => {
-    if (isDemoRace) return;
+    if (isDemoSession) return;
     if (!eventName || !driver) return;
     let cancelled = false;
     getEventLaps(year, eventName, session, driver)
@@ -247,11 +261,11 @@ export default function MissionControlPage() {
       .catch(() => { if (!cancelled) { setLaps([]); setFastestLapNumber(null); } })
       .finally(() => { if (!cancelled) setLapsLoading(false); });
     return () => { cancelled = true; };
-  }, [year, eventName, session, driver, isDemoRace]);
+  }, [year, eventName, session, driver, isDemoSession]);
 
   // Live Pit Exit projection when not on demo race
   useEffect(() => {
-    if (isDemoRace) return;
+    if (isDemoSession) return;
     if (!eventName || !driver || !lap) return;
     const lapNumber = Number(lap);
     if (!Number.isFinite(lapNumber) || lapNumber <= 0) return;
@@ -294,12 +308,12 @@ export default function MissionControlPage() {
     return () => {
       cancelled = true;
     };
-  }, [isDemoRace, year, eventName, session, driver, lap, authSession?.access_token, laps.length]);
+  }, [isDemoSession, year, eventName, session, driver, lap, authSession?.access_token, laps.length]);
 
   // Patch only `telemetry_data` on the existing analysis when a non-fastest lap is picked.
   // Agent narrative intentionally stays untouched — that requires a fresh /analyze run.
   useEffect(() => {
-    if (!result || !eventName || !driver || lap === "") return;
+    if (isDemoSession || !result || !eventName || !driver || lap === "") return;
     const lapNumber = Number(lap);
     if (!Number.isFinite(lapNumber)) return;
     if (result.telemetry_data?.lap_number === lapNumber) return;
@@ -332,11 +346,11 @@ export default function MissionControlPage() {
       .catch(() => { /* silent — chart keeps existing series */ })
       .finally(() => { if (!cancelled) setLapOverlayLoading(false); });
     return () => { cancelled = true; };
-  }, [lap, result, eventName, driver, session, year, setResult, authSession]);
+  }, [lap, result, eventName, driver, session, year, setResult, authSession, isDemoSession]);
 
   // Compare-driver fastest-lap speed trace.
   useEffect(() => {
-    if (!compareDriver || !eventName) return;
+    if (isDemoSession || !compareDriver || !eventName) return;
     let cancelled = false;
     getTelemetry(
       { year, event: eventName, session_type: session, driver: compareDriver },
@@ -352,7 +366,7 @@ export default function MissionControlPage() {
       .catch(() => { if (!cancelled) setCompareSpeedSeries(null); })
       .finally(() => { if (!cancelled) setCompareLoading(false); });
     return () => { cancelled = true; };
-  }, [compareDriver, year, eventName, session, authSession]);
+  }, [compareDriver, year, eventName, session, authSession, isDemoSession]);
 
   // Issue #184: lap-delta fetch. Triggers only when both drivers and a
   // session/event are pinned. We don't synchronously flip a loading
@@ -361,7 +375,7 @@ export default function MissionControlPage() {
   // below). Keeps the effect side-effect-free at sync time and
   // satisfies react-hooks/set-state-in-effect.
   useEffect(() => {
-    if (!compareDriver || !driver || !eventName || compareDriver === driver) return;
+    if (isDemoSession || !compareDriver || !driver || !eventName || compareDriver === driver) return;
     let cancelled = false;
     getLapDelta({
       year,
@@ -373,7 +387,7 @@ export default function MissionControlPage() {
       .then((res) => { if (!cancelled) setLapDelta(res); })
       .catch(() => { if (!cancelled) setLapDelta(null); });
     return () => { cancelled = true; };
-  }, [driver, compareDriver, year, eventName, session]);
+  }, [driver, compareDriver, year, eventName, session, isDemoSession]);
 
   // Issue #229: cross-year fetch. Mirrors the lap-delta effect — fires
   // only when both years and a driver are pinned and the years differ.
@@ -453,12 +467,12 @@ export default function MissionControlPage() {
   // One-shot auto-analyze: fires when the initial defaults are all ready.
   // hasAutoAnalyzed guards against re-firing on subsequent selector changes.
   useEffect(() => {
-    if (hasAutoAnalyzed.current || isDemoRace) return;
+    if (hasAutoAnalyzed.current || isDemoSession) return;
     if (!eventName || !driver || isLoading) return;
     hasAutoAnalyzed.current = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void runAnalyze({ year, eventName, session, driver });
-  }, [eventName, driver, year, session, isLoading, runAnalyze, isDemoRace]);
+  }, [eventName, driver, year, session, isLoading, runAnalyze, isDemoSession]);
 
   const handleSelectHistory = useCallback((item: AnalyzeHistoryItem) => {
     const nextYear = item.year ?? year;
@@ -666,6 +680,7 @@ export default function MissionControlPage() {
                       driver={driver}
                       lap_number={null}
                       compare_driver={compareDriver || null}
+                      initialData={isDemoSession ? (demoRaceData?.track_map as TrackMapResponse | null) : null}
                     />
                   </div>
                 </div>
