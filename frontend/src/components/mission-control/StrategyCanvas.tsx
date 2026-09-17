@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { AnalyzeResponse, StrategyData } from "@/services/api";
+import type { AnalyzeResponse, PitExitResponse, StrategyData, TyreAnalyzeResponse } from "@/services/api";
 import { PitWindowTimeline } from "./PitWindowTimeline";
 import { GapGauge } from "./GapGauge";
 import { ScenarioComparison } from "./ScenarioComparison";
 import { TyreCard } from "./TyreCard";
+import { PitExitCard } from "./PitExitCard";
 import type { SessionId } from "./constants";
 import {
   CANVAS_ANIM_DURATION,
@@ -19,6 +20,8 @@ import {
 // Layout:
 //   ┌──────────────────────────────────────────┐
 //   │  PIT WINDOW TIMELINE      (full-width)   │
+//   ├──────────────────────────────────────────┤
+//   │  PIT EXIT CARD (Headline strategy call)  │
 //   ├─────────────────────────────┬────────────┤
 //   │  TYRE CARD                  │ GAP GAUGE  │
 //   ├─────────────────────────────┴────────────┤
@@ -35,6 +38,10 @@ interface StrategyCanvasProps {
   session: SessionId;
   driver: string;
   targetDriver?: string | null;
+  pitExit?: PitExitResponse | null;
+  selectedLap?: number | null;
+  pitExitLoading?: boolean;
+  initialTyreData?: TyreAnalyzeResponse | null;
 }
 
 export function StrategyCanvas({
@@ -47,6 +54,10 @@ export function StrategyCanvas({
   session,
   driver,
   targetDriver,
+  pitExit,
+  selectedLap,
+  pitExitLoading,
+  initialTyreData,
 }: StrategyCanvasProps) {
   if (!hasData || !strat) {
     return (
@@ -75,7 +86,24 @@ export function StrategyCanvas({
         />
       </motion.div>
 
-      {/* Row 2 — Tyre Card + Gap Gauge
+      {/* Row 2 — Pit Exit Card (Headline deterministic call) */}
+      {(pitExit || pitExitLoading) && (
+        <motion.div
+          initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 0.5 }}
+        >
+          <PitExitCard
+            projection={pitExit}
+            isLoading={pitExitLoading}
+            event={eventName}
+            driver={driver}
+            lap={selectedLap ?? undefined}
+          />
+        </motion.div>
+      )}
+
+      {/* Row 3 — Tyre Card + Gap Gauge
           NOTE: do NOT add min-h-0 here — it causes TyreCard to collapse
           to zero height when the canvas flex parent doesn't have explicit
           height, which makes ScenarioComparison visually overlap TyreCard. */}
@@ -88,7 +116,14 @@ export function StrategyCanvas({
         {/* TyreCard wrapper: flex-1 for width, but NO min-w-0/min-h-0
             so the card keeps its natural height. */}
         <div className="flex-1">
-          <TyreCard year={year} event={eventName} session={session} driver={driver} />
+          <TyreCard
+            year={year}
+            event={eventName}
+            session={session}
+            driver={driver}
+            lap={selectedLap}
+            initialData={initialTyreData}
+          />
         </div>
 
         {showGapGauge && (
@@ -98,12 +133,13 @@ export function StrategyCanvas({
               pitLoss={strat.pit_loss_seconds!}
               undercutRisk={strat.undercut_risk}
               competitor={strat.competitor_ahead}
+              trackName={eventName}
             />
           </div>
         )}
       </motion.div>
 
-      {/* Row 3 — Scenario comparison cards
+      {/* Row 4 — Scenario comparison cards
           `isolate` creates a new stacking context so that when
           AnimatePresence expands ScenarioComparison the animated
           overflow cannot bleed visually into Row 2 above it. */}

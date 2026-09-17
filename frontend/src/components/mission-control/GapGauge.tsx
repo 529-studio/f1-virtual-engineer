@@ -22,12 +22,13 @@ interface GapGaugeProps {
   /** 'high' | 'medium' | 'low' */
   undercutRisk: string;
   competitor?: string | null;
+  trackName?: string | null;
 }
 
 // Vertical thermometer gauge: gap vs pit-loss threshold.
 // Green fill = gap < pitLoss (undercut potentially viable).
 // Red fill   = gap >= pitLoss (undercut costs more than the gap).
-export function GapGauge({ currentGap, pitLoss, undercutRisk, competitor }: GapGaugeProps) {
+export function GapGauge({ currentGap, pitLoss, undercutRisk, competitor, trackName }: GapGaugeProps) {
   const maxVal = Math.max(currentGap, pitLoss) * GAUGE_SCALE_HEADROOM;
 
   // Fractions within 0–GAUGE_BAR_HEIGHT (top = max, bottom = 0 → invert)
@@ -109,7 +110,7 @@ export function GapGauge({ currentGap, pitLoss, undercutRisk, competitor }: GapG
           fontFamily="var(--font-mono)"
           textAnchor="start"
         >
-          {pitLoss.toFixed(0)}s
+          PIT LOSS {pitLoss.toFixed(1)}s{trackName ? ` @ ${trackName}` : ""}
         </text>
       </svg>
 
@@ -128,8 +129,14 @@ export function GapGauge({ currentGap, pitLoss, undercutRisk, competitor }: GapG
         </p>
       )}
 
-      <p className="readout mt-2 text-[0.55rem] uppercase tracking-wide" style={{ color: fillColor }}>
-        {isViable ? "✓ viable" : "✕ too wide"}
+      <p className="readout mt-2 text-center text-[0.55rem] uppercase tracking-wide" style={{ color: fillColor }}>
+        {isViable
+          ? competitor
+            ? `undercut viable vs ${competitor}`
+            : "undercut window open"
+          : competitor
+            ? `undercut closed vs ${competitor}`
+            : "undercut window closed"}
       </p>
     </div>
   );
