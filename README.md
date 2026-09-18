@@ -12,7 +12,35 @@ An end-to-end agentic AI system that acts as a virtual Formula 1 race engineer. 
 
 ## ▶︎ Try it live
 
-**Mission Control runs in your browser at <https://f1-virtual-engineer.duckdns.org/mission-control>.** Anonymous works — no sign-in needed for the core flow. Optional Google sign-in unlocks per-user history + saved queries (Supabase Auth + RLS).
+**Mission Control runs in your browser at <https://f1.529studio.site/>.** Anonymous works — no sign-in needed for the core flow. Optional Google sign-in unlocks per-user history + saved queries (Supabase Auth + RLS).
+
+### Screenshots
+
+*If the system is running correctly, the UI should look like this:*
+
+**Mission Control (Strategy Mode):**
+![Strategy Dashboard](design/f1-strategy.png)
+
+**Mission Control (Telemetry Mode):**
+![Telemetry Dashboard](design/f1-telementry.png)
+
+**Landing Page:**
+![Landing Page](design/f1-landingpage.png)
+
+**User Guides:**
+![Guide 1](design/f1-userguide1.png)
+![Guide 2](design/f1-userguide2.png)
+![Guide 3](design/f1-userguide3.png)
+
+## Core Features
+
+- **Agentic AI Race Engineer:** Uses LangGraph to orchestrate a sophisticated reasoning engine that decides whether a query needs telemetry analysis, strategy computation, or rulebook retrieval.
+- **Real-time Telemetry & Track Maps:** Integrates with FastF1 to pull real lap data and render 2D circuit traces with speed/throttle/brake heatmaps.
+- **Lap-Delta Comparison:** Compare two drivers (or the same driver across different years) point-by-point along the track to see exactly where time is gained or lost.
+- **Strategy & Pit Recommendations:** Calculates tire degradation and predicts optimal pit windows and undercut risks based on historical stint data.
+- **Controversy & Penalty Analysis:** Automatically detects race incidents and generates dual-perspective arguments (team vs. steward) grounded in actual FIA Sporting Regulations.
+- **Asynchronous LLM Processing:** Leverages RabbitMQ and Celery to run heavy LLM rationale generation in the background, keeping the main API highly responsive.
+- **Intelligent RAG System:** BM25 keyword retrieval over a curated markdown corpus of FIA rules and F1 strategy concepts, surfacing actionable citations without the overhead of a vector database.
 
 Suggested first run:
 
