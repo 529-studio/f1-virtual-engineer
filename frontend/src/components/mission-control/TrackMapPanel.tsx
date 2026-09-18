@@ -25,6 +25,7 @@ export interface TrackMapPanelProps {
   driver: string;
   lap_number?: number | null;
   compare_driver?: string | null;
+  initialData?: TrackMapResponse | null;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────
@@ -35,16 +36,24 @@ export function TrackMapPanel({
   driver,
   lap_number,
   compare_driver,
+  initialData,
 }: TrackMapPanelProps) {
   const [data, setData] = useState<TrackMapResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const activeData = initialData ?? data;
+
   // Serialise params to detect actual changes
   const paramsKey = `${year}|${event}|${session_type}|${driver}|${lap_number ?? "fastest"}|${compare_driver ?? ""}`;
 
   useEffect(() => {
+    // If initialData is already provided, skip network fetch entirely
+    if (initialData) {
+      return;
+    }
+
     // Skip if any required field is missing
     if (!year || !event || !session_type || !driver) return;
 
@@ -112,7 +121,7 @@ export function TrackMapPanel({
     );
   }
 
-  if (!data) {
+  if (!activeData) {
     return (
       <div className="flex h-32 items-center justify-center">
         <p className="readout text-[0.6rem] uppercase tracking-widest text-foreground-faint">
@@ -122,5 +131,5 @@ export function TrackMapPanel({
     );
   }
 
-  return <TrackMapCanvas data={data} />;
+  return <TrackMapCanvas data={activeData} />;
 }

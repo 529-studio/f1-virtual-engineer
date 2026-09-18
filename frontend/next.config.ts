@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
   env: {
     GITHUB_URL: process.env.GITHUB_URL,
   },
+  experimental: {
+    proxyTimeout: 120000,
+  },
   async rewrites() {
     return [
       {

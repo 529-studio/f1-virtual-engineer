@@ -600,10 +600,14 @@ export interface MetricsResponse {
   };
 }
 
-export async function getMetrics(): Promise<MetricsResponse> {
+export async function getMetrics(accessToken?: string): Promise<MetricsResponse> {
+  const headers: Record<string, string> = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
   const response = await fetchWithRetry(
     `${apiBaseUrl}/metrics`,
-    { cache: "no-store" },
+    { cache: "no-store", headers },
     { timeoutMs: TIMEOUT_SHORT_MS },
   );
   if (!response.ok) {
