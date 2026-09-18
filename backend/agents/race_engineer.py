@@ -696,49 +696,60 @@ def analyze_query(
             _events = []
 
         if _events:
-            _CONTROVERSY_SYSTEM_PROMPT = (
-                "You are an FIA steward and F1 team lawyer. "
-                "Given a detected race incident and the relevant FIA Sporting Regulation excerpts, "
-                "produce a JSON object with exactly these fields: "
-                "\"question\" (string — the regulatory question this raises), "
-                "\"team_argument\" (string — strongest argument from the team's perspective), "
-                "\"steward_argument\" (string — strongest argument from the steward's perspective), "
-                "\"regulation_cited\" (string — most relevant regulation title and article number), "
-                "\"verdict_likelihood\" (string — one of: team favoured | steward favoured | contested). "
-                "Be concise (2-3 sentences per argument). Ground every claim in the regulation excerpts supplied. "
-                "Do NOT invent article numbers or rule text not in the excerpts."
-            )
-            for ev in _events:
-                try:
-                    reg_hits = semantic_lookup(ev.regulation_hint, k=3)
-                    if not reg_hits:
-                        reg_hits = knowledge_lookup(ev.regulation_hint, 3)
-                    payload = {
-                        "incident": {
-                            "type": ev.type,
-                            "lap": ev.lap,
-                            "drivers": ev.drivers,
-                            "description": ev.description,
-                        },
-                        "regulations": [
-                            {"title": h["title"], "section": h["section"], "snippet": h["snippet"]}
-                            for h in reg_hits
-                        ],
-                    }
-                    analysis = generate_structured(
-                        payload,
-                        system_prompt=_CONTROVERSY_SYSTEM_PROMPT,
-                    )
-                    if analysis and isinstance(analysis, dict):
-                        controversy_analysis.append({
-                            "event_type": ev.type,
-                            "lap": ev.lap,
-                            "drivers": ev.drivers,
-                            "description": ev.description,
-                            **analysis,
-                        })
-                except Exception:
-                    _logger.warning("controversy analysis failed for event %s", ev.type, exc_info=True)
+            if force_template:
+                for ev in _events:
+                    controversy_analysis.append({
+                        "event_type": ev.type,
+                        "lap": ev.lap,
+                        "drivers": ev.drivers,
+                        "description": ev.description,
+                        "fallback": True,
+                        "question": "Controversy detected, but analysis is deferred in async mode.",
+                    })
+            else:
+                _CONTROVERSY_SYSTEM_PROMPT = (
+                    "You are an FIA steward and F1 team lawyer. "
+                    "Given a detected race incident and the relevant FIA Sporting Regulation excerpts, "
+                    "produce a JSON object with exactly these fields: "
+                    "\"question\" (string — the regulatory question this raises), "
+                    "\"team_argument\" (string — strongest argument from the team's perspective), "
+                    "\"steward_argument\" (string — strongest argument from the steward's perspective), "
+                    "\"regulation_cited\" (string — most relevant regulation title and article number), "
+                    "\"verdict_likelihood\" (string — one of: team favoured | steward favoured | contested). "
+                    "Be concise (2-3 sentences per argument). Ground every claim in the regulation excerpts supplied. "
+                    "Do NOT invent article numbers or rule text not in the excerpts."
+                )
+                for ev in _events:
+                    try:
+                        reg_hits = semantic_lookup(ev.regulation_hint, k=3)
+                        if not reg_hits:
+                            reg_hits = knowledge_lookup(ev.regulation_hint, 3)
+                        payload = {
+                            "incident": {
+                                "type": ev.type,
+                                "lap": ev.lap,
+                                "drivers": ev.drivers,
+                                "description": ev.description,
+                            },
+                            "regulations": [
+                                {"title": h["title"], "section": h["section"], "snippet": h["snippet"]}
+                                for h in reg_hits
+                            ],
+                        }
+                        analysis = generate_structured(
+                            payload,
+                            system_prompt=_CONTROVERSY_SYSTEM_PROMPT,
+                        )
+                        if analysis and isinstance(analysis, dict):
+                            controversy_analysis.append({
+                                "event_type": ev.type,
+                                "lap": ev.lap,
+                                "drivers": ev.drivers,
+                                "description": ev.description,
+                                **analysis,
+                            })
+                    except Exception:
+                        _logger.warning("controversy analysis failed for event %s", ev.type, exc_info=True)
 
     return {
         "intent": result["intent"],
