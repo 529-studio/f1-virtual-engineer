@@ -83,6 +83,50 @@ def bump_success_counter() -> None:
     _bump_counter(_SUCCESS_COUNTER_KEY)
 
 
+def _send_dlq_alert(envelope: dict[str, Any]) -> None:
+    """Best-effort dispatch of terminal task failures to Centralized Alert Gateway.
+
+    Must never raise or crash the worker under any circumstances.
+    """
+    alert_url = os.getenv("ALERT_GATEWAY_URL")
+    alert_key = os.getenv("ALERT_GATEWAY_KEY")
+    if not alert_url or not alert_key:
+        return
+
+    if os.getenv("DLQ_ALERT_ENABLED", "true").lower() not in {"1", "true", "yes", "on"}:
+        return
+
+    try:
+        import urllib.request
+
+        payload = {
+            "target": "devteam",
+            "source": "f1-celery-dlq",
+            "severity": "CRITICAL",
+            "title": f"Celery Task Failed: {envelope.get('origin_task', 'Unknown')}",
+            "message": (
+                f"Task: {envelope.get('origin_task')}\n"
+                f"ID: {envelope.get('origin_task_id')}\n"
+                f"Error: {envelope.get('exc_type')}: {envelope.get('exc_msg')}"
+            ),
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            alert_url,
+            data=data,
+            headers={
+                "Content-Type": "application/json",
+                "X-Alert-Key": alert_key,
+                "User-Agent": "f1-dlq-worker/1.0",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=5):
+            pass
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("Failed to dispatch DLQ alert to Gateway: %s", exc)
+
+
 @app.task(name="tasks.dlq.process_failure")
 def process_failure(
     origin_task: str,
@@ -92,7 +136,7 @@ def process_failure(
     exc_type: str,
     exc_msg: str,
 ) -> dict[str, Any]:
-    """Receive a terminal-failure envelope, log + count.
+    """Receive a terminal-failure envelope, log + count + alert.
 
     Returns the same envelope so a future tool (or a test) can inspect
     what was processed without going back to the broker.
@@ -117,7 +161,10 @@ def process_failure(
     if os.getenv("DLQ_BUMP_COUNTER", "true").lower() in {"1", "true", "yes", "on"}:
         _bump_failure_counter()
 
+    _send_dlq_alert(envelope)
+
     return envelope
 
 
 __all__ = ["process_failure", "bump_success_counter"]
+
