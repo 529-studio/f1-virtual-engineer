@@ -23,12 +23,15 @@ import logging
 import os
 import ssl
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 import certifi
 import jwt
-from fastapi import HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
+
+_bearer_scheme = HTTPBearer(auto_error=False)
 
 try:
     from dotenv import load_dotenv
@@ -159,13 +162,16 @@ def _extract_bearer(request: Request) -> str | None:
     return parts[1].strip() or None
 
 
-def get_optional_user_id(request: Request) -> str | None:
+def get_optional_user_id(
+    request: Request,
+    creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer_scheme)] = None,
+) -> str | None:
     """Return the verified ``sub`` claim, or None when no/invalid token is present.
 
     Use for endpoints that work anonymously and only need the user id when
     available (e.g. opt-in persistence on ``/analyze``).
     """
-    token = _extract_bearer(request)
+    token = creds.credentials if creds else _extract_bearer(request)
     if not token:
         return None
     claims = verify_supabase_jwt(token)
@@ -174,12 +180,15 @@ def get_optional_user_id(request: Request) -> str | None:
     return str(claims["sub"])
 
 
-def get_required_user_id(request: Request) -> str:
+def get_required_user_id(
+    request: Request,
+    creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer_scheme)] = None,
+) -> str:
     """Return the verified ``sub`` claim or raise 401.
 
     Use for endpoints that are themselves auth-gated (e.g. history listing).
     """
-    token = _extract_bearer(request)
+    token = creds.credentials if creds else _extract_bearer(request)
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -194,3 +203,8 @@ def get_required_user_id(request: Request) -> str:
             headers={"WWW-Authenticate": "Bearer"},
         )
     return str(claims["sub"])
+
+
+# Reusable FastAPI dependency type aliases (FastAPI 0.95+ idiom)
+OptionalUserId = Annotated[str | None, Depends(get_optional_user_id)]
+RequiredUserId = Annotated[str, Depends(get_required_user_id)]

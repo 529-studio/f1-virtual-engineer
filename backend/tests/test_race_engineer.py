@@ -37,6 +37,13 @@ class RaceEngineerTests(unittest.TestCase):
     def setUp(self):
         reset_memory_store()
         force_template_rationale()
+        self._ff1_patcher = patch("fastf1.get_session")
+        mock_get_session = self._ff1_patcher.start()
+        mock_session = mock_get_session.return_value
+        mock_session.load.return_value = None
+
+    def tearDown(self):
+        self._ff1_patcher.stop()
 
     def test_parse_telemetry_intent_requires_driver(self):
         intent = parse_telemetry_intent("toc do o japanese gp 2023")

@@ -111,11 +111,29 @@ function CornerMarker({ corner, opacity = 1 }: { corner: CornerInfo; opacity?: n
   );
 }
 
-function HoverTooltip({ pt, x, y }: { pt: TrackMapPoint; x: number; y: number }) {
+function HoverTooltip({
+  pt,
+  x,
+  y,
+  containerWidth,
+}: {
+  pt: TrackMapPoint;
+  x: number;
+  y: number;
+  containerWidth?: number;
+}) {
+  const isRightHalf = containerWidth ? x > containerWidth - 170 : false;
+  const isTopHalf = y < 110;
   return (
     <div
       className="pointer-events-none absolute z-20 rounded border border-border bg-surface px-3 py-2 shadow-lg"
-      style={{ left: x + TOOLTIP_OFFSET_X, top: y + TOOLTIP_OFFSET_Y, transform: "translateY(-100%)" }}
+      style={{
+        left: isRightHalf ? x - TOOLTIP_OFFSET_X : x + TOOLTIP_OFFSET_X,
+        top: isTopHalf ? y + 20 : y + TOOLTIP_OFFSET_Y,
+        transform: isRightHalf
+          ? isTopHalf ? "translateX(-100%)" : "translateX(-100%) translateY(-100%)"
+          : isTopHalf ? "none" : "translateY(-100%)",
+      }}
     >
       <p className="readout mb-1 text-[0.6rem] uppercase tracking-widest text-foreground-faint">
         {pt.distance.toFixed(0)} m
@@ -183,8 +201,12 @@ interface TrackMapCanvasProps {
 export function TrackMapCanvas({ data, heightClass = "h-full" }: TrackMapCanvasProps) {
   const [mode, setMode] = useState<HeatmapMode>("speed");
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; containerWidth: number } | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ x: number; y: number; scrollLeft: number; scrollTop: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const { points, compare_points, corners, driver, compare_driver } = data;
 
@@ -202,9 +224,9 @@ export function TrackMapCanvas({ data, heightClass = "h-full" }: TrackMapCanvasP
     pts.map((p) => `${p.x},${p.y}`).join(" ");
 
   // Hover: find nearest point in SVG coordinate space
-  const handleMouseMove = useCallback(
+  const handleSvgMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
-      if (!svgRef.current || points.length === 0) return;
+      if (!svgRef.current || points.length === 0 || isDragging) return;
       const rect = svgRef.current.getBoundingClientRect();
       // Map mouse position to viewBox coordinates
       const svgX = ((e.clientX - rect.left) / rect.width) * VIEWBOX_SIZE;
@@ -222,18 +244,59 @@ export function TrackMapCanvas({ data, heightClass = "h-full" }: TrackMapCanvasP
       if (nearestDist < HOVER_SNAP_PX * pxToVb) {
         setHoveredIdx(nearestIdx);
         // Tooltip position in container-relative px
-        setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+        setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top, containerWidth: rect.width });
       } else {
         setHoveredIdx(null);
         setTooltipPos(null);
       }
     },
-    [points],
+    [points, isDragging],
   );
 
-  const handleMouseLeave = useCallback(() => {
+  const handleSvgMouseLeave = useCallback(() => {
     setHoveredIdx(null);
     setTooltipPos(null);
+  }, []);
+
+  // Drag-to-pan handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (zoom <= 1 || !containerRef.current) return;
+    if (e.button !== 0) return;
+    setIsDragging(true);
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      scrollLeft: containerRef.current.scrollLeft,
+      scrollTop: containerRef.current.scrollTop,
+    };
+  }, [zoom]);
+
+  const handleContainerMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging || !dragStartRef.current || !containerRef.current) return;
+    e.preventDefault();
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    containerRef.current.scrollLeft = dragStartRef.current.scrollLeft - dx;
+    containerRef.current.scrollTop = dragStartRef.current.scrollTop - dy;
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+    dragStartRef.current = null;
+  }, []);
+
+  const handleContainerMouseLeave = useCallback(() => {
+    setIsDragging(false);
+    dragStartRef.current = null;
+  }, []);
+
+  // Mouse wheel zoom (with Ctrl or Meta)
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.25 : -0.25;
+      setZoom((z) => Math.min(3, Math.max(1, +(z + delta).toFixed(2))));
+    }
   }, []);
 
   if (!points.length) {
@@ -249,24 +312,61 @@ export function TrackMapCanvas({ data, heightClass = "h-full" }: TrackMapCanvasP
   const hoveredPoint = hoveredIdx !== null ? points[hoveredIdx] : null;
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Mode toggle */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-px rounded border border-border overflow-hidden">
-          {HEATMAP_MODES.map((m) => (
+    <div className="flex min-h-0 flex-1 flex-col gap-3 h-full w-full">
+      {/* Mode toggle and zoom controls */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex gap-px rounded border border-border overflow-hidden">
+            {HEATMAP_MODES.map((m) => (
+              <button
+                key={m.key}
+                type="button"
+                onClick={() => setMode(m.key)}
+                className={`px-3 py-1 readout text-[0.6rem] uppercase tracking-widest transition-colors ${
+                  mode === m.key
+                    ? "bg-accent text-white"
+                    : "bg-surface text-foreground-dim hover:bg-surface-elevated"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Zoom controls */}
+          <div className="flex items-center gap-px rounded border border-border overflow-hidden bg-surface">
             <button
-              key={m.key}
-              onClick={() => setMode(m.key)}
-              className={`px-3 py-1 readout text-[0.6rem] uppercase tracking-widest transition-colors ${
-                mode === m.key
-                  ? "bg-accent text-white"
-                  : "bg-surface text-foreground-dim hover:bg-surface-elevated"
-              }`}
+              type="button"
+              onClick={() => setZoom((z) => Math.max(1, +(z - 0.25).toFixed(2)))}
+              disabled={zoom <= 1}
+              aria-label="Zoom out"
+              title="Zoom out"
+              className="px-2 py-1 readout text-[0.6rem] text-foreground-dim hover:bg-surface-elevated disabled:opacity-30 disabled:hover:bg-transparent"
             >
-              {m.label}
+              −
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => setZoom(1)}
+              aria-label="Reset zoom to fit"
+              title="Reset zoom to fit"
+              className="px-2 py-1 readout text-[0.6rem] tracking-wider text-foreground-dim hover:bg-surface-elevated"
+            >
+              {zoom === 1 ? "FIT" : `${Math.round(zoom * 100)}%`}
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))}
+              disabled={zoom >= 3}
+              aria-label="Zoom in"
+              title="Zoom in"
+              className="px-2 py-1 readout text-[0.6rem] text-foreground-dim hover:bg-surface-elevated disabled:opacity-30 disabled:hover:bg-transparent"
+            >
+              +
+            </button>
+          </div>
         </div>
+
         {/* Legend */}
         <div className="flex items-center">
           {mode === "speed" && <SpeedLegend min={minSpeed} max={maxSpeed} />}
@@ -286,116 +386,142 @@ export function TrackMapCanvas({ data, heightClass = "h-full" }: TrackMapCanvasP
         </div>
       </div>
 
-      {/* SVG canvas */}
-      <div className={`relative w-full ${heightClass}`}>
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${VIEWBOX_SIZE} ${VIEWBOX_SIZE}`}
-          className="h-full w-full"
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-          aria-label={`${data.event} ${data.session_type} circuit map — ${driver}${compare_driver ? ` vs ${compare_driver}` : ""}`}
+      {/* SVG canvas viewport with scroll & drag-pan */}
+      <div
+        ref={containerRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleContainerMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleContainerMouseLeave}
+        onWheel={handleWheel}
+        className={`relative min-h-[220px] flex-1 w-full flex items-center justify-center overflow-auto mc-scroll rounded border border-border/40 bg-surface/30 p-2 select-none ${
+          zoom > 1 ? (isDragging ? "cursor-grabbing" : "cursor-grab") : ""
+        } ${heightClass}`}
+      >
+        <div
+          className="relative aspect-square flex items-center justify-center transition-[width,height] duration-150 ease-out"
+          style={{
+            width: zoom > 1 ? `${zoom * 100}%` : "100%",
+            height: zoom > 1 ? `${zoom * 100}%` : "100%",
+            maxWidth: zoom > 1 ? "none" : "100%",
+            maxHeight: zoom > 1 ? "none" : "100%",
+          }}
         >
-          {/* Faint grey baseline — full circuit outline */}
-          <polyline
-            points={buildPolylinePoints(points)}
-            fill="none"
-            stroke="rgba(255,255,255,0.08)"
-            strokeWidth={TRACK_STROKE_WIDTH + 2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          {/* Compare driver trace (drawn below primary) */}
-          {compare_points.length > 0 && (
+          <svg
+            ref={svgRef}
+            viewBox={`0 0 ${VIEWBOX_SIZE} ${VIEWBOX_SIZE}`}
+            preserveAspectRatio="xMidYMid meet"
+            className="h-full w-full max-h-full max-w-full aspect-square"
+            onMouseMove={handleSvgMouseMove}
+            onMouseLeave={handleSvgMouseLeave}
+            aria-label={`${data.event} ${data.session_type} circuit map — ${driver}${compare_driver ? ` vs ${compare_driver}` : ""}`}
+          >
+            {/* Faint grey baseline — full circuit outline */}
             <polyline
-              points={buildPolylinePoints(compare_points)}
+              points={buildPolylinePoints(points)}
               fill="none"
-              stroke="rgba(96,165,250,0.45)"
-              strokeWidth={COMPARE_STROKE_WIDTH}
+              stroke="rgba(255,255,255,0.08)"
+              strokeWidth={TRACK_STROKE_WIDTH + 2}
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeDasharray="8 4"
             />
-          )}
 
-          {/* Primary driver: coloured segments */}
-          {points.slice(0, -1).map((pt, i) => {
-            const next = points[i + 1];
-            const colour = pointColour(pt, mode, minSpeed, maxSpeed);
-            const isHovered = i === hoveredIdx;
-            return (
-              <line
-                key={i}
-                x1={pt.x}
-                y1={pt.y}
-                x2={next.x}
-                y2={next.y}
-                stroke={colour}
-                strokeWidth={isHovered ? TRACK_STROKE_WIDTH + 3 : TRACK_STROKE_WIDTH}
+            {/* Compare driver trace (drawn below primary) */}
+            {compare_points.length > 0 && (
+              <polyline
+                points={buildPolylinePoints(compare_points)}
+                fill="none"
+                stroke="rgba(96,165,250,0.45)"
+                strokeWidth={COMPARE_STROKE_WIDTH}
                 strokeLinecap="round"
-                opacity={isHovered ? 1 : 0.9}
+                strokeLinejoin="round"
+                strokeDasharray="8 4"
               />
-            );
-          })}
+            )}
 
-          {/* DRS zones — translucent green highlight */}
-          {points.slice(0, -1).map((pt, i) => {
-            if (pt.drs < 10) return null;
-            const next = points[i + 1];
-            return (
-              <line
-                key={`drs-${i}`}
-                x1={pt.x}
-                y1={pt.y}
-                x2={next.x}
-                y2={next.y}
-                stroke="rgba(34,197,94,0.3)"
-                strokeWidth={TRACK_STROKE_WIDTH + 6}
-                strokeLinecap="round"
+            {/* Primary driver: coloured segments */}
+            {points.slice(0, -1).map((pt, i) => {
+              const next = points[i + 1];
+              const colour = pointColour(pt, mode, minSpeed, maxSpeed);
+              const isHovered = i === hoveredIdx;
+              return (
+                <line
+                  key={i}
+                  x1={pt.x}
+                  y1={pt.y}
+                  x2={next.x}
+                  y2={next.y}
+                  stroke={colour}
+                  strokeWidth={isHovered ? TRACK_STROKE_WIDTH + 3 : TRACK_STROKE_WIDTH}
+                  strokeLinecap="round"
+                  opacity={isHovered ? 1 : 0.9}
+                />
+              );
+            })}
+
+            {/* DRS zones — translucent green highlight */}
+            {points.slice(0, -1).map((pt, i) => {
+              if (pt.drs < 10) return null;
+              const next = points[i + 1];
+              return (
+                <line
+                  key={`drs-${i}`}
+                  x1={pt.x}
+                  y1={pt.y}
+                  x2={next.x}
+                  y2={next.y}
+                  stroke="rgba(34,197,94,0.3)"
+                  strokeWidth={TRACK_STROKE_WIDTH + 6}
+                  strokeLinecap="round"
+                  pointerEvents="none"
+                />
+              );
+            })}
+
+            {/* Hover indicator dot */}
+            {hoveredPoint && (
+              <circle
+                cx={hoveredPoint.x}
+                cy={hoveredPoint.y}
+                r={10}
+                fill="white"
+                opacity={0.9}
                 pointerEvents="none"
               />
-            );
-          })}
+            )}
 
-          {/* Hover indicator dot */}
-          {hoveredPoint && (
-            <circle
-              cx={hoveredPoint.x}
-              cy={hoveredPoint.y}
-              r={10}
-              fill="white"
-              opacity={0.9}
-              pointerEvents="none"
+            {/* Corner annotations */}
+            {corners.map((c) => (
+              <CornerMarker key={`${c.number}${c.letter}`} corner={c} />
+            ))}
+
+            {/* Start/finish marker */}
+            {points.length > 0 && (
+              <circle
+                cx={points[0].x}
+                cy={points[0].y}
+                r={8}
+                fill="white"
+                stroke="#E10600"
+                strokeWidth={2}
+              />
+            )}
+          </svg>
+
+          {/* Hover tooltip — positioned in aspect-square container */}
+          {hoveredPoint && tooltipPos && (
+            <HoverTooltip
+              pt={hoveredPoint}
+              x={tooltipPos.x}
+              y={tooltipPos.y}
+              containerWidth={tooltipPos.containerWidth}
             />
           )}
-
-          {/* Corner annotations */}
-          {corners.map((c) => (
-            <CornerMarker key={`${c.number}${c.letter}`} corner={c} />
-          ))}
-
-          {/* Start/finish marker */}
-          {points.length > 0 && (
-            <circle
-              cx={points[0].x}
-              cy={points[0].y}
-              r={8}
-              fill="white"
-              stroke="#E10600"
-              strokeWidth={2}
-            />
-          )}
-        </svg>
-
-        {/* Hover tooltip — absolute positioned in container */}
-        {hoveredPoint && tooltipPos && (
-          <HoverTooltip pt={hoveredPoint} x={tooltipPos.x} y={tooltipPos.y} />
-        )}
+        </div>
       </div>
 
       {/* Driver legend */}
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-4">
         <span className="flex items-center gap-2">
           <span className="inline-block h-0.5 w-6" style={{ background: "#E10600" }} />
           <span className="readout text-[0.6rem] uppercase tracking-widest text-foreground-dim">{driver}</span>

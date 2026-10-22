@@ -89,7 +89,7 @@ export function TrackMapPanel({
   // ── Render states ──────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex h-[340px] items-center justify-center gap-3">
+      <div className="flex min-h-[220px] flex-1 items-center justify-center gap-3">
         {/* Animated dot loader — CSS only, no JS */}
         <span className="flex gap-1">
           {[0, 1, 2].map((i) => (
@@ -112,7 +112,7 @@ export function TrackMapPanel({
 
   if (error) {
     return (
-      <div className="flex h-32 flex-col items-center justify-center gap-2 text-center">
+      <div className="flex min-h-[140px] flex-1 flex-col items-center justify-center gap-2 text-center">
         <p className="readout text-[0.6rem] uppercase tracking-widest text-amber-400">
           Track map unavailable
         </p>
@@ -123,7 +123,7 @@ export function TrackMapPanel({
 
   if (!activeData) {
     return (
-      <div className="flex h-32 items-center justify-center">
+      <div className="flex min-h-[140px] flex-1 items-center justify-center">
         <p className="readout text-[0.6rem] uppercase tracking-widest text-foreground-faint">
           Select a session to view track map
         </p>
@@ -131,5 +131,9 @@ export function TrackMapPanel({
     );
   }
 
-  return <TrackMapCanvas data={activeData} />;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col h-full w-full">
+      <TrackMapCanvas data={activeData} />
+    </div>
+  );
 }

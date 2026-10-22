@@ -667,12 +667,12 @@ export default function MissionControlPage() {
 
               {/* Right: Track Map column (40%) */}
               {eventName && session && driver ? (
-                <div className="flex min-h-0 w-[40%] flex-col px-4 py-4">
+                <div className="flex min-h-0 w-[40%] flex-col px-4 py-4 overflow-y-auto overflow-x-hidden mc-scroll">
                   <div className="mb-2 flex shrink-0 items-center gap-2">
                     <span className="label text-[0.6rem] uppercase tracking-widest">Track Map</span>
                     <span className="readout text-[0.5rem] uppercase tracking-widest text-foreground-faint">Fastest Lap</span>
                   </div>
-                  <div className="min-h-0 flex-1">
+                  <div className="min-h-0 flex-1 flex flex-col">
                     <TrackMapPanel
                       year={year}
                       event={eventName}
