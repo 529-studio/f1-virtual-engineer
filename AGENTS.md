@@ -1,20 +1,20 @@
 # 529 Studio Agent Protocol — F1 Virtual Engineer
 
-> **Core Philosophy**: Khi làm bất kỳ task nào, **đừng sợ tốn sức** — hãy đào sâu, làm triệt để và giải quyết tận gốc vấn đề.
+> **Core Philosophy**: When tackling any task, **never shy away from effort** — dig deep, be thorough, and resolve problems at their root cause.
 
 ## 1. Evidence-Based DoD & Debugging
-- **Pass test case là chưa đủ, phải tái hiện lỗi End-to-End**: Khi có bug, bắt buộc phải tái hiện trên môi trường chạy thực tế (browser, network trace, cURL), xác định đúng root cause trước khi code fix.
-- **Evidence Before Assertions**: Không báo cáo hoàn thành khi chưa có bằng chứng thực nghiệm (live cURL output, screenshot, browser network log).
+- **Passing tests is not enough; bugs MUST be reproduced End-to-End**: When a bug occurs, reproduce it in the actual runtime environment (browser, network trace, cURL) and identify the true root cause before coding a fix.
+- **Evidence Before Assertions**: Never claim completion without empirical proof (live cURL output, screenshots, browser network traces).
 
 ## 2. 529 Senior Skills Protocol
-Tuân thủ 6 trụ cột kỹ năng từ `529-engineering-skills`:
-- `resilient-networking-and-waf`: Luôn có `User-Agent` định danh, assert upstream headers.
-- `env-and-auth-ops-debugging`: Cấm bare `load_dotenv()`, dùng `Path(__file__).resolve().parent...`.
-- `frontend-4file-and-resilient-ui`: Chuẩn 4-file pattern, render đủ 3 trạng thái (Skeleton, Error, Empty).
-- `evidence-based-dod-and-llm-guardrails`: Đọc docs nội bộ tránh trap deprecation, zero-leak secrets.
+Comply with the 6 core pillars from `529-engineering-skills`:
+- `resilient-networking-and-waf`: Enforce identified `User-Agent`, assert upstream headers.
+- `env-and-auth-ops-debugging`: Ban bare `load_dotenv()`; use explicit `Path(__file__).resolve().parent...`.
+- `frontend-4file-and-resilient-ui`: Standard 4-file pattern, always render 3 states (Skeleton, Error, Empty).
+- `evidence-based-dod-and-llm-guardrails`: Read local docs to prevent deprecation traps, zero-leak secrets.
 
 ## 3. Tech Stack & Git Flow
-- **Data & Backend**: FastAPI + LangGraph + Async first. Dữ liệu dùng cache local `backend/data`.
+- **Data & Backend**: FastAPI + LangGraph + Async first. Use local cache in `backend/data`.
 - **Frontend**: Next.js + Zustand + Apple/Automotive aesthetic.
-- **Git Flow**: Làm việc trên nhánh `feature/*`, merge vào `develop`.
-- **Knowledge Loop**: Ghi nhận bài học vào `lesson_learn.md` sau khi giải quyết bug phức tạp.
+- **Git Flow**: Work on `feature/*` branches, pull request into `develop`.
+- **Knowledge Loop**: Document post-mortems in `lesson_learn.md` after resolving complex bugs.
