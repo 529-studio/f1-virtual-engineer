@@ -50,7 +50,20 @@ def _route_key(request: Request) -> str:
     """Group by matched route template so ``/events/2024`` and ``/events/2023``
     collapse into ``"GET /events/{year}"``. Falls back to the raw path for
     unmatched routes (404s)."""
-    for route in request.app.routes:
+    matched_route = request.scope.get("route")
+    if matched_route is not None and hasattr(matched_route, "path") and matched_route.path:
+        return f"{request.method} {matched_route.path}"
+
+    def _iter_routes(routes):
+        for r in routes:
+            if hasattr(r, "path") and r.path is not None:
+                yield r
+            if hasattr(r, "original_router") and hasattr(r.original_router, "routes"):
+                yield from _iter_routes(r.original_router.routes)
+            elif hasattr(r, "routes"):
+                yield from _iter_routes(r.routes)
+
+    for route in _iter_routes(request.app.routes):
         match, _ = route.matches(request.scope)
         if match == Match.FULL and hasattr(route, "path"):
             return f"{request.method} {route.path}"
