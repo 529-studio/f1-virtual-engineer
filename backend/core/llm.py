@@ -132,6 +132,12 @@ def _ensure_configured() -> Any | None:
         return None
 
 
+def _is_transient_error(exc: Exception) -> bool:
+    """Return True if an exception looks like a transient 503/timeout that can be retried once."""
+    err_msg = str(exc).lower()
+    return "503" in err_msg or "unavailable" in err_msg or "high demand" in err_msg
+
+
 def generate_rationale(context: dict[str, Any], *, model: str | None = None) -> str | None:
     """Generate a natural-language rationale, or return None to fall back to template."""
     model = _resolve_model(model)
@@ -154,30 +160,37 @@ def generate_rationale(context: dict[str, Any], *, model: str | None = None) -> 
         return None
 
     prompt = f"Session context (JSON):\n{json.dumps(context, default=str, indent=2)}"
-    try:
-        if hasattr(genai_client, "GenerativeModel"):
-            client = genai_client.GenerativeModel(model_name=model, system_instruction=_SYSTEM_PROMPT)
-            response = client.generate_content(prompt)
-            text = (getattr(response, "text", None) or "").strip()
-        elif hasattr(genai_client, "models"):
-            try:
-                from google.genai import types
+    text = ""
+    for attempt in range(2):
+        try:
+            if hasattr(genai_client, "GenerativeModel"):
+                client = genai_client.GenerativeModel(model_name=model, system_instruction=_SYSTEM_PROMPT)
+                response = client.generate_content(prompt)
+                text = (getattr(response, "text", None) or "").strip()
+            elif hasattr(genai_client, "models"):
+                try:
+                    from google.genai import types
 
-                config = types.GenerateContentConfig(system_instruction=_SYSTEM_PROMPT)
-            except ImportError:
-                config = {"system_instruction": _SYSTEM_PROMPT}
+                    config = types.GenerateContentConfig(system_instruction=_SYSTEM_PROMPT)
+                except ImportError:
+                    config = {"system_instruction": _SYSTEM_PROMPT}
 
-            response = genai_client.models.generate_content(
-                model=model,
-                contents=prompt,
-                config=config,
-            )
-            text = (getattr(response, "text", None) or "").strip()
-        else:
+                response = genai_client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config=config,
+                )
+                text = (getattr(response, "text", None) or "").strip()
+            else:
+                return None
+            break
+        except Exception as exc:  # noqa: BLE001 — fail-closed
+            if attempt == 0 and _is_transient_error(exc):
+                _logger.info("Transient error calling Gemini (%s); retrying in 0.5s...", exc)
+                time.sleep(0.5)
+                continue
+            _logger.warning("Gemini call failed; falling back to template", exc_info=True)
             return None
-    except Exception:  # noqa: BLE001 — fail-closed
-        _logger.warning("Gemini call failed; falling back to template", exc_info=True)
-        return None
 
     if not text:
         return None
@@ -234,40 +247,47 @@ def generate_structured(
         return None
 
     prompt = f"Input (JSON):\n{json.dumps(user_payload, default=str, indent=2)}"
-    try:
-        if hasattr(genai_client, "GenerativeModel"):
-            client = genai_client.GenerativeModel(
-                model_name=model,
-                system_instruction=system_prompt,
-                generation_config={"response_mime_type": "application/json"},
-            )
-            response = client.generate_content(prompt)
-            text = (getattr(response, "text", None) or "").strip()
-        elif hasattr(genai_client, "models"):
-            try:
-                from google.genai import types
-
-                config = types.GenerateContentConfig(
+    text = ""
+    for attempt in range(2):
+        try:
+            if hasattr(genai_client, "GenerativeModel"):
+                client = genai_client.GenerativeModel(
+                    model_name=model,
                     system_instruction=system_prompt,
-                    response_mime_type="application/json",
+                    generation_config={"response_mime_type": "application/json"},
                 )
-            except ImportError:
-                config = {
-                    "system_instruction": system_prompt,
-                    "response_mime_type": "application/json",
-                }
+                response = client.generate_content(prompt)
+                text = (getattr(response, "text", None) or "").strip()
+            elif hasattr(genai_client, "models"):
+                try:
+                    from google.genai import types
 
-            response = genai_client.models.generate_content(
-                model=model,
-                contents=prompt,
-                config=config,
-            )
-            text = (getattr(response, "text", None) or "").strip()
-        else:
+                    config = types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        response_mime_type="application/json",
+                    )
+                except ImportError:
+                    config = {
+                        "system_instruction": system_prompt,
+                        "response_mime_type": "application/json",
+                    }
+
+                response = genai_client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config=config,
+                )
+                text = (getattr(response, "text", None) or "").strip()
+            else:
+                return None
+            break
+        except Exception as exc:  # noqa: BLE001 — fail-closed
+            if attempt == 0 and _is_transient_error(exc):
+                _logger.info("Transient error in Gemini structured call (%s); retrying in 0.5s...", exc)
+                time.sleep(0.5)
+                continue
+            _logger.warning("Gemini structured call failed; caller will fall back", exc_info=True)
             return None
-    except Exception:  # noqa: BLE001 — fail-closed
-        _logger.warning("Gemini structured call failed; caller will fall back", exc_info=True)
-        return None
 
     if not text:
         return None
