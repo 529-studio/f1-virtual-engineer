@@ -37,12 +37,12 @@ export function readEvalStatus(): EvalStatus {
   // build.
   const candidates = [
     path.resolve(process.cwd(), "public/data/strategy_pit_status.json"),
-    path.resolve(process.cwd(), "..", "backend/evals/cases/strategy_pit_status.json"),
+    path.resolve(/*turbopackIgnore: true*/ process.cwd(), "..", "backend/evals/cases/strategy_pit_status.json"),
   ];
 
   for (const filepath of candidates) {
     try {
-      const raw = JSON.parse(fs.readFileSync(filepath, "utf8")) as {
+      const raw = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ filepath, "utf8")) as {
         passing: number;
         total: number;
         last_updated: string;
