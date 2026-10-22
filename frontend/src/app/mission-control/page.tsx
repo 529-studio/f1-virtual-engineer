@@ -632,7 +632,7 @@ export default function MissionControlPage() {
             tyre wear, gap gauge, and scenario cards — never blank charts.
             Telemetry mode is unchanged. */}
         {/* Content Area — fills remaining height after header + bars + footer */}
-        <div className="flex min-h-0 flex-1 flex-row overflow-hidden">
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
           {intent === "strategy" ? (
             <div className="flex min-h-0 flex-1 flex-col">
               <StrategyCanvas
@@ -653,8 +653,8 @@ export default function MissionControlPage() {
             </div>
           ) : (
             <>
-              {/* Left: Charts column (60%) */}
-              <div className="flex min-h-0 w-[60%] flex-col border-r border-border">
+              {/* Left: Charts column (60% on desktop, full width on mobile/tablet) */}
+              <div className="flex min-h-0 w-full lg:w-[60%] flex-col border-b lg:border-b-0 lg:border-r border-border">
                 <TelemetryChartGrid
                   tel={tel} isLoading={isLoading} hasData={hasData} animateKey={animKey}
                   compareDriver={compareDriver} compareSpeedSeries={compareSpeedSeries}
@@ -665,9 +665,9 @@ export default function MissionControlPage() {
                 />
               </div>
 
-              {/* Right: Track Map column (40%) */}
+              {/* Right: Track Map column (40% on desktop, full width on mobile/tablet) */}
               {eventName && session && driver ? (
-                <div className="flex min-h-0 w-[40%] flex-col px-4 py-4 overflow-y-auto overflow-x-hidden mc-scroll">
+                <div className="flex min-h-0 w-full lg:w-[40%] flex-col px-4 py-4 overflow-y-auto overflow-x-hidden mc-scroll">
                   <div className="mb-2 flex shrink-0 items-center gap-2">
                     <span className="label text-[0.6rem] uppercase tracking-widest">Track Map</span>
                     <span className="readout text-[0.5rem] uppercase tracking-widest text-foreground-faint">Fastest Lap</span>

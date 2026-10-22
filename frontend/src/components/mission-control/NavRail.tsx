@@ -10,7 +10,7 @@ export function NavRail() {
   const { session } = useSupabase();
 
   return (
-    <nav className="z-40 flex w-14 shrink-0 flex-col items-center gap-0 border-r border-border bg-surface py-5">
+    <nav className="z-40 hidden sm:flex w-14 shrink-0 flex-col items-center gap-0 border-r border-border bg-surface py-5">
       <Link
         href="/"
         title="Home"
