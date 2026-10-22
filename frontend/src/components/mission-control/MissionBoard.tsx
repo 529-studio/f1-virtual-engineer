@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ControversyFinding, PitExitResponse, TyreAnalyzeResponse } from "@/services/api";
 import { PitExitCard } from "./PitExitCard";
@@ -29,6 +29,8 @@ const COMPOUND_COLORS: Record<string, string> = {
   WET: "var(--status-info)",
 };
 
+const STORAGE_COLLAPSE_KEY = "apex_mission_board_collapsed";
+
 export function MissionBoard({
   lap,
   totalLaps,
@@ -42,6 +44,33 @@ export function MissionBoard({
   driver,
 }: MissionBoardProps) {
   const [expandedCard, setExpandedCard] = useState<"pit_exit" | "tyre" | "stewards" | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_COLLAPSE_KEY);
+      if (saved === "true") {
+        queueMicrotask(() => setIsCollapsed(true));
+      } else if (saved === null && typeof window !== "undefined" && window.innerWidth < 768) {
+        // On mobile (<768px), default to compact ribbon so telemetry is immediately visible
+        queueMicrotask(() => setIsCollapsed(true));
+      }
+    } catch {
+      // ignore in private mode
+    }
+  }, []);
+
+  const handleToggleCollapse = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(STORAGE_COLLAPSE_KEY, String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   const toggleExpand = (card: "pit_exit" | "tyre" | "stewards") => {
     setExpandedCard((curr) => (curr === card ? null : card));
@@ -101,15 +130,106 @@ export function MissionBoard({
       : `~${lapsToCliff} laps before predicted cliff`;
   const tyreSubtitle = `${compound} compound · L${stintLaps} on tyres`;
 
+  // ─── Collapsed 1-Line Telemetry Ribbon Mode ─────────────────────────────
+  if (isCollapsed) {
+    return (
+      <section className="border-b border-border bg-surface/90 px-4 py-2 flex items-center justify-between text-xs font-mono transition-all">
+        <div className="flex items-center gap-3 md:gap-5 overflow-x-auto min-w-0 pr-2">
+          {/* Pit Exit pill */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsCollapsed(false);
+              setExpandedCard("pit_exit");
+            }}
+            className="flex shrink-0 items-center gap-1.5 hover:text-foreground text-left cursor-pointer"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            <span className="text-foreground-faint text-[0.62rem] uppercase tracking-wider">Pit Exit:</span>
+            <span className="font-bold text-foreground text-[0.68rem]">{pitHeadline}</span>
+          </button>
+
+          <span className="text-border shrink-0">|</span>
+
+          {/* Tyre pill */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsCollapsed(false);
+              setExpandedCard("tyre");
+            }}
+            className="flex shrink-0 items-center gap-1.5 hover:text-foreground text-left cursor-pointer"
+          >
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: COMPOUND_COLORS[compound] ?? "var(--status-warn)" }}
+            />
+            <span className="text-foreground-faint text-[0.62rem] uppercase tracking-wider">Tyre:</span>
+            <span className="text-foreground text-[0.68rem]">{tyreHeadline}</span>
+          </button>
+
+          {/* Stewards pill */}
+          <span className="text-border shrink-0">|</span>
+          <button
+            type="button"
+            onClick={() => {
+              setIsCollapsed(false);
+              setExpandedCard("stewards");
+            }}
+            className="flex shrink-0 items-center gap-1.5 hover:text-foreground text-left cursor-pointer"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+            <span className="text-foreground-faint text-[0.62rem] uppercase tracking-wider">Steward:</span>
+            <span className="text-foreground text-[0.68rem] truncate max-w-[200px]">
+              {hasIncidentNearLap && relevantIncident
+                ? `L${relevantIncident.lap} ${relevantIncident.event_type.replace(/_/g, " ")}`
+                : "Green (No incidents)"}
+            </span>
+          </button>
+        </div>
+
+        {/* Expand button */}
+        <button
+          type="button"
+          onClick={handleToggleCollapse}
+          title="Expand Mission Board"
+          aria-label="Expand Mission Board"
+          className="readout shrink-0 flex items-center gap-1 text-[0.62rem] font-bold uppercase tracking-wider text-accent border border-accent/40 bg-accent/10 px-2.5 py-1 rounded hover:bg-accent/20 cursor-pointer"
+        >
+          <span>Expand</span>
+          <span className="text-xs leading-none">↓</span>
+        </button>
+      </section>
+    );
+  }
+
+  // ─── Expanded 3-Card Grid Mode ──────────────────────────────────────────
   return (
-    <section className="border-b border-border bg-surface px-5 py-3">
-      {/* 3 Story Cards Tap-to-Expand Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <section className="border-b border-border bg-surface px-5 py-2.5 relative">
+      {/* Top Header Row with Collapse Control */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="label text-[0.58rem] uppercase tracking-widest text-foreground-dim">
+          Mission Strategy Overview
+        </span>
+        <button
+          type="button"
+          onClick={handleToggleCollapse}
+          title="Collapse to compact ribbon to maximize chart height"
+          aria-label="Collapse Mission Board"
+          className="readout flex items-center gap-1 text-[0.6rem] uppercase tracking-wider text-foreground-faint hover:text-foreground px-2 py-0.5 rounded hover:bg-surface-elevated cursor-pointer transition-colors"
+        >
+          <span>Collapse</span>
+          <span className="text-xs leading-none">↑</span>
+        </button>
+      </div>
+
+      {/* 3 Story Cards Tap-to-Expand Grid — horizontal snap carousel on mobile, 3-col on desktop */}
+      <div className="flex md:grid md:grid-cols-3 gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-5 px-5 md:mx-0 md:px-0 mc-scroll">
         {/* Card 1: PIT EXIT CALL */}
         <button
           type="button"
           onClick={() => toggleExpand("pit_exit")}
-          className={`group text-left rounded border transition-all p-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ${
+          className={`group text-left rounded border transition-all p-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent cursor-pointer w-[84vw] sm:w-[320px] md:w-auto shrink-0 snap-center ${
             expandedCard === "pit_exit"
               ? "border-accent bg-surface-elevated shadow-md"
               : "border-border bg-surface hover:border-foreground-dim"
@@ -140,7 +260,7 @@ export function MissionBoard({
         <button
           type="button"
           onClick={() => toggleExpand("tyre")}
-          className={`group text-left rounded border transition-all p-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ${
+          className={`group text-left rounded border transition-all p-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent cursor-pointer w-[84vw] sm:w-[320px] md:w-auto shrink-0 snap-center ${
             expandedCard === "tyre"
               ? "border-accent bg-surface-elevated shadow-md"
               : "border-border bg-surface hover:border-foreground-dim"
@@ -177,7 +297,7 @@ export function MissionBoard({
         <button
           type="button"
           onClick={() => toggleExpand("stewards")}
-          className={`group text-left rounded border transition-all p-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ${
+          className={`group text-left rounded border transition-all p-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent cursor-pointer w-[84vw] sm:w-[320px] md:w-auto shrink-0 snap-center ${
             expandedCard === "stewards"
               ? "border-accent bg-surface-elevated shadow-md"
               : "border-border bg-surface hover:border-foreground-dim"

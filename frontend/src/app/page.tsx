@@ -23,7 +23,7 @@ export default function Home() {
   const evalStatus = readEvalStatus();
 
   return (
-    <main id="top" className="min-h-screen overflow-x-hidden bg-background text-foreground">
+    <main id="top" className="min-h-screen overflow-x-clip bg-background text-foreground">
       <div className="hero-glow pointer-events-none fixed inset-0 opacity-60" />
 
       <header className="sticky top-0 z-50 border-b border-border bg-overlay backdrop-blur-xl">
@@ -49,12 +49,14 @@ export default function Home() {
 
           <LandingNav items={navItems} />
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <RaceWeekendPill />
             <TeamSwitcher />
-            <Link href="/mission-control" className="btn btn--accent">
-              Launch
-            </Link>
+            <div className="hidden sm:block">
+              <Link href="/mission-control" className="btn btn--accent">
+                Launch
+              </Link>
+            </div>
           </div>
         </div>
       </header>

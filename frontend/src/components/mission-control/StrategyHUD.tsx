@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import type { AnalyzeHistoryItem, AnalyzeResponse, SavedQueryItem, StrategyData, TelemetryHistoryItem } from "@/services/api";
@@ -57,7 +57,26 @@ export function StrategyHUD({
 }) {
   const activeTeam = TEAMS.find((t) => t.id === theme) ?? TEAMS[0];
   const [hudTab, setHudTab] = useState<"ai" | "hist" | "radio">("ai");
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
+
+  // Default to expanded on desktop screens (>= 1280px), collapsed on tablets/mobile
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth >= 1280) {
+      queueMicrotask(() => setIsCollapsed(false));
+    }
+  }, []);
+
+  // Listen for mobile HUD open/toggle events from IntentTabBar or header triggers
+  useEffect(() => {
+    const handleOpen = () => setIsCollapsed(false);
+    const handleToggle = () => setIsCollapsed((prev) => !prev);
+    window.addEventListener("apex:open-hud", handleOpen);
+    window.addEventListener("apex:toggle-hud", handleToggle);
+    return () => {
+      window.removeEventListener("apex:open-hud", handleOpen);
+      window.removeEventListener("apex:toggle-hud", handleToggle);
+    };
+  }, []);
 
   // ─── Tab bar config ────────────────────────────────────────────────
   const HUD_TABS = [
@@ -86,7 +105,22 @@ export function StrategyHUD({
         : (result?.agent_response ?? "Analysis complete.");
 
   return (
-    <aside className={`flex shrink-0 flex-col border-l border-border bg-surface transition-[width] duration-300 ease-in-out ${isCollapsed ? "w-12" : "w-72"}`}>
+    <>
+      {/* Mobile backdrop overlay when expanded on small viewports */}
+      {!isCollapsed && (
+        <div
+          onClick={() => setIsCollapsed(true)}
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+        />
+      )}
+
+      <aside
+        className={`flex shrink-0 flex-col border-l border-border bg-surface transition-all duration-300 ease-in-out z-50 ${
+          isCollapsed
+            ? "hidden md:flex w-10 sm:w-12"
+            : "fixed inset-y-0 right-0 w-80 md:relative md:w-72 shadow-2xl md:shadow-none"
+        }`}
+      >
       {isCollapsed ? (
         <div className="flex flex-1 flex-col items-center pt-4">
           <button
@@ -409,5 +443,6 @@ export function StrategyHUD({
         </>
       )}
     </aside>
+    </>
   );
 }

@@ -11,8 +11,8 @@ export function NavIcon({ d }: { d: string }) {
   );
 }
 
-export function VDivider({ height = 5 }: { height?: number }) {
-  return <div className="w-px shrink-0 bg-border" style={{ height: `${height * 0.25}rem` }} />;
+export function VDivider({ height = 5, className = "" }: { height?: number; className?: string }) {
+  return <div className={`hidden sm:block w-px shrink-0 bg-border ${className}`} style={{ height: `${height * 0.25}rem` }} />;
 }
 
 // Custom Listbox replaces the native <select>. Native dropdowns can't
@@ -22,13 +22,16 @@ export function VDivider({ height = 5 }: { height?: number }) {
 // pulling in a UI lib. Same Select() signature so callsites don't
 // change.
 export function Select<T extends string>({
-  value, onChange, options, loading, placeholder,
+  value, onChange, options, loading, placeholder, className = "", buttonClassName = "", minWidth,
 }: {
   value: T | "";
   onChange: (v: T) => void;
   options: { id: T; label: string }[];
   loading?: boolean;
   placeholder: string;
+  className?: string;
+  buttonClassName?: string;
+  minWidth?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState<number>(-1);
@@ -80,7 +83,7 @@ export function Select<T extends string>({
   }, [highlight, open]);
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className={`relative ${className}`}>
       <button
         type="button"
         disabled={loading && options.length === 0 && !open}
@@ -93,10 +96,12 @@ export function Select<T extends string>({
             return next;
           });
         }}
-        className="readout flex w-full cursor-pointer items-center justify-between border border-border bg-surface-elevated pl-3 pr-2 py-1.5 text-[length:var(--text-label)] uppercase tracking-[var(--track-wide)] outline-none transition-colors focus-visible:border-accent disabled:cursor-not-allowed disabled:opacity-40"
+        className={`readout flex w-full cursor-pointer items-center justify-between border border-border bg-surface-elevated pl-3 pr-2 py-1.5 text-[length:var(--text-label)] uppercase tracking-[var(--track-wide)] outline-none transition-colors focus-visible:border-accent disabled:cursor-not-allowed disabled:opacity-40 ${
+          minWidth ? "" : "sm:min-w-[8.5rem]"
+        } ${buttonClassName}`}
         style={{
           color: value ? "var(--foreground)" : "var(--foreground-dim)",
-          minWidth: "9rem",
+          ...(minWidth ? { minWidth } : {}),
         }}
       >
         <span className="flex items-center gap-2 truncate">

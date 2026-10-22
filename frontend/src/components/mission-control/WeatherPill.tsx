@@ -36,7 +36,7 @@ export function WeatherPill({ weather }: { weather: WeatherSummaryResponse | nul
       style={{ color: CONDITION_TONE[weather.condition] }}
     >
       {weather.condition}
-      {trailing ? ` · ${trailing}` : ""}
+      {trailing ? <span className="hidden sm:inline">{` · ${trailing}`}</span> : ""}
     </span>
   );
 }

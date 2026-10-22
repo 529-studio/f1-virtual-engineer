@@ -1,0 +1,23 @@
+# Lessons Learned & Post-Mortem Log
+
+## [2026-10-22] Mobile Viewport Responsiveness & Layout Traps (iPhone 15/16 Viewport 393x852)
+
+### 1. Incident Overview
+Users accessing Mission Control (`/mission-control`) on mobile viewports (e.g. iPhone 15/16, 393 x 852px) experienced severe visual truncation:
+- The telemetry charts, strategy comparison, and interactive circuit map were completely cut off below the fold with no way to scroll down.
+- Vertical divider ticks (`| | |`) were hanging in empty space between wrapped selector dropdowns.
+- The collapsed Strategy HUD rail stole 40px of horizontal width from an already narrow 393px screen.
+- Header items (`WeatherPill`, auth button, and team switcher) were pushed off the right edge due to header text overflow (603px scroll width).
+
+### 2. Root Cause Analysis
+- **Flexbox Scroll Trap**: The root container set `h-screen overflow-hidden` while the inner column container (`flex min-h-0 min-w-0 flex-1 flex-col`) lacked `overflow-y-auto`. Combined with `min-h-0 flex-1` on the content area, available height was capped at 43.7px and the container trapped all scroll events.
+- **Flex-Wrap Divider Artifacts**: In `flex-wrap` rows, static `<div className="w-px shrink-0 ...">` dividers wrap onto new lines as independent elements, rendering as stray vertical marks.
+- **Unresponsive Aside Layout**: The collapsed state used `w-10 sm:w-12` inside the root horizontal flex row, permanently claiming >10% of mobile screen real estate.
+- **Text Width Without Ellipsis**: `span.readout` with `shrink-0` rendered long session breadcrumbs (`LEC // Italian Grand Prix // LAP 15`) that pushed subsequent header components outside viewport bounds.
+
+### 3. Key Architectural Solutions
+1. **Responsive Scroll Strategy**: On desktop (`lg:`), retain the fixed cockpit view (`lg:overflow-hidden`); on mobile (`< lg:`), enable smooth natural scrolling (`overflow-y-auto mc-scroll`) with healthy minimum heights (`min-h-[105px]` per chart, `h-[380px]` for track map).
+2. **Responsive Dividers**: Hide dividers on wrapping viewports (`hidden sm:block`) so rows wrap cleanly without stray vertical lines.
+3. **Drawer Transition with FAB Trigger**: On small screens, hide the collapsed HUD rail completely (`hidden md:flex`) and provide a sleek floating action button (FAB) with team crest and pulse alert. Tapping smoothly presents the slide-over drawer with backdrop blur.
+4. **Header Containment**: Add `min-w-0 truncate` and viewport-adaptive `max-w` constraints to text breadcrumbs so actions stay within visible boundaries.
+5. **Smart Initial Defaults**: Default `MissionBoard` to compact ribbon mode on mobile first-visit, recovering ~370px vertical space instantly while keeping full details accessible via 1-tap expansion.

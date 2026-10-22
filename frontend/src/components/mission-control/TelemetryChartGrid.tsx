@@ -89,7 +89,7 @@ export function TelemetryChartGrid({
           ? { compareSeries: compareSpeedSeries, compareLabel: compareDriver }
           : {};
         return (
-          <div key={label} className={`min-h-0 flex-1 ${i > 0 ? "mt-3" : ""}`}>
+          <div key={label} className={`min-h-[105px] lg:min-h-0 flex-1 ${i > 0 ? "mt-3" : ""}`}>
             <TelemetryChart
               label={label}
               unit={label === "Speed" ? "KPH" : "%"}
