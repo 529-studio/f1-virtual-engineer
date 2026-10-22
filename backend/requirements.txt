@@ -1,31 +1,32 @@
-fastf1
-fastapi
-uvicorn
-pandas
-langchain
-langgraph
-python-dotenv
-google-generativeai
-pydantic
-matplotlib
-requests
-slowapi
-httpx
-pyjwt
-cachetools
+fastf1>=3.4.0,<4.0.0
+fastapi>=0.115.0,<1.0.0
+uvicorn>=0.30.0,<1.0.0
+pandas>=2.2.0,<3.0.0
+langchain>=0.3.0,<2.0.0
+langgraph>=0.2.0,<2.0.0
+python-dotenv>=1.0.0,<2.0.0
+google-genai>=1.0.0,<3.0.0
+google-generativeai>=0.8.0,<1.0.0
+pydantic>=2.7.0,<3.0.0
+matplotlib>=3.8.0,<4.0.0
+requests>=2.31.0,<3.0.0
+slowapi>=0.1.9,<1.0.0
+httpx>=0.27.0,<1.0.0
+pyjwt>=2.8.0,<3.0.0
+cachetools>=5.3.0,<8.0.0
 # certifi ships the CA bundle PyJWKClient uses to fetch the Supabase
 # JWKS over HTTPS — macOS Python.org installers don't expose a system
 # one, so we pin it explicitly rather than relying on transitive deps.
-certifi
-redis
+certifi>=2024.2.2
+redis>=5.0.0,<8.0.0
 # fakeredis is used only by backend/tests/test_redis_cache.py — it lets
 # us cover the L2 cache wiring in CI without provisioning a real Redis.
-fakeredis
-rank-bm25
+fakeredis>=2.20.0,<3.0.0
+rank-bm25>=0.2.2,<1.0.0
 # chromadb + Gemini embeddings for semantic regulation lookup (#rag-regulation)
-chromadb
+chromadb>=0.4.0,<2.0.0
 # celery for the async task pipeline (#139). amqp transport ships in
 # the base wheel; broker is RabbitMQ in compose, result backend is the
 # same Redis as the L2 cache (different DB index — see
 # backend/tasks/__init__.py).
-celery
+celery>=5.4.0,<6.0.0

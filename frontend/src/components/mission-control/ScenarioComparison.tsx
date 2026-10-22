@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   compareStrategies,
@@ -64,6 +64,7 @@ export function ScenarioComparison({
 }) {
   const [open, setOpen] = useState(true);
   const [presetId, setPresetId] = useState<PresetId>("undercut_timing");
+  const inFlightRef = useRef<string | null>(null);
 
   // requestKey changes whenever any input that should re-fetch changes.
   // We compare it inside the effect's resolver before applying state, so
@@ -88,9 +89,12 @@ export function ScenarioComparison({
 
   useEffect(() => {
     if (!open) return;
-    if (initialOutcomes && result.key === requestKey && result.outcomes) return;
+    if (result.key === requestKey) return;
+    if (inFlightRef.current === requestKey) return;
     const preset = PRESETS.find((p) => p.id === presetId);
     if (!preset) return;
+
+    inFlightRef.current = requestKey;
     let cancelled = false;
     compareStrategies({
       year,
@@ -102,10 +106,12 @@ export function ScenarioComparison({
     })
       .then((res) => {
         if (cancelled) return;
+        inFlightRef.current = null;
         setResult({ key: requestKey, outcomes: res.scenarios, error: null });
       })
       .catch((err: unknown) => {
         if (cancelled) return;
+        inFlightRef.current = null;
         setResult({
           key: requestKey,
           outcomes: null,
@@ -114,8 +120,11 @@ export function ScenarioComparison({
       });
     return () => {
       cancelled = true;
+      if (inFlightRef.current === requestKey) {
+        inFlightRef.current = null;
+      }
     };
-  }, [requestKey, open, presetId, year, event, sessionType, driver, targetDriver, initialOutcomes, result.key, result.outcomes]);
+  }, [requestKey, open, presetId, year, event, sessionType, driver, targetDriver, result.key]);
 
   return (
     // NOTE: no mt-4 here — StrategyCanvas (parent) uses gap-4 between rows.

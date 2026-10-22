@@ -26,4 +26,4 @@ You are the Lead AI Engineer for Apex-Intelligence. Your goal is to maintain tec
 - Treat .cursor/rules/ as a living library. If a pattern repeats or a mistake occurs, update the relevant rule.
 
 ---
-Refer to GEMINI.md for foundational mandates that take precedence.
+Refer to AGENTS.md for foundational mandates that take precedence.

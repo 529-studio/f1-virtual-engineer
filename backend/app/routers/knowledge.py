@@ -5,6 +5,7 @@ from fastapi import APIRouter, Path, Request
 from fastapi.responses import JSONResponse
 
 import app.main as _main
+from app.schemas.common import COMMON_RATE_LIMIT_RESPONSES, ErrorResponse
 from app.schemas.knowledge import (
     KnowledgeLookupRequest,
     KnowledgeLookupResponse,
@@ -16,7 +17,7 @@ from tools.knowledge_retriever import (
     lookup as knowledge_lookup,
 )
 
-router = APIRouter(tags=["knowledge"])
+router = APIRouter(tags=["knowledge"], responses=COMMON_RATE_LIMIT_RESPONSES)
 
 
 @router.post(
@@ -45,6 +46,9 @@ async def knowledge_lookup_endpoint(
 @router.get(
     "/knowledge/note/{note_id}",
     response_model=KnowledgeNoteResponse,
+    responses={
+        404: {"model": ErrorResponse, "description": "Knowledge note not found."},
+    },
     summary="Fetch a single corpus note by id (full body)",
     description=(
         "Returns the full untruncated body of a knowledge corpus entry. Used by the "

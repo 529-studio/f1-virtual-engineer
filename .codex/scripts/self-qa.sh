@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
 
+if [ -d "$PWD/.venv/bin" ]; then
+  PATH="$PWD/.venv/bin:$PATH"
+fi
+
 mode="${1:---staged}"
 
 collect_all_files() {

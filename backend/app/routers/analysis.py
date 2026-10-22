@@ -11,6 +11,7 @@ import app.main as _main
 from agents.race_engineer import analyze_query, set_emit_fn
 from agents.radio_interpreter import interpret_radio
 from app.schemas.analyze import AnalyzeRequest, AnalyzeResponse
+from app.schemas.common import COMMON_RATE_LIMIT_RESPONSES, ErrorResponse
 from app.schemas.pit_exit import PitExitRequest, PitExitResponse
 from app.schemas.radio import RadioRequest, RadioResponse
 from app.schemas.strategy_compare import StrategyCompareRequest, StrategyCompareResponse
@@ -23,12 +24,15 @@ from tools.strategy_compare import compare_scenarios as compare_strategy_scenari
 
 _logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["analysis"])
+router = APIRouter(tags=["analysis"], responses=COMMON_RATE_LIMIT_RESPONSES)
 
 
 @router.post(
     "/analyze",
     response_model=AnalyzeResponse,
+    responses={
+        409: {"model": ErrorResponse, "description": "Duplicate request in flight; retry shortly."},
+    },
     summary="Analyze a telemetry or strategy question",
     description=(
         "Accepts a natural-language query plus optional explicit session context and returns either a telemetry summary "
