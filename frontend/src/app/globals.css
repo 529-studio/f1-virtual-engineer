@@ -436,6 +436,26 @@ button:not(:disabled) { cursor: pointer; }
   background: var(--foreground-faint);
 }
 
+/* Subtle monochrome scrollbar for track maps and overflow panels */
+.mc-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.mc-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.mc-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.mc-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.mc-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--foreground-faint);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .telemetry-ribbon__track { animation: none; }
