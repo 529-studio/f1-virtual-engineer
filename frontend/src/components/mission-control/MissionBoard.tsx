@@ -223,13 +223,13 @@ export function MissionBoard({
         </button>
       </div>
 
-      {/* 3 Story Cards Tap-to-Expand Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* 3 Story Cards Tap-to-Expand Grid — horizontal snap carousel on mobile, 3-col on desktop */}
+      <div className="flex md:grid md:grid-cols-3 gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-5 px-5 md:mx-0 md:px-0 mc-scroll">
         {/* Card 1: PIT EXIT CALL */}
         <button
           type="button"
           onClick={() => toggleExpand("pit_exit")}
-          className={`group text-left rounded border transition-all p-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent cursor-pointer ${
+          className={`group text-left rounded border transition-all p-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent cursor-pointer w-[84vw] sm:w-[320px] md:w-auto shrink-0 snap-center ${
             expandedCard === "pit_exit"
               ? "border-accent bg-surface-elevated shadow-md"
               : "border-border bg-surface hover:border-foreground-dim"
@@ -260,7 +260,7 @@ export function MissionBoard({
         <button
           type="button"
           onClick={() => toggleExpand("tyre")}
-          className={`group text-left rounded border transition-all p-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent cursor-pointer ${
+          className={`group text-left rounded border transition-all p-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent cursor-pointer w-[84vw] sm:w-[320px] md:w-auto shrink-0 snap-center ${
             expandedCard === "tyre"
               ? "border-accent bg-surface-elevated shadow-md"
               : "border-border bg-surface hover:border-foreground-dim"
@@ -297,7 +297,7 @@ export function MissionBoard({
         <button
           type="button"
           onClick={() => toggleExpand("stewards")}
-          className={`group text-left rounded border transition-all p-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent cursor-pointer ${
+          className={`group text-left rounded border transition-all p-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent cursor-pointer w-[84vw] sm:w-[320px] md:w-auto shrink-0 snap-center ${
             expandedCard === "stewards"
               ? "border-accent bg-surface-elevated shadow-md"
               : "border-border bg-surface hover:border-foreground-dim"

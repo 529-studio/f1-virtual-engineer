@@ -104,18 +104,19 @@ export function StrategyCanvas({
       )}
 
       {/* Row 3 — Tyre Card + Gap Gauge
+          On mobile (< sm), stack vertically so TyreCard has full 100% width.
           NOTE: do NOT add min-h-0 here — it causes TyreCard to collapse
           to zero height when the canvas flex parent doesn't have explicit
           height, which makes ScenarioComparison visually overlap TyreCard. */}
       <motion.div
-        className="flex gap-4"
+        className="flex flex-col sm:flex-row gap-4"
         initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER }}
       >
         {/* TyreCard wrapper: flex-1 for width, but NO min-w-0/min-h-0
             so the card keeps its natural height. */}
-        <div className="flex-1">
+        <div className="flex-1 w-full">
           <TyreCard
             year={year}
             event={eventName}
@@ -127,7 +128,7 @@ export function StrategyCanvas({
         </div>
 
         {showGapGauge && (
-          <div className="shrink-0">
+          <div className="shrink-0 w-full sm:w-auto">
             <GapGauge
               currentGap={strat.current_gap_seconds!}
               pitLoss={strat.pit_loss_seconds!}

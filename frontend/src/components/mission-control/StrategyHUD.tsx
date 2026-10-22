@@ -66,6 +66,18 @@ export function StrategyHUD({
     }
   }, []);
 
+  // Listen for mobile HUD open/toggle events from IntentTabBar or header triggers
+  useEffect(() => {
+    const handleOpen = () => setIsCollapsed(false);
+    const handleToggle = () => setIsCollapsed((prev) => !prev);
+    window.addEventListener("apex:open-hud", handleOpen);
+    window.addEventListener("apex:toggle-hud", handleToggle);
+    return () => {
+      window.removeEventListener("apex:open-hud", handleOpen);
+      window.removeEventListener("apex:toggle-hud", handleToggle);
+    };
+  }, []);
+
   // ─── Tab bar config ────────────────────────────────────────────────
   const HUD_TABS = [
     { key: "ai"    as const, label: "AI" },
@@ -100,23 +112,6 @@ export function StrategyHUD({
           onClick={() => setIsCollapsed(true)}
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
         />
-      )}
-
-      {/* Mobile Floating Action Button (FAB) to open HUD drawer */}
-      {isCollapsed && (
-        <button
-          type="button"
-          onClick={() => setIsCollapsed(false)}
-          className="md:hidden fixed bottom-14 right-4 z-40 flex items-center gap-2 rounded-full border border-border bg-surface-elevated/95 px-3 py-2 text-xs font-mono font-medium text-foreground shadow-2xl backdrop-blur-md active:scale-95 transition-all cursor-pointer hover:border-accent"
-          aria-label="Open Strategy HUD"
-          title="Open Strategy HUD"
-        >
-          <TeamIcon id={activeTeam.id} size={15} />
-          <span className="text-[0.65rem] uppercase tracking-wider text-accent font-bold">HUD</span>
-          {hasData && strat?.undercut_risk === "high" && (
-            <span className="h-2 w-2 rounded-full bg-status-error animate-pulse" />
-          )}
-        </button>
       )}
 
       <aside

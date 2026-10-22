@@ -36,15 +36,31 @@ export function AuthButton() {
       session.user.user_metadata?.full_name ||
       session.user.user_metadata?.name ||
       (email ? email.split("@")[0] : session.user.id);
+    const initial = (displayName.trim().charAt(0) || "U").toUpperCase();
+
     return (
-      <div className="flex items-center gap-2">
-        <span className="readout shrink-0 text-[length:var(--text-readout)] text-foreground-dim">
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Mobile: compact circular user initial avatar */}
+        <span
+          className="md:hidden flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-surface-elevated text-[0.6rem] font-bold text-foreground"
+          title={displayName}
+        >
+          {initial}
+        </span>
+
+        {/* Desktop: full user name */}
+        <span
+          className="hidden md:inline readout shrink-0 text-[length:var(--text-readout)] text-foreground-dim truncate max-w-[120px]"
+          title={displayName}
+        >
           {displayName}
         </span>
+
         <button
           type="button"
-          className={buttonClass}
+          className={`${buttonClass} px-1.5 py-0.5 sm:px-2 text-[0.6rem] sm:text-[length:var(--text-readout)]`}
           disabled={busy}
+          title={`Sign out (${displayName})`}
           onClick={async () => {
             setBusy(true);
             try {
