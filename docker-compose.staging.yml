@@ -128,63 +128,14 @@ services:
       start_period: 30s
 
   # ──────────────────────────────────────────────────────────────────────
-  # Celery worker — consumes the apex vhost, runs registered tasks.
+  # Celery worker — consumes both apex.tasks and dead-letter queues.
   #
-  # Same image as backend (no rebuild), CMD swapped to celery. The
-  # `--without-heartbeat --without-mingle --without-gossip` flags trim
-  # ~30MB of resident memory per worker by skipping cluster-discovery
-  # protocols we don't use (single-node deploy).
+  # Consolidated into 1 container with --concurrency=1 to conserve ~250MB
+  # RAM on low-spec host while preserving full DLQ handling.
   # ──────────────────────────────────────────────────────────────────────
   worker:
     image: ghcr.io/529-studio/f1-virtual-engineer/backend:stg-latest
-    env_file:
-      - backend/.env
-    environment:
-      - CORS_ALLOWED_ORIGINS
-      - GEMINI_API_KEY
-      - SUPABASE_URL
-      - SUPABASE_SERVICE_ROLE_KEY
-      - SUPABASE_JWT_SECRET
-      - SUPABASE_DB_URL
-      - REDIS_PASSWORD
-      - REDIS_URL
-      - CELERY_RESULT_BACKEND
-      - RABBITMQ_DEFAULT_PASS
-      - RATIONALE_ASYNC
-      - RABBITMQ_USER
-      - RABBITMQ_PASSWORD
-      - CELERY_BROKER_URL
-      - RABBITMQ_MGMT_URL
-    command:
-      - "celery"
-      - "-A"
-      - "tasks"
-      - "worker"
-      - "--loglevel=info"
-      - "--concurrency=2"
-      - "--queues=apex.tasks"
-      - "--without-heartbeat"
-      - "--without-mingle"
-      - "--without-gossip"
-    volumes:
-      - ./backend/data:/app/backend/data
-    depends_on:
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # ──────────────────────────────────────────────────────────────────────
-  # DLQ worker — consumes the dead-letter queue exclusively (#139 PR2).
-  #
-  # Stays on its own container so a flood of dead letters can't starve
-  # the main worker pool, and so a regression in the DLQ consumer can't
-  # take down regular task processing. Concurrency 1 — DLQ traffic is
-  # always low-volume and order-preserving makes log timelines readable.
-  # ──────────────────────────────────────────────────────────────────────
-  dlq-worker:
-    image: ghcr.io/529-studio/f1-virtual-engineer/backend:stg-latest
+    container_name: f1-worker
     env_file:
       - backend/.env
     environment:
@@ -210,10 +161,20 @@ services:
       - "worker"
       - "--loglevel=info"
       - "--concurrency=1"
-      - "--queues=apex.tasks.dead"
+      - "--queues=apex.tasks,apex.tasks.dead"
       - "--without-heartbeat"
       - "--without-mingle"
       - "--without-gossip"
+    volumes:
+      - ./backend/data:/app/backend/data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+        reservations:
+          cpus: "0.10"
+          memory: 128M
     depends_on:
       redis:
         condition: service_healthy
@@ -246,6 +207,14 @@ services:
       - "127.0.0.1:8000:8000"
     volumes:
       - ./backend/data:/app/backend/data
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 384M
+        reservations:
+          cpus: "0.20"
+          memory: 128M
     depends_on:
       redis:
         condition: service_healthy
