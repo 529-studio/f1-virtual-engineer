@@ -583,7 +583,7 @@ export default function MissionControlPage() {
       <CoachmarksModal />
       <NavRail />
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto lg:overflow-hidden mc-scroll">
         <MissionHeader
           displayDriver={displayDriver} displayEvent={displayEvent} displayLap={displayLap}
           weather={weather}
@@ -631,10 +631,10 @@ export default function MissionControlPage() {
             Strategy mode renders StrategyCanvas with pit window timeline,
             tyre wear, gap gauge, and scenario cards — never blank charts.
             Telemetry mode is unchanged. */}
-        {/* Content Area — fills remaining height after header + bars + footer */}
-        <div className="flex min-h-0 flex-1 flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
+        {/* Content Area — fills remaining height after header + bars + footer on desktop, scrolls naturally on mobile */}
+        <div className="flex shrink-0 flex-col lg:min-h-0 lg:flex-1 lg:flex-row lg:overflow-hidden">
           {intent === "strategy" ? (
-            <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex w-full shrink-0 flex-col lg:min-h-0 lg:flex-1">
               <StrategyCanvas
                 result={result}
                 strat={strat}
@@ -654,7 +654,7 @@ export default function MissionControlPage() {
           ) : (
             <>
               {/* Left: Charts column (60% on desktop, full width on mobile/tablet) */}
-              <div className="flex min-h-0 w-full lg:w-[60%] flex-col border-b lg:border-b-0 lg:border-r border-border">
+              <div className="flex w-full shrink-0 flex-col border-b lg:border-b-0 lg:border-r border-border lg:w-[60%] lg:min-h-0 lg:flex-1">
                 <TelemetryChartGrid
                   tel={tel} isLoading={isLoading} hasData={hasData} animateKey={animKey}
                   compareDriver={compareDriver} compareSpeedSeries={compareSpeedSeries}
@@ -667,7 +667,7 @@ export default function MissionControlPage() {
 
               {/* Right: Track Map column (40% on desktop, full width on mobile/tablet) */}
               {eventName && session && driver ? (
-                <div className="flex min-h-0 w-full lg:w-[40%] flex-col px-4 py-4 overflow-y-auto overflow-x-hidden mc-scroll">
+                <div className="flex w-full shrink-0 flex-col px-4 py-4 lg:w-[40%] lg:min-h-0 lg:flex-1 overflow-y-auto overflow-x-hidden mc-scroll h-[380px] lg:h-auto">
                   <div className="mb-2 flex shrink-0 items-center gap-2">
                     <span className="label text-[0.6rem] uppercase tracking-widest">Track Map</span>
                     <span className="readout text-[0.5rem] uppercase tracking-widest text-foreground-faint">Fastest Lap</span>
@@ -685,13 +685,15 @@ export default function MissionControlPage() {
                   </div>
                 </div>
               ) : (
-                <div className="flex min-h-0 w-[40%] flex-col px-4 py-4" />
+                <div className="flex w-full shrink-0 flex-col px-4 py-4 lg:w-[40%] lg:min-h-0 lg:flex-1" />
               )}
             </>
           )}
         </div>
 
-        <MissionFooter tel={tel} strat={strat} hasData={hasData} execution={result?.execution} />
+        <div className="shrink-0 pb-16 lg:pb-0">
+          <MissionFooter tel={tel} strat={strat} hasData={hasData} execution={result?.execution} />
+        </div>
       </div>
 
       <StrategyHUD

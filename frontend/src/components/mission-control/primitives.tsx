@@ -11,8 +11,8 @@ export function NavIcon({ d }: { d: string }) {
   );
 }
 
-export function VDivider({ height = 5 }: { height?: number }) {
-  return <div className="w-px shrink-0 bg-border" style={{ height: `${height * 0.25}rem` }} />;
+export function VDivider({ height = 5, className = "" }: { height?: number; className?: string }) {
+  return <div className={`hidden sm:block w-px shrink-0 bg-border ${className}`} style={{ height: `${height * 0.25}rem` }} />;
 }
 
 // Custom Listbox replaces the native <select>. Native dropdowns can't

@@ -51,6 +51,9 @@ export function MissionBoard({
       const saved = localStorage.getItem(STORAGE_COLLAPSE_KEY);
       if (saved === "true") {
         queueMicrotask(() => setIsCollapsed(true));
+      } else if (saved === null && typeof window !== "undefined" && window.innerWidth < 768) {
+        // On mobile (<768px), default to compact ribbon so telemetry is immediately visible
+        queueMicrotask(() => setIsCollapsed(true));
       }
     } catch {
       // ignore in private mode
