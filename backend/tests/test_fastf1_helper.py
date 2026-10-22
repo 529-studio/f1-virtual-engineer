@@ -33,12 +33,20 @@ class _FakeLaps(pd.DataFrame):
     def pick_driver(self, driver: str) -> "_FakeLaps":
         return _FakeLaps(self[self["Driver"] == driver.upper()].copy())
 
+    def pick_drivers(self, driver: str | list[str]) -> "_FakeLaps":
+        if isinstance(driver, str):
+            driver = [driver]
+        return _FakeLaps(self[self["Driver"].isin([d.upper() for d in driver])].copy())
+
 
 class FastF1HelperTests(unittest.TestCase):
     def setUp(self) -> None:
         # The helpers now cache successful results (#100 slice B).
         # Wipe between tests so each one sees its own patched fixture.
         _reset_caches_for_tests()
+        self._redis_patch = patch("core.redis_cache.get", return_value=None)
+        self._redis_patch.start()
+        self.addCleanup(self._redis_patch.stop)
 
     @patch("tools.fastf1_helper.fastf1.get_session")
     def test_get_session_telemetry_summary_success(self, mock_get_session):

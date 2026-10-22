@@ -92,7 +92,7 @@ def _context_key(
 
 
 def _ensure_configured() -> Any | None:
-    """Return the configured ``google.generativeai`` module, or None on failure."""
+    """Return configured ``google.genai.Client`` or ``google.generativeai`` module, or None."""
     global _genai_module, _configured_key
 
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -102,21 +102,34 @@ def _ensure_configured() -> Any | None:
     if _genai_module is not None and _configured_key == api_key:
         return _genai_module
 
+    # Prefer modern google.genai SDK
     try:
-        import google.generativeai as genai  # type: ignore
+        from google import genai
+
+        client = genai.Client(api_key=api_key)
+        _genai_module = client
+        _configured_key = api_key
+        return client
     except ImportError:
-        _logger.warning("google-generativeai not installed; falling back to template")
-        return None
-
-    try:
-        genai.configure(api_key=api_key)
+        pass
     except Exception:  # noqa: BLE001 — fail-closed
-        _logger.warning("Failed to configure Gemini client", exc_info=True)
+        _logger.warning("Failed to initialize google.genai Client", exc_info=True)
         return None
 
-    _genai_module = genai
-    _configured_key = api_key
-    return genai
+    # Fallback to legacy google.generativeai SDK
+    try:
+        import google.generativeai as legacy_genai  # type: ignore
+
+        legacy_genai.configure(api_key=api_key)
+        _genai_module = legacy_genai
+        _configured_key = api_key
+        return legacy_genai
+    except ImportError:
+        _logger.warning("Neither google-genai nor google-generativeai installed; falling back to template")
+        return None
+    except Exception:  # noqa: BLE001 — fail-closed
+        _logger.warning("Failed to configure legacy Gemini client", exc_info=True)
+        return None
 
 
 def generate_rationale(context: dict[str, Any], *, model: str | None = None) -> str | None:
@@ -136,15 +149,32 @@ def generate_rationale(context: dict[str, Any], *, model: str | None = None) -> 
         _cache[cache_key] = (time.time(), l2_hit)
         return l2_hit
 
-    genai = _ensure_configured()
-    if genai is None:
+    genai_client = _ensure_configured()
+    if genai_client is None:
         return None
 
+    prompt = f"Session context (JSON):\n{json.dumps(context, default=str, indent=2)}"
     try:
-        client = genai.GenerativeModel(model_name=model, system_instruction=_SYSTEM_PROMPT)
-        prompt = f"Session context (JSON):\n{json.dumps(context, default=str, indent=2)}"
-        response = client.generate_content(prompt)
-        text = (getattr(response, "text", None) or "").strip()
+        if hasattr(genai_client, "GenerativeModel"):
+            client = genai_client.GenerativeModel(model_name=model, system_instruction=_SYSTEM_PROMPT)
+            response = client.generate_content(prompt)
+            text = (getattr(response, "text", None) or "").strip()
+        elif hasattr(genai_client, "models"):
+            try:
+                from google.genai import types
+
+                config = types.GenerateContentConfig(system_instruction=_SYSTEM_PROMPT)
+            except ImportError:
+                config = {"system_instruction": _SYSTEM_PROMPT}
+
+            response = genai_client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=config,
+            )
+            text = (getattr(response, "text", None) or "").strip()
+        else:
+            return None
     except Exception:  # noqa: BLE001 — fail-closed
         _logger.warning("Gemini call failed; falling back to template", exc_info=True)
         return None
@@ -199,19 +229,42 @@ def generate_structured(
             _cache[cache_key] = (time.time(), l2_hit)
             return parsed
 
-    genai = _ensure_configured()
-    if genai is None:
+    genai_client = _ensure_configured()
+    if genai_client is None:
         return None
 
+    prompt = f"Input (JSON):\n{json.dumps(user_payload, default=str, indent=2)}"
     try:
-        client = genai.GenerativeModel(
-            model_name=model,
-            system_instruction=system_prompt,
-            generation_config={"response_mime_type": "application/json"},
-        )
-        prompt = f"Input (JSON):\n{json.dumps(user_payload, default=str, indent=2)}"
-        response = client.generate_content(prompt)
-        text = (getattr(response, "text", None) or "").strip()
+        if hasattr(genai_client, "GenerativeModel"):
+            client = genai_client.GenerativeModel(
+                model_name=model,
+                system_instruction=system_prompt,
+                generation_config={"response_mime_type": "application/json"},
+            )
+            response = client.generate_content(prompt)
+            text = (getattr(response, "text", None) or "").strip()
+        elif hasattr(genai_client, "models"):
+            try:
+                from google.genai import types
+
+                config = types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    response_mime_type="application/json",
+                )
+            except ImportError:
+                config = {
+                    "system_instruction": system_prompt,
+                    "response_mime_type": "application/json",
+                }
+
+            response = genai_client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=config,
+            )
+            text = (getattr(response, "text", None) or "").strip()
+        else:
+            return None
     except Exception:  # noqa: BLE001 — fail-closed
         _logger.warning("Gemini structured call failed; caller will fall back", exc_info=True)
         return None
@@ -246,8 +299,8 @@ def stream_rationale(context: dict[str, Any], *, model: str | None = None) -> It
     streaming for the given model). Never raises — callers iterate safely.
     """
     model = _resolve_model(model)
-    genai = _ensure_configured()
-    if genai is None:
+    genai_client = _ensure_configured()
+    if genai_client is None:
         # No API key or SDK — yield whatever the non-streaming path would produce
         text = generate_rationale(context, model=model)
         if text:
@@ -270,16 +323,38 @@ def stream_rationale(context: dict[str, Any], *, model: str | None = None) -> It
         yield l2_hit
         return
 
+    prompt = f"Session context (JSON):\n{json.dumps(context, default=str, indent=2)}"
     try:
-        client = genai.GenerativeModel(model_name=model, system_instruction=_SYSTEM_PROMPT)
-        prompt = f"Session context (JSON):\n{json.dumps(context, default=str, indent=2)}"
-        response = client.generate_content(prompt, stream=True)
         full_text: list[str] = []
-        for chunk in response:
-            chunk_text = (getattr(chunk, "text", None) or "").strip()
-            if chunk_text:
-                full_text.append(chunk_text)
-                yield chunk_text
+        if hasattr(genai_client, "GenerativeModel"):
+            client = genai_client.GenerativeModel(model_name=model, system_instruction=_SYSTEM_PROMPT)
+            response = client.generate_content(prompt, stream=True)
+            for chunk in response:
+                chunk_text = (getattr(chunk, "text", None) or "").strip()
+                if chunk_text:
+                    full_text.append(chunk_text)
+                    yield chunk_text
+        elif hasattr(genai_client, "models"):
+            try:
+                from google.genai import types
+
+                config = types.GenerateContentConfig(system_instruction=_SYSTEM_PROMPT)
+            except ImportError:
+                config = {"system_instruction": _SYSTEM_PROMPT}
+
+            response = genai_client.models.generate_content_stream(
+                model=model,
+                contents=prompt,
+                config=config,
+            )
+            for chunk in response:
+                chunk_text = (getattr(chunk, "text", None) or "").strip()
+                if chunk_text:
+                    full_text.append(chunk_text)
+                    yield chunk_text
+        else:
+            return
+
         # Cache the assembled text so subsequent identical requests are instant
         assembled = "".join(full_text)
         if assembled:

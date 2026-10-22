@@ -38,23 +38,35 @@ class _GeminiEF:
         return "gemini-text-embedding-004"
 
     def __call__(self, input: list[str]) -> list[list[float]]:  # noqa: A002
-        import google.generativeai as genai
-
         api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         if not api_key:
             raise RuntimeError("GEMINI_API_KEY not set — cannot embed")
-        genai.configure(api_key=api_key)
 
-        result = genai.embed_content(
-            model=EMBEDDING_MODEL,
-            content=input if len(input) > 1 else input[0],
-            task_type="retrieval_document",
-        )
-        embeddings = result["embedding"]
-        # Single input returns a flat list; multiple returns list-of-lists.
-        if isinstance(embeddings[0], float):
-            return [embeddings]
-        return embeddings
+        try:
+            from google import genai
+            from google.genai import types
+
+            client = genai.Client(api_key=api_key)
+            result = client.models.embed_content(
+                model=EMBEDDING_MODEL,
+                contents=input,
+                config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT"),
+            )
+            return [e.values for e in result.embeddings]
+        except ImportError:
+            import google.generativeai as genai
+
+            genai.configure(api_key=api_key)
+            result = genai.embed_content(
+                model=EMBEDDING_MODEL,
+                content=input if len(input) > 1 else input[0],
+                task_type="retrieval_document",
+            )
+            embeddings = result["embedding"]
+            # Single input returns a flat list; multiple returns list-of-lists.
+            if isinstance(embeddings[0], float):
+                return [embeddings]
+            return embeddings
 
 
 # ── Collection init ────────────────────────────────────────────────────────────
@@ -135,18 +147,30 @@ def semantic_lookup(query: str, k: int = 3) -> list[dict[str, Any]]:
         return []
 
     try:
-        import google.generativeai as genai  # noqa: PLC0415
-
         api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         if not api_key:
             return []
-        genai.configure(api_key=api_key)
 
-        q_embedding = genai.embed_content(
-            model=EMBEDDING_MODEL,
-            content=query,
-            task_type="retrieval_query",
-        )["embedding"]
+        try:
+            from google import genai
+            from google.genai import types
+
+            client = genai.Client(api_key=api_key)
+            res = client.models.embed_content(
+                model=EMBEDDING_MODEL,
+                contents=query,
+                config=types.EmbedContentConfig(task_type="RETRIEVAL_QUERY"),
+            )
+            q_embedding = res.embeddings[0].values
+        except ImportError:
+            import google.generativeai as genai  # noqa: PLC0415
+
+            genai.configure(api_key=api_key)
+            q_embedding = genai.embed_content(
+                model=EMBEDDING_MODEL,
+                content=query,
+                task_type="retrieval_query",
+            )["embedding"]
 
         results = coll.query(
             query_embeddings=[q_embedding],

@@ -150,6 +150,46 @@ class GenerateRationaleTests(unittest.TestCase):
         self.assertEqual(second, "Second model response.")
         self.assertEqual(fake_genai.GenerativeModel.call_count, 2)
 
+    def test_modern_genai_client_generate_rationale(self):
+        fake_response = MagicMock()
+        fake_response.text = "Modern SDK rationale."
+        fake_client = MagicMock(spec=["models"])
+        fake_client.models.generate_content.return_value = fake_response
+
+        with patch.object(core_llm, "_ensure_configured", return_value=fake_client):
+            result = core_llm.generate_rationale({"x": 9})
+
+        self.assertEqual(result, "Modern SDK rationale.")
+        fake_client.models.generate_content.assert_called_once()
+        kwargs = fake_client.models.generate_content.call_args.kwargs
+        self.assertEqual(kwargs["model"], "gemini-3.6-flash")
+
+    def test_modern_genai_client_generate_structured(self):
+        fake_response = MagicMock()
+        fake_response.text = '{"status": "ok"}'
+        fake_client = MagicMock(spec=["models"])
+        fake_client.models.generate_content.return_value = fake_response
+
+        with patch.object(core_llm, "_ensure_configured", return_value=fake_client):
+            result = core_llm.generate_structured({"x": 10}, system_prompt="Parse JSON")
+
+        self.assertEqual(result, {"status": "ok"})
+        fake_client.models.generate_content.assert_called_once()
+
+    def test_modern_genai_client_stream_rationale(self):
+        chunk1 = MagicMock()
+        chunk1.text = "Box "
+        chunk2 = MagicMock()
+        chunk2.text = "now."
+        fake_client = MagicMock(spec=["models"])
+        fake_client.models.generate_content_stream.return_value = [chunk1, chunk2]
+
+        with patch.object(core_llm, "_ensure_configured", return_value=fake_client):
+            chunks = list(core_llm.stream_rationale({"x": 11}))
+
+        self.assertEqual(chunks, ["Box", "now."])
+        fake_client.models.generate_content_stream.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

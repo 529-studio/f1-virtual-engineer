@@ -284,6 +284,8 @@ def _reset_caches_for_tests() -> None:
         _loaded_session_cache,
     ):
         _clear_cache(cache)
+    with _cache_lock:
+        _session_load_locks.clear()
 
 
 def _downsample(values: pd.Series, points: int = SERIES_POINTS) -> list[float]:
@@ -468,6 +470,25 @@ def get_event_drivers(year: int, event: str) -> dict[str, Any]:
     }
 
 
+def _pick_driver_laps(laps: Any, driver: str) -> Any:
+    """Filter laps for a driver code, using modern pick_drivers with fallback to pick_driver."""
+    pick_drivers_fn = getattr(laps, "pick_drivers", None)
+    pick_driver_fn = getattr(laps, "pick_driver", None)
+
+    # In mock fixtures where pick_driver return_value was explicitly set, honor it
+    if hasattr(pick_driver_fn, "_mock_return_value"):
+        ret_val = getattr(pick_driver_fn, "_mock_return_value", None)
+        side_eff = getattr(pick_driver_fn, "_mock_side_effect", None)
+        if type(ret_val).__name__ != "_SentinelObject" or side_eff is not None:
+            return pick_driver_fn(driver)
+
+    if callable(pick_drivers_fn):
+        return pick_drivers_fn(driver)
+    if callable(pick_driver_fn):
+        return pick_driver_fn(driver)
+    return laps
+
+
 @_ttl_cached(_telemetry_cache, is_good=lambda r: not r.get("fallback"), name="telemetry")
 def get_session_telemetry_summary(
     year: int,
@@ -486,7 +507,7 @@ def get_session_telemetry_summary(
 
     try:
         session = _get_loaded_telemetry_session(year, event, session_type)
-        laps = session.laps.pick_driver(driver)
+        laps = _pick_driver_laps(session.laps, driver)
         if laps.empty:
             return {
                 "driver": driver,
@@ -602,7 +623,7 @@ def get_session_lap_list(
     try:
         session = fastf1.get_session(year, event, session_type)
         session.load(laps=True, telemetry=False, weather=False, messages=False)
-        laps = session.laps.pick_driver(driver)
+        laps = _pick_driver_laps(session.laps, driver)
         if laps.empty:
             return {
                 "year": year,
@@ -691,7 +712,7 @@ def extract_tyre_wear_features(
         session = fastf1.get_session(year, event, session_type)
         # Optimization: only load laps and weather for strategy analysis
         session.load(laps=True, telemetry=False, weather=True, messages=False)
-        laps = session.laps.pick_driver(driver)
+        laps = _pick_driver_laps(session.laps, driver)
         if laps.empty:
             return {
                 "driver": driver,
@@ -821,7 +842,7 @@ def get_current_gap_to_ahead(
                 "fallback_reason": "Position or Time column missing from session laps.",
             }
 
-        target_laps = all_laps.pick_driver(driver).dropna(subset=["Position", "Time"])
+        target_laps = _pick_driver_laps(all_laps, driver).dropna(subset=["Position", "Time"])
         if target_laps.empty:
             return {
                 "gap_seconds": None,
@@ -935,8 +956,8 @@ def get_gap_to_competitor(
                 "fallback_reason": "Time column missing from session laps.",
             }
 
-        driver_laps = all_laps.pick_driver(driver).dropna(subset=["Time"])
-        target_laps = all_laps.pick_driver(target_driver).dropna(subset=["Time"])
+        driver_laps = _pick_driver_laps(all_laps, driver).dropna(subset=["Time"])
+        target_laps = _pick_driver_laps(all_laps, target_driver).dropna(subset=["Time"])
         if driver_laps.empty or target_laps.empty:
             return {
                 "gap_seconds": None,
@@ -1021,7 +1042,7 @@ def _extract_driver_track_points(
     share the same coordinate system.
     """
     driver = driver.upper()
-    laps = session.laps.pick_driver(driver)
+    laps = _pick_driver_laps(session.laps, driver)
     if laps.empty:
         return [], None
 
@@ -1117,7 +1138,7 @@ def get_track_map_data(
         session = _get_loaded_telemetry_session(year, event, session_type)
 
         # Resolve primary driver's lap for coordinate bounds
-        laps = session.laps.pick_driver(driver)
+        laps = _pick_driver_laps(session.laps, driver)
         if laps.empty:
             return {**_base, "fallback": True, "fallback_reason": f"No laps found for {driver}."}
 

@@ -25,10 +25,11 @@ from core.persistence import (
     list_saved_queries,
     list_telemetry_history,
 )
+from app.schemas.common import COMMON_PROTECTED_RESPONSES
 
 _logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(responses=COMMON_PROTECTED_RESPONSES)
 
 
 @router.get(

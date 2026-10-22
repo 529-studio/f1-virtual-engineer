@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Path, Request
 
 import app.main as _main
+from app.schemas.common import COMMON_RATE_LIMIT_RESPONSES
 from app.schemas.lap_delta import LapDeltaRequest, LapDeltaResponse
 from app.schemas.lap_delta_cross_year import (
     LapDeltaCrossYearRequest,
@@ -29,7 +30,7 @@ from tools.lap_delta_cross_year import compute_cross_year_lap_delta
 from tools.tyre_helper import compute_tyre_decay
 from tools.weather_helper import get_weather_summary
 
-router = APIRouter(tags=["telemetry"])
+router = APIRouter(tags=["telemetry"], responses=COMMON_RATE_LIMIT_RESPONSES)
 
 
 @router.get(
