@@ -1,14 +1,102 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { QuestionRotator } from "@/components/landing/QuestionRotator";
 import { JargonTooltip } from "@/components/ui/JargonTooltip";
 
-// ─── Constants ──────────────────────────────────────────────────────────────
-// All numeric tokens in one place — no bare literals in render code.
-const DEMO_HREF =
-  "/mission-control?event=Japanese%20Grand%20Prix&session=R&driver=VER&lap=fastest";
+// ─── Matchup Datasets for Interactive Cockpit ──────────────────────────────
+interface MatchupData {
+  id: string;
+  label: string;
+  year: number;
+  event: string;
+  session: string;
+  driver: string;
+  rival: string;
+  href: string;
+  deltaPoints: number[];
+  sectors: Array<{ label: string; value: string; positive: boolean }>;
+  summary: string;
+  radioSnippet: string;
+  citations: string;
+}
+
+const MATCHUPS: MatchupData[] = [
+  {
+    id: "ver-ham",
+    label: "VER vs HAM",
+    year: 2024,
+    event: "Suzuka 2024",
+    session: "Race",
+    driver: "VER",
+    rival: "HAM",
+    href: "/mission-control?event=Japanese%20Grand%20Prix&year=2024&session=R&driver=VER",
+    deltaPoints: [
+      0.00, 0.04, 0.09, 0.18, 0.22, 0.19, 0.11, 0.02,
+      -0.06, -0.14, -0.21, -0.18, -0.09, 0.04, 0.13, 0.21,
+      0.27, 0.31, 0.28, 0.22, 0.17, 0.14, 0.18, 0.24, 0.31,
+    ],
+    sectors: [
+      { label: "Sector 1", value: "+0.184", positive: true },
+      { label: "Sector 2", value: "−0.092", positive: false },
+      { label: "Sector 3", value: "+0.221", positive: true },
+      { label: "Lap delta", value: "+0.31s", positive: true },
+    ],
+    summary: "VER ahead by 0.31s through Degner curve",
+    radioSnippet: "VER holding 0.31s delta on Mediums. Pit window opens lap 21 to cover undercut.",
+    citations: "Cited · 3 sources",
+  },
+  {
+    id: "lec-sai",
+    label: "LEC vs SAI",
+    year: 2023,
+    event: "Monza 2023",
+    session: "Race",
+    driver: "LEC",
+    rival: "SAI",
+    href: "/mission-control?event=Italian%20Grand%20Prix&year=2023&session=R&driver=LEC",
+    deltaPoints: [
+      0.00, -0.05, -0.12, -0.08, 0.02, 0.15, 0.08, -0.02,
+      -0.18, -0.24, -0.15, -0.05, 0.05, 0.12, 0.08, -0.03,
+      -0.11, -0.07, 0.01, 0.09, 0.15, 0.12, 0.06, -0.04, -0.08,
+    ],
+    sectors: [
+      { label: "Sector 1", value: "−0.052", positive: false },
+      { label: "Sector 2", value: "+0.141", positive: true },
+      { label: "Sector 3", value: "−0.173", positive: false },
+      { label: "Lap delta", value: "−0.08s", positive: false },
+    ],
+    summary: "LEC trailing SAI by 0.08s into Parabolica",
+    radioSnippet: "LEC slipstream active into T1. Rear tyre temps +6°C above optimal window.",
+    citations: "Telemetry + Art 33.4",
+  },
+  {
+    id: "nor-pia",
+    label: "NOR vs PIA",
+    year: 2024,
+    event: "Hungary 2024",
+    session: "Race",
+    driver: "NOR",
+    rival: "PIA",
+    href: "/mission-control?event=Hungarian%20Grand%20Prix&year=2024&session=R&driver=NOR",
+    deltaPoints: [
+      0.00, 0.08, 0.15, 0.25, 0.38, 0.45, 0.52, 0.61,
+      0.70, 0.78, 0.85, 0.92, 0.98, 1.05, 1.12, 1.18,
+      1.25, 1.30, 1.35, 1.40, 1.44, 1.48, 1.51, 1.54, 1.58,
+    ],
+    sectors: [
+      { label: "Sector 1", value: "+0.412", positive: true },
+      { label: "Sector 2", value: "+0.655", positive: true },
+      { label: "Sector 3", value: "+0.513", positive: true },
+      { label: "Lap delta", value: "+1.58s", positive: true },
+    ],
+    summary: "NOR pulling +1.58s gap on fresher Hards",
+    radioSnippet: "Undercut delta +2.4s achieved. Radio instruction: 'The way to win a championship is with the team.'",
+    citations: "FastF1 + Stint Deg",
+  },
+];
 
 const HERO_STATS = [
   { label: "Multi-agent",   value: "4 agents",  hint: "pit · tyre · weather · pace" },
@@ -16,35 +104,18 @@ const HERO_STATS = [
   { label: "Regulation",    value: "RAG",       hint: "ChromaDB · Gemini embeddings" },
 ] as const;
 
-// Sector data shown in the HUD card — synthetic but plausible Suzuka 2024 values.
-// These exist only to make the hero feel alive on first paint, never quoted as data.
-const HERO_SECTORS = [
-  { label: "Sector 1", value: "+0.184", positive: true },
-  { label: "Sector 2", value: "−0.092", positive: false },
-  { label: "Sector 3", value: "+0.221", positive: true },
-  { label: "Lap delta", value: "+0.31s", positive: true },
-] as const;
-
 // Animation timing constants
 const ANIM_EASE = [0.22, 0.61, 0.36, 1] as const;
 const ANIM_DUR_COPY = 0.55;
 const ANIM_DUR_CARD = 0.65;
 const ANIM_DELAY_CARD = 0.28;
-const ANIM_DUR_CHART = 1.6;
-const ANIM_DELAY_CHART = 0.6;
+const ANIM_DUR_CHART = 1.4;
+const ANIM_DELAY_CHART = 0.15;
 
-// Speed line config — 3 lines of decreasing width + opacity
 const SPEED_LINES = [
   { width: 120, opacity: 1.0,  delay: 0.05 },
   { width: 80,  opacity: 0.45, delay: 0.10 },
   { width: 44,  opacity: 0.20, delay: 0.15 },
-] as const;
-
-// Delta curve — synthetic-but-plausible VER vs HAM at Suzuka
-const DELTA_POINTS = [
-  0.00, 0.04, 0.09, 0.18, 0.22, 0.19, 0.11, 0.02,
-  -0.06, -0.14, -0.21, -0.18, -0.09, 0.04, 0.13, 0.21,
-  0.27, 0.31, 0.28, 0.22, 0.17, 0.14, 0.18, 0.24, 0.31,
 ] as const;
 
 const CHART_W = 380;
@@ -69,7 +140,6 @@ const ribbonItems: Array<{ text: string; term?: string }> = [
   { text: "TEAM ARGUMENT · CITED" },
 ];
 
-// ─── FadeUp ─────────────────────────────────────────────────────────────────
 function FadeUp({
   delay = 0,
   children,
@@ -92,8 +162,6 @@ function FadeUp({
   );
 }
 
-// ─── SpeedLineGroup ──────────────────────────────────────────────────────────
-// Three 1px red horizontal lines bleeding from left edge — F1 speed language.
 function SpeedLineGroup() {
   const prefersReduced = useReducedMotion();
   return (
@@ -112,34 +180,27 @@ function SpeedLineGroup() {
   );
 }
 
-// ─── LandingHero ─────────────────────────────────────────────────────────────
 export function LandingHero() {
   return (
     <section className="relative overflow-hidden pt-16 pb-20">
-      {/* Dot-matrix background grid */}
       <div className="hero-grid pointer-events-none absolute inset-0 opacity-40" />
-      {/* Left-column red ambient glow — behind headline */}
       <div className="hero-headline-glow pointer-events-none absolute inset-0" />
 
-      <div className="relative z-10 grid gap-14 lg:grid-cols-[1fr_460px] lg:items-center">
-
+      <div className="relative z-10 grid gap-12 lg:grid-cols-[1fr_470px] lg:items-center">
         {/* ── Left column — copy ─────────────────────────────────── */}
         <div>
-          {/* Eyebrow badge */}
           <FadeUp
             delay={0}
             className="mb-6 inline-flex items-center gap-2.5 border border-border px-3 py-1.5 readout text-[length:var(--text-label)] uppercase tracking-[var(--track-wide)] text-foreground-dim"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.9)]" />
-            Race engineer · in your browser
+            Autonomous AI Race Engineer · Real FastF1 Telemetry
           </FadeUp>
 
-          {/* Speed lines — above headline, evoke forward motion */}
           <FadeUp delay={0.04}>
             <SpeedLineGroup />
           </FadeUp>
 
-          {/* Hero H1 — italic bold, tight line-height */}
           <FadeUp delay={0.08}>
             <h1
               className="display mb-6 text-[length:var(--text-display)] leading-[0.93] text-foreground"
@@ -149,40 +210,34 @@ export function LandingHero() {
             </h1>
           </FadeUp>
 
-          {/* Sample query rotator */}
           <FadeUp delay={0.14}>
             <QuestionRotator />
           </FadeUp>
 
-          {/* Body copy */}
           <FadeUp delay={0.16}>
             <p className="mb-10 max-w-xl text-[length:var(--text-body)] leading-7 text-foreground-dim">
-              Compare drivers, replay strategy, read every pit recommendation backed by FastF1
-              telemetry and a regulation-aware corpus. Race analysis auto-detects controversies —
-              safety car restarts, VSC windows, track limits — and argues both sides from the FIA
-              Sporting Regulations.{" "}
-              <span className="text-foreground">No spreadsheets.</span>
+              Compare telemetry, replay tyre wear degradation, and inspect pit window models built on real lap data. 
+              Dual-perspective reasoning argues controversial race moments straight from the official FIA Sporting Regulations.{" "}
+              <span className="text-foreground">Tactical clarity without the spreadsheets.</span>
             </p>
           </FadeUp>
 
-          {/* CTA row */}
           <FadeUp delay={0.22} className="flex flex-wrap items-center gap-3">
-            {/* Primary CTA — F1 wedge clip + red bg */}
             <Link
-              href={DEMO_HREF}
-              className="f1-clip btn readout bg-[#E10600] px-5 py-3 text-[length:var(--text-label)] text-white transition-opacity hover:opacity-90"
+              href="/mission-control"
+              className="f1-clip btn readout bg-[#E10600] px-5 py-3 text-[length:var(--text-label)] text-white transition-opacity hover:opacity-90 active:scale-98"
             >
-              Open Mission Control on Suzuka 2024 →
+              Open Mission Control →
             </Link>
             <Link
-              href="#capabilities"
+              href="#manifesto"
               className="readout text-[length:var(--text-readout)] uppercase tracking-[var(--track-wide)] text-foreground-dim transition-colors hover:text-foreground"
             >
-              See a sample query →
+              The Founder&apos;s Story →
             </Link>
           </FadeUp>
 
-          {/* Stats bar — large monospace readouts */}
+          {/* Stats bar */}
           <div className="mt-12 grid grid-cols-3 gap-4">
             {HERO_STATS.map((s, i) => (
               <FadeUp key={s.label} delay={0.3 + i * 0.08} className="divider pt-4">
@@ -198,8 +253,8 @@ export function LandingHero() {
           </div>
         </div>
 
-        {/* ── Right column — animated HUD card ─────────────────────── */}
-        <HudCard />
+        {/* ── Right column — Interactive Micro-Cockpit Sandbox ──────── */}
+        <InteractiveCockpitSandbox />
       </div>
 
       {/* Telemetry ribbon below hero */}
@@ -215,104 +270,144 @@ export function LandingHero() {
   );
 }
 
-// ─── HudCard ─────────────────────────────────────────────────────────────────
-// Glass HUD card with: scanline overlay on chart, bottom-edge red glow,
-// F1 wedge corner cut, animated lap-delta trace.
-function HudCard() {
+// ─── InteractiveCockpitSandbox ────────────────────────────────────────────────
+function InteractiveCockpitSandbox() {
   const prefersReduced = useReducedMotion();
+  const [activeMatchup, setActiveMatchup] = useState<MatchupData>(MATCHUPS[0]);
+
   return (
     <motion.div
       initial={prefersReduced ? { opacity: 1 } : { opacity: 0, x: 40 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: ANIM_DELAY_CARD, duration: ANIM_DUR_CARD, ease: ANIM_EASE }}
-      // F1 wedge clip (top-right), glass surface, bottom-edge red inner glow
-      className="f1-clip card card--elevated space-y-4 p-6"
+      className="f1-clip card card--elevated space-y-4 p-5 sm:p-6"
       style={{
         boxShadow: [
-          "0 -1px 0 0 rgba(225,6,0,0.55) inset", // bottom inner red line (pit monitor edge)
-          "0 0 48px 0 rgba(225,6,0,0.07)",         // outer ambient glow
+          "0 -1px 0 0 rgba(225,6,0,0.55) inset",
+          "0 0 48px 0 rgba(225,6,0,0.07)",
         ].join(", "),
       }}
     >
-      {/* Card header */}
-      <div className="flex items-center justify-between border-b border-border pb-4">
-        <div>
-          <p className="label mb-1">Lap delta</p>
-          <p className="text-[length:var(--text-small)] font-semibold text-foreground">
-            Suzuka 2024 {"//"}  Race {"//"}  VER vs HAM
-          </p>
+      {/* Sandbox Header with driver battle selector tabs */}
+      <div className="flex flex-col gap-3 border-b border-border pb-3.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-status-error animate-pulse" />
+            <p className="label">Live Cockpit Sandbox</p>
+          </div>
+          <span
+            className="readout px-2 py-0.5 text-[0.55rem] uppercase tracking-[var(--track-wide)] rounded-xs"
+            style={{
+              border: "1px solid rgba(34,197,94,0.4)",
+              background: "rgba(34,197,94,0.10)",
+              color: "var(--status-ok)",
+              textShadow: "0 0 8px rgba(34,197,94,0.4)",
+            }}
+          >
+            {activeMatchup.citations}
+          </span>
         </div>
-        {/* Citation badge — green, glowing */}
-        <span
-          className="readout px-2.5 py-1 text-[0.55rem] uppercase tracking-[var(--track-wide)]"
-          style={{
-            border: "1px solid rgba(34,197,94,0.4)",
-            background: "rgba(34,197,94,0.10)",
-            color: "var(--status-ok)",
-            textShadow: "0 0 8px rgba(34,197,94,0.5)",
-          }}
-        >
-          Cited · 3 sources
-        </span>
+
+        {/* Interactive Matchup Tabs */}
+        <div className="flex items-center gap-1.5 rounded-sm border border-border bg-surface p-1">
+          {MATCHUPS.map((m) => {
+            const active = m.id === activeMatchup.id;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setActiveMatchup(m)}
+                className={`flex-1 readout py-1 text-[0.62rem] font-bold uppercase tracking-[var(--track-wide)] transition-all cursor-pointer rounded-xs ${
+                  active
+                    ? "bg-accent text-background shadow-xs font-black"
+                    : "text-foreground-dim hover:text-foreground hover:bg-surface-elevated"
+                }`}
+              >
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Animated lap-delta chart with scanline overlay */}
-      <LapDeltaPreview />
+      {/* Dynamic Telemetry Waveform */}
+      <LapDeltaPreview key={activeMatchup.id} matchup={activeMatchup} />
 
-      {/* Sector grid */}
-      <div className="grid grid-cols-2 gap-3">
-        {HERO_SECTORS.map(({ label, value, positive }, i) => (
-          <motion.div
+      {/* Sector Delta Grid */}
+      <div className="grid grid-cols-2 gap-2.5">
+        {activeMatchup.sectors.map(({ label, value, positive }) => (
+          <div
             key={label}
-            initial={prefersReduced ? { opacity: 1 } : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{
-              delay: 0.55 + i * 0.07,
-              duration: 0.35,
-              ease: ANIM_EASE,
-            }}
-            className="border border-border p-3"
+            className="border border-border bg-surface px-3 py-2 rounded-xs"
           >
-            <p className="label mb-1">{label}</p>
+            <p className="label text-[0.55rem] mb-0.5">{label}</p>
             <p
-              className="readout text-[length:var(--text-small)] font-semibold"
+              className="readout text-[0.75rem] font-bold"
               style={{ color: positive ? "var(--status-ok)" : "var(--status-warn)" }}
             >
               {value}
             </p>
-          </motion.div>
+          </div>
         ))}
+      </div>
+
+      {/* Simulated AI Team Radio Callout */}
+      <div className="rounded-xs border border-border bg-surface-elevated/70 p-3 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[0.65rem]">📻</span>
+            <span className="readout text-[0.58rem] uppercase font-bold text-accent tracking-[var(--track-wide)]">
+              AI Race Engineer Call ({activeMatchup.driver})
+            </span>
+          </div>
+          <div className="flex items-center gap-0.5" aria-hidden>
+            <span className="h-2 w-0.5 bg-accent/80 animate-pulse" />
+            <span className="h-3.5 w-0.5 bg-accent animate-pulse delay-75" />
+            <span className="h-2 w-0.5 bg-accent/60 animate-pulse delay-150" />
+          </div>
+        </div>
+        <p className="text-[0.7rem] leading-relaxed text-foreground-dim italic">
+          &ldquo;{activeMatchup.radioSnippet}&rdquo;
+        </p>
+      </div>
+
+      {/* Direct launch link to Mission Control preloaded */}
+      <div className="pt-1">
+        <Link
+          href={activeMatchup.href}
+          className="flex items-center justify-center gap-2 w-full readout border border-border hover:border-accent bg-surface hover:bg-surface-elevated py-2 text-[0.62rem] font-bold uppercase tracking-[var(--track-wide)] text-foreground transition-all cursor-pointer"
+        >
+          <span>Inspect {activeMatchup.event} in Mission Control</span>
+          <span>→</span>
+        </Link>
       </div>
     </motion.div>
   );
 }
 
 // ─── LapDeltaPreview ─────────────────────────────────────────────────────────
-// SVG chart with stroke-dashoffset draw-on animation + scanline overlay.
-function LapDeltaPreview() {
+function LapDeltaPreview({ matchup }: { matchup: MatchupData }) {
   const prefersReduced = useReducedMotion();
+  const points = matchup.deltaPoints;
 
-  // Build SVG path from delta points
-  const xs = DELTA_POINTS.map(
-    (_, i) => CHART_PAD_X + (i / (DELTA_POINTS.length - 1)) * (CHART_W - CHART_PAD_X * 2),
+  const xs = points.map(
+    (_, i) => CHART_PAD_X + (i / (points.length - 1)) * (CHART_W - CHART_PAD_X * 2),
   );
-  const max = Math.max(...DELTA_POINTS.map(Math.abs));
-  const ys = DELTA_POINTS.map(
+  const max = Math.max(...points.map(Math.abs), 0.1);
+  const ys = points.map(
     (v) => CHART_H / 2 - (v / max) * (CHART_H / 2 - CHART_PAD_Y),
   );
   const path = xs
     .map((x, i) => `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${ys[i].toFixed(1)}`)
     .join(" ");
 
-  // Chord of the midpoints for the marker animation
   const midI = Math.floor(xs.length / 2);
 
   return (
-    // scanline-overlay class adds the CRT scanline ::after pseudo-element
     <div className="scanline-overlay border border-border bg-surface">
       <svg
         viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-        className="block h-[120px] w-full"
+        className="block h-[115px] w-full"
         aria-hidden
       >
         {/* Zero-delta baseline */}
@@ -336,7 +431,7 @@ function LapDeltaPreview() {
           Δt = 0
         </text>
 
-        {/* Telemetry trace — draws on mount via pathLength animation */}
+        {/* Telemetry trace */}
         <motion.path
           d={path}
           fill="none"
@@ -344,7 +439,6 @@ function LapDeltaPreview() {
           strokeWidth={1.8}
           strokeLinecap="round"
           strokeLinejoin="round"
-          // pathLength 0→1 is framer-motion's equivalent of strokeDashoffset draw-on
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{ pathLength: 1, opacity: 1 }}
           transition={{
@@ -357,7 +451,6 @@ function LapDeltaPreview() {
           }}
         />
 
-        {/* Moving marker dot that follows the trace as it draws */}
         {!prefersReduced && (
           <motion.circle
             r={3}
@@ -378,13 +471,12 @@ function LapDeltaPreview() {
         )}
       </svg>
 
-      {/* Footer readout */}
       <div className="flex items-center justify-between border-t border-border px-3 py-1.5">
         <span className="readout text-[0.55rem] uppercase tracking-[var(--track-wide)] text-foreground-faint">
-          T1 → finish
+          {matchup.event} · {matchup.session}
         </span>
         <span className="readout text-[0.55rem] uppercase tracking-[var(--track-wide)] text-foreground-dim">
-          VER ahead by 0.31s
+          {matchup.summary}
         </span>
       </div>
     </div>

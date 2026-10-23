@@ -1,6 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CapabilityGrid } from "@/components/landing/CapabilityGrid";
+import { CuratedDebriefs } from "@/components/landing/CuratedDebriefs";
+import { AgentArchitectureBlueprint } from "@/components/landing/AgentArchitectureBlueprint";
+import { FounderManifesto } from "@/components/landing/FounderManifesto";
 import { EvalArcSection } from "@/components/landing/EvalArcSection";
 import { FeaturedCard } from "@/components/landing/FeaturedCard";
 import { LandingCTA } from "@/components/landing/LandingCTA";
@@ -12,8 +15,10 @@ import { Footer } from "@/components/Footer";
 import { readEvalStatus } from "@/lib/eval-status";
 
 const navItems = [
+  { label: "Debriefs", href: "#debriefs" },
   { label: "Capabilities", href: "#capabilities" },
-  { label: "How it's built", href: "#eval-arc" },
+  { label: "Architecture", href: "#agent-blueprint" },
+  { label: "Manifesto", href: "#manifesto" },
   { label: "Mission Control", href: "/mission-control" },
 ];
 
@@ -64,17 +69,23 @@ export default function Home() {
       <div className="relative z-10 mx-auto max-w-6xl px-6">
         <LandingHero />
 
+        <CuratedDebriefs />
+
         <FeaturedCard />
 
         <section id="capabilities" className="py-20">
           <div className="mb-10">
             <p className="label mb-2">Core capabilities</p>
             <h2 className="display text-[length:var(--text-h1)] text-foreground">
-              Telemetry → Decision → Verdict. No guesswork.
+              Telemetry → Strategy → Regulatory Insight.
             </h2>
           </div>
           <CapabilityGrid />
         </section>
+
+        <AgentArchitectureBlueprint />
+
+        <FounderManifesto />
 
         <EvalArcSection evalStatus={evalStatus} />
       </div>
