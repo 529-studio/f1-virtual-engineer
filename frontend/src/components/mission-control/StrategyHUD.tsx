@@ -140,10 +140,11 @@ export function StrategyHUD({
           <div className="shrink-0 border-b border-border px-5 pt-5 pb-4 relative">
             <button
               onClick={() => setIsCollapsed(true)}
-              className="absolute right-4 top-4 text-foreground-dim hover:text-foreground transition-colors"
-              title="Collapse Panel"
+              className="absolute right-3 top-3.5 flex h-9 w-9 items-center justify-center rounded-sm text-foreground-dim hover:text-foreground hover:bg-surface-elevated transition-colors cursor-pointer"
+              title="Close Strategy HUD"
+              aria-label="Close Strategy HUD"
             >
-              <PanelRightClose size={16} />
+              <PanelRightClose size={18} />
             </button>
             <div className="mb-1 flex items-center gap-2">
           <p className="label">Strategy HUD</p>

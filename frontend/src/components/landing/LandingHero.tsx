@@ -401,8 +401,6 @@ function LapDeltaPreview({ matchup }: { matchup: MatchupData }) {
     .map((x, i) => `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${ys[i].toFixed(1)}`)
     .join(" ");
 
-  const midI = Math.floor(xs.length / 2);
-
   return (
     <div className="scanline-overlay border border-border bg-surface">
       <svg
@@ -452,22 +450,27 @@ function LapDeltaPreview({ matchup }: { matchup: MatchupData }) {
         />
 
         {!prefersReduced && (
-          <motion.circle
-            r={3}
-            fill="var(--accent)"
+          <motion.g
+            key={matchup.id}
             initial={{ opacity: 0 }}
-            animate={{
-              opacity: [0, 1, 1, 0],
-              cx: [xs[0], xs[midI], xs[xs.length - 1], xs[xs.length - 1]],
-              cy: [ys[0], ys[midI], ys[ys.length - 1], ys[ys.length - 1]],
-            }}
-            transition={{
-              delay: ANIM_DELAY_CHART,
-              duration: ANIM_DUR_CHART,
-              ease: "linear",
-              times: [0, 0.5, 1, 1],
-            }}
-          />
+            animate={{ opacity: 1 }}
+            transition={{ delay: ANIM_DELAY_CHART + 0.3, duration: 0.4 }}
+          >
+            <circle
+              cx={xs[xs.length - 1]}
+              cy={ys[ys.length - 1]}
+              r={6}
+              fill="var(--accent)"
+              className="animate-ping"
+              opacity={0.35}
+            />
+            <circle
+              cx={xs[xs.length - 1]}
+              cy={ys[ys.length - 1]}
+              r={3}
+              fill="var(--accent)"
+            />
+          </motion.g>
         )}
       </svg>
 

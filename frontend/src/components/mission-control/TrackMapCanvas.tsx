@@ -210,6 +210,18 @@ export function TrackMapCanvas({ data, heightClass = "h-full" }: TrackMapCanvasP
     queueMicrotask(() => setMounted(true));
   }, []);
 
+  // Listen for Escape key to dismiss fullscreen modal
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullscreen]);
+
   // ─── Dynamic Circuit Bounding Box Calculation ────────────────────────────
   // Tight fit around track trace + corners with minimal safe padding, eliminating
   // the rigid 1:1 square squish for elongated circuits like Monza or Spa.
