@@ -11,4 +11,6 @@ export { PitExitCard } from "./PitExitCard";
 export { MissionBoard } from "./MissionBoard";
 export { CoachmarksModal } from "./CoachmarksModal";
 export { StrategyCanvas } from "./StrategyCanvas";
+export { CornerInspectorCard } from "./CornerInspectorCard";
+export { CatchUpPredictorCard } from "./CatchUpPredictorCard";
 

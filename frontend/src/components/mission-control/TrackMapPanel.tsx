@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { getTrackMap, type TrackMapResponse } from "@/services/api";
+import { getTrackMap, type CornerInfo, type TrackMapResponse } from "@/services/api";
 import { TrackMapCanvas } from "./TrackMapCanvas";
 
 // ─── Constants ─────────────────────────────────────────────────────────────
@@ -26,6 +26,9 @@ export interface TrackMapPanelProps {
   lap_number?: number | null;
   compare_driver?: string | null;
   initialData?: TrackMapResponse | null;
+  selectedCorner?: CornerInfo | null;
+  onSelectCorner?: (corner: CornerInfo | null) => void;
+  onDataLoaded?: (data: TrackMapResponse) => void;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────
@@ -37,6 +40,9 @@ export function TrackMapPanel({
   lap_number,
   compare_driver,
   initialData,
+  selectedCorner,
+  onSelectCorner,
+  onDataLoaded,
 }: TrackMapPanelProps) {
   const [data, setData] = useState<TrackMapResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,6 +57,7 @@ export function TrackMapPanel({
   useEffect(() => {
     // If initialData is already provided, skip network fetch entirely
     if (initialData) {
+      onDataLoaded?.(initialData);
       return;
     }
 
@@ -73,6 +80,7 @@ export function TrackMapPanel({
           compare_driver: compare_driver ?? null,
         });
         setData(result);
+        onDataLoaded?.(result);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load track map");
       } finally {
@@ -84,7 +92,7 @@ export function TrackMapPanel({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paramsKey]);
+  }, [paramsKey, initialData]);
 
   // ── Render states ──────────────────────────────────────────────────────
   if (loading) {
@@ -133,7 +141,11 @@ export function TrackMapPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col h-full w-full">
-      <TrackMapCanvas data={activeData} />
+      <TrackMapCanvas
+        data={activeData}
+        selectedCorner={selectedCorner}
+        onSelectCorner={onSelectCorner}
+      />
     </div>
   );
 }
