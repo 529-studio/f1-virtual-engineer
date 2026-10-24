@@ -181,4 +181,18 @@ describe("corner-analytics engine", () => {
     expect(result.compare?.minApexSpeed).toBe(190);
     expect(result.compare?.brakeDistance).toBe(600);
   });
+
+  it("does not detect braking that occurs after the apex as entry braking", () => {
+    // Driver navigates Turn 1 without braking (gentle coast down from 260 to 250 at apex 600m, on throttle to 270 at 640m),
+    // then applies hard brakes at 680m for the following corner.
+    const postApexBrakePts = makePoints(
+      (d) => (d <= 600 ? 260 - (d - 400) * 0.05 : d <= 640 ? 250 + (d - 600) * 0.5 : 270),
+      (d) => d >= 680,
+      (d) => (d >= 600 ? 100 : 0)
+    );
+
+    const result = extractCornerMetrics(sampleCorner, postApexBrakePts, null, "VER", null);
+    expect(result.primary.hasBraking).toBe(false);
+    expect(result.primary.brakeDistance).toBeNull();
+  });
 });

@@ -141,7 +141,7 @@ export function CornerInspectorCard({
     }
     return (
       <span className="readout text-xs text-amber-400 font-bold" title={`${driver} braked earlier`}>
-        {Math.round(delta)}m earlier
+        {Math.round(Math.abs(delta))}m earlier
       </span>
     );
   };
@@ -179,7 +179,7 @@ export function CornerInspectorCard({
     if (delta < 0) {
       return (
         <span className="readout text-xs text-emerald-400 font-bold" title={`${driver} picked up power earlier`}>
-          {Math.round(delta)}m earlier
+          {Math.round(Math.abs(delta))}m earlier
         </span>
       );
     }
@@ -226,7 +226,7 @@ export function CornerInspectorCard({
               type="button"
               onClick={handlePrev}
               aria-label="Previous turn"
-              className="flex h-8 w-8 sm:h-7 sm:w-7 items-center justify-center rounded text-foreground-dim hover:bg-surface hover:text-foreground transition-colors cursor-pointer"
+              className="flex h-11 w-11 sm:h-7 sm:w-7 items-center justify-center rounded text-foreground-dim hover:bg-surface hover:text-foreground transition-colors cursor-pointer"
             >
               <ChevronLeft size={16} />
             </button>
@@ -234,7 +234,7 @@ export function CornerInspectorCard({
               type="button"
               onClick={handleNext}
               aria-label="Next turn"
-              className="flex h-8 w-8 sm:h-7 sm:w-7 items-center justify-center rounded text-foreground-dim hover:bg-surface hover:text-foreground transition-colors cursor-pointer"
+              className="flex h-11 w-11 sm:h-7 sm:w-7 items-center justify-center rounded text-foreground-dim hover:bg-surface hover:text-foreground transition-colors cursor-pointer"
             >
               <ChevronRight size={16} />
             </button>
@@ -251,7 +251,7 @@ export function CornerInspectorCard({
                 );
                 if (found) onSelectCorner(found);
               }}
-              className="h-9 sm:h-7 appearance-none rounded border border-border/70 bg-surface-raised pl-2.5 pr-7 py-1 text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+              className="h-11 sm:h-7 appearance-none rounded border border-border/70 bg-surface-raised pl-2.5 pr-7 py-1 text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
             >
               {sortedCorners.map((c) => (
                 <option key={`${c.number}${c.letter || ""}`} value={`${c.number}${c.letter || ""}`}>

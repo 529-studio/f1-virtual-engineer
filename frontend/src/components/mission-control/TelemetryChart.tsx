@@ -215,7 +215,7 @@ export function TelemetryChart({
                   />
                 </g>
               )}
-              {sectorFractions?.map((f, i) => (
+              {!sliceRange && sectorFractions?.map((f, i) => (
                 <line
                   key={`sec-${i}`}
                   x1={f * CHART_VB_W} x2={f * CHART_VB_W} y1="0" y2={CHART_VB_H}

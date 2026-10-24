@@ -120,11 +120,11 @@ function analyzeDriverCorner(
   }
 
   // 2. Identify initial braking point
-  // First point where brake is pressed OR deceleration is sharp (d(speed)/d(distance) < -0.12)
+  // First point before/at the apex where brake is pressed OR deceleration is sharp (d(speed)/d(distance) < -0.12)
   let brakeDistance: number | null = null;
   let hasBraking = false;
 
-  for (let i = 0; i < cornerPts.length; i++) {
+  for (let i = 0; i <= apexIdx; i++) {
     const pt = cornerPts[i];
     const next = i < cornerPts.length - 1 ? cornerPts[i + 1] : null;
     const dDist = next ? next.distance - pt.distance : 0;

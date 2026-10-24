@@ -131,7 +131,8 @@ export default function MissionControlPage() {
   const isDemoRace = isDemoSession && Boolean(demoRaceData);
 
   // Issue #28: Corner-by-corner telemetry inspection and track map sync
-  const [selectedCornerRaw, setSelectedCornerRaw] = useState<CornerInfo | null>(null);
+  const sessionKey = `${year}|${eventName}|${session}`;
+  const [selectedCornerRaw, setSelectedCornerRaw] = useState<{ sessionKey: string; corner: CornerInfo } | null>(null);
   const [trackMapData, setTrackMapData] = useState<TrackMapResponse | null>(null);
 
   const activeTrackMap: TrackMapResponse | null =
@@ -139,10 +140,18 @@ export default function MissionControlPage() {
       ? (demoRaceData.track_map as TrackMapResponse)
       : trackMapData;
 
-  // Derive active corner: explicit user selection if present, otherwise default to first corner
+  // Derive active corner: validated against current session and circuit corners
   const selectedCorner: CornerInfo | null =
-    selectedCornerRaw ??
+    (selectedCornerRaw?.sessionKey === sessionKey
+      ? activeTrackMap?.corners?.find(
+          (c) => c.number === selectedCornerRaw.corner.number && (c.letter || "") === (selectedCornerRaw.corner.letter || "")
+        )
+      : null) ??
     (activeTrackMap?.corners && activeTrackMap.corners.length > 0 ? activeTrackMap.corners[0] : null);
+
+  const handleSelectCorner = useCallback((corner: CornerInfo | null) => {
+    setSelectedCornerRaw(corner ? { sessionKey, corner } : null);
+  }, [sessionKey]);
 
   const currentPitExit: PitExitResponse | null = isDemoRace
     ? demoRaceData?.pit_exit_by_lap?.[lap || "15"] ?? null
@@ -679,7 +688,7 @@ export default function MissionControlPage() {
                   weather={weather} compareYearWeather={compareYearWeather}
                   selectedCorner={selectedCorner}
                   trackLengthM={activeTrackMap?.track_length_m}
-                  onSelectCorner={setSelectedCornerRaw}
+                  onSelectCorner={handleSelectCorner}
                 />
               </div>
 
@@ -709,7 +718,7 @@ export default function MissionControlPage() {
                         compare_driver={compareDriver || null}
                         initialData={isDemoSession ? (demoRaceData?.track_map as TrackMapResponse | null) : null}
                         selectedCorner={selectedCorner}
-                        onSelectCorner={setSelectedCornerRaw}
+                        onSelectCorner={handleSelectCorner}
                         onDataLoaded={setTrackMapData}
                       />
                     </div>
@@ -721,7 +730,7 @@ export default function MissionControlPage() {
                       eventName={eventName}
                       corners={activeTrackMap?.corners ?? []}
                       selectedCorner={selectedCorner}
-                      onSelectCorner={setSelectedCornerRaw}
+                      onSelectCorner={handleSelectCorner}
                       points={activeTrackMap?.points ?? []}
                       comparePoints={activeTrackMap?.compare_points ?? []}
                       driver={driver}
