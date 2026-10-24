@@ -78,3 +78,22 @@ for (let i = 0; i < cornerPts.length; i++) {
 }
 ```
 This ensures zero index-out-of-bounds risks while accurately detecting both direct brake pedal sensor flags and derivative-based deceleration on sparse arrays.
+
+---
+
+## [2026-10-24] Non-Linear Catch-Up Simulation & SVG Telemetry Traps (Issue #29)
+
+### 1. Falsy Guard Trap on Zero Values (`stintLaps === 0`)
+In F1 pit-wall telemetry, a driver exiting the pits on fresh rubber has `stintLaps = 0`. Using `stintLaps && stintLaps > 0 ? stintLaps : fallback` evaluates `0` as falsy, silently clobbering fresh tyres and substituting worn defaults (e.g. 10 or 23 laps). Always use explicit nullish checks:
+`stintLaps != null && stintLaps >= 0 ? stintLaps : fallback`.
+
+### 2. Continuous vs. Discrete Step-Jump in Tyre Wear Models
+Multiplying a cliff multiplier (e.g. `2.5x`) retroactively against the entire stint horizon creates an unphysical instantaneous step-jump (e.g. a 1.7s penalty in a single lap). Physical degradation penalty must accumulate only for laps strictly exceeding the cliff boundary:
+`baseDegradation * lapOffset + (multiplier - 1) * baseDegradation * Math.max(0, stintAge - cliffLapOffset)`.
+
+### 3. Dynamic SVG Ceiling on Divergence & Negative Pace Overrides
+When modeling what-if pace slider scrubbers (e.g. `-0.80s` tyre conservation) or slower chasers, the gap expands over time. Capping `maxGap` at `initialGap * 1.12` clips the SVG curve into a flat line pinned to the upper bounding box. Always calculate the SVG ceiling dynamically across the projected trajectory:
+`maxGap = Math.max(trajectory.reduce((m, pt) => Math.max(m, pt.gapSeconds), initialGap) * 1.15, 6.0)`.
+
+### 4. Strict Ban on Raw Unicode Emojis
+Raw unicode emojis (⚡, 🏁, ⚠️, 🏎️, 🔥) look amateurish and clash with the Apple automotive / F1 telemetry dark glass aesthetic. Enforce scalable vector icons (`lucide-react`: `Zap`, `Flag`, `AlertTriangle`, `Timer`) with subtle telemetry tinting and micro-typography.
