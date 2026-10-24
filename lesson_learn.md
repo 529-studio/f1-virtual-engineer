@@ -43,3 +43,38 @@ When port 3000 or 3001 is already bound on a developer's machine by another serv
 
 ### 2. Architectural Solution
 Always include fallback developer port ranges (`http://localhost:3002`, `http://localhost:3003`, `http://127.0.0.1:3002`, `http://127.0.0.1:3003`) in backend `allowed_origins` by default so developer environments never face mysterious CORS lockouts during multi-project workflows.
+
+---
+
+## [2026-10-24] React 19 Derived State vs. Cascading Effects (react-hooks/set-state-in-effect)
+
+### 1. Symptom & Root Cause
+When auto-selecting a default entity (such as Turn 1 upon track map data arrival) or resetting zoom focus, calling `setSelectedCorner(...)` synchronously within `useEffect([data, selectedCorner])` triggers ESLint `react-hooks/set-state-in-effect` and Next.js compiler warnings. In React 19 / Turbopack, synchronous state updates inside effects trigger cascading render passes and performance degradation.
+
+### 2. Architectural Solution
+Adopt pure derived state:
+```typescript
+const [selectedCornerRaw, setSelectedCornerRaw] = useState<CornerInfo | null>(null);
+const selectedCorner = selectedCornerRaw ?? (activeTrackMap?.corners?.[0] ?? null);
+```
+State is computed deterministically during the render pass without any `useEffect`, eliminating redundant render cycles and satisfying strict compiler checks.
+
+---
+
+## [2026-10-24] Micro-Sector Boundary Sampling Traps in Telemetry Envelope Integration
+
+### 1. Symptom & Root Cause
+In telemetry envelopes (e.g. $[D_{\text{corner}} - 160\text{m}, D_{\text{corner}} + 100\text{m}]$), cars traveling at high speed (e.g. >320 km/h) traverse distance rapidly, resulting in fewer sample points than on low-speed sections. An indexing loop checking deceleration via `points[i + 1].speed - points[i].speed` with `i < len - 1` fails to evaluate the final point or crashes on single-point slices.
+
+### 2. Architectural Solution
+Always safeguard boundary lookaheads:
+```typescript
+for (let i = 0; i < cornerPts.length; i++) {
+  const pt = cornerPts[i];
+  const next = i < cornerPts.length - 1 ? cornerPts[i + 1] : null;
+  const dDist = next ? next.distance - pt.distance : 0;
+  const accelRate = next && dDist > 0 ? (next.speed - pt.speed) / dDist : 0;
+  if (pt.brake || (next && accelRate < -0.12)) { ... }
+}
+```
+This ensures zero index-out-of-bounds risks while accurately detecting both direct brake pedal sensor flags and derivative-based deceleration on sparse arrays.
