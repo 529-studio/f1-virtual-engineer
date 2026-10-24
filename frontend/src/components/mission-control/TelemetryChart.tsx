@@ -47,6 +47,8 @@ function chartGeometry(series: number[], avg: number, compareSeries?: number[]) 
 export function TelemetryChart({
   label, unit, channelData, isLoading, hasData, animateKey, mode = "line", compareSeries, compareLabel,
   sectorFractions,
+  highlightFractionRange,
+  sliceRange,
 }: {
   label: string; unit: string;
   channelData?: { min: number; max: number; avg: number; series?: number[] } | null;
@@ -55,12 +57,25 @@ export function TelemetryChart({
   compareSeries?: number[];
   compareLabel?: string;
   sectorFractions?: number[];
+  highlightFractionRange?: { start: number; end: number; label?: string } | null;
+  sliceRange?: { startFraction: number; endFraction: number } | null;
 }) {
   const pathRef = useRef<SVGPathElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-  const geom = channelData?.series ? chartGeometry(channelData.series, channelData.avg, compareSeries) : null;
-  const series = channelData?.series ?? [];
+
+  // Sliced series if zoom focus is active
+  const fullSeries = channelData?.series ?? [];
+  const startIdx = sliceRange && fullSeries.length > 0 ? Math.max(0, Math.floor(sliceRange.startFraction * fullSeries.length)) : 0;
+  const endIdx = sliceRange && fullSeries.length > 0 ? Math.min(fullSeries.length, Math.ceil(sliceRange.endFraction * fullSeries.length)) : fullSeries.length;
+  const series = sliceRange && fullSeries.length > 0 ? fullSeries.slice(startIdx, endIdx) : fullSeries;
+
+  const compareFull = compareSeries ?? [];
+  const compStart = sliceRange && compareFull.length > 0 ? Math.max(0, Math.floor(sliceRange.startFraction * compareFull.length)) : 0;
+  const compEnd = sliceRange && compareFull.length > 0 ? Math.min(compareFull.length, Math.ceil(sliceRange.endFraction * compareFull.length)) : compareFull.length;
+  const activeCompare = sliceRange && compareFull.length > 0 ? compareFull.slice(compStart, compEnd) : compareSeries;
+
+  const geom = series.length > 1 ? chartGeometry(series, channelData?.avg ?? 0, activeCompare) : null;
   const hoverPoint =
     hoverIdx !== null && geom && hoverIdx < series.length
       ? { value: series[hoverIdx], x: hoverIdx * geom.stepX, y: geom.norm(series[hoverIdx]) }
@@ -167,6 +182,39 @@ export function TelemetryChart({
 
           {!isLoading && hasData && geom && (
             <svg className="h-full w-full" viewBox={`0 0 ${CHART_VB_W} ${CHART_VB_H}`} preserveAspectRatio="none">
+              {/* Highlight active corner envelope if not zoomed */}
+              {!sliceRange && highlightFractionRange && (
+                <g className="corner-highlight-band pointer-events-none">
+                  <rect
+                    x={highlightFractionRange.start * CHART_VB_W}
+                    y={0}
+                    width={Math.max(4, (highlightFractionRange.end - highlightFractionRange.start) * CHART_VB_W)}
+                    height={CHART_VB_H}
+                    fill="var(--accent)"
+                    opacity={0.16}
+                  />
+                  <line
+                    x1={highlightFractionRange.start * CHART_VB_W}
+                    x2={highlightFractionRange.start * CHART_VB_W}
+                    y1={0}
+                    y2={CHART_VB_H}
+                    stroke="var(--accent)"
+                    strokeWidth={1}
+                    strokeDasharray="2 2"
+                    opacity={0.7}
+                  />
+                  <line
+                    x1={highlightFractionRange.end * CHART_VB_W}
+                    x2={highlightFractionRange.end * CHART_VB_W}
+                    y1={0}
+                    y2={CHART_VB_H}
+                    stroke="var(--accent)"
+                    strokeWidth={1}
+                    strokeDasharray="2 2"
+                    opacity={0.7}
+                  />
+                </g>
+              )}
               {sectorFractions?.map((f, i) => (
                 <line
                   key={`sec-${i}`}

@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { Maximize2 } from "lucide-react";
 import { lookupKnowledge } from "@/services/api";
-import type { AnalyzeResponse, KnowledgeCitation, LapDeltaCrossYearResponse, LapDeltaResponse, WeatherSummaryResponse } from "@/services/api";
+import type { AnalyzeResponse, CornerInfo, KnowledgeCitation, LapDeltaCrossYearResponse, LapDeltaResponse, WeatherSummaryResponse } from "@/services/api";
+import { getCornerEnvelope } from "@/lib/corner-analytics";
 import { LapDeltaChart } from "./LapDeltaChart";
 import { ReferencesPanel } from "./ReferencesPanel";
 import { TelemetryChart } from "./TelemetryChart";
@@ -14,6 +16,7 @@ export function TelemetryChartGrid({
   driver, lapDelta, lapDeltaLoading,
   year, compareYear, crossYearDelta, crossYearLoading,
   weather, compareYearWeather,
+  selectedCorner, trackLengthM, onSelectCorner,
 }: {
   tel: AnalyzeResponse["telemetry_data"] | undefined;
   isLoading: boolean;
@@ -30,7 +33,24 @@ export function TelemetryChartGrid({
   crossYearLoading: boolean;
   weather: WeatherSummaryResponse | null;
   compareYearWeather: WeatherSummaryResponse | null;
+  selectedCorner?: CornerInfo | null;
+  trackLengthM?: number;
+  onSelectCorner?: (corner: CornerInfo | null) => void;
 }) {
+  const [cornerFocusedRaw, setCornerFocusedRaw] = useState(false);
+  const isCornerFocused = selectedCorner ? cornerFocusedRaw : false;
+
+  // Derive active corner fractional envelope along lap
+  const cornerFractionRange = useMemo(() => {
+    if (!selectedCorner) return null;
+    const totalDist = trackLengthM && trackLengthM > 0 ? trackLengthM : 5800;
+    const envelope = getCornerEnvelope(selectedCorner, totalDist);
+    return {
+      start: Math.max(0, envelope.entryDistance / totalDist),
+      end: Math.min(1, envelope.exitDistance / totalDist),
+      label: `Turn ${selectedCorner.number}${selectedCorner.letter || ""}`,
+    };
+  }, [selectedCorner, trackLengthM]);
   const lapDurationS = tel?.lap_duration_s ?? null;
   const sectorBoundariesS = tel?.sector_boundaries_s ?? [];
   const fallback = Boolean(tel?.fallback);
@@ -81,6 +101,42 @@ export function TelemetryChartGrid({
           </span>
         </div>
       )}
+
+      {/* Selected Corner Zoom & Highlight Banner */}
+      {selectedCorner && (
+        <div className="mb-3 flex shrink-0 items-center justify-between rounded border border-border/80 bg-surface px-3 py-1.5 text-xs shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+            <span className="readout text-[0.7rem] font-bold text-foreground">
+              Turn {selectedCorner.number}{selectedCorner.letter || ""}
+            </span>
+            <span className="text-[0.62rem] text-foreground-faint">
+              ({Math.round(selectedCorner.distance)}m envelope: -160m / +100m)
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCornerFocusedRaw((prev) => !prev)}
+              className="flex items-center gap-1.5 rounded border border-border/80 bg-surface-raised px-2.5 py-1 text-[0.65rem] font-semibold text-foreground hover:border-accent hover:text-accent transition-colors cursor-pointer"
+            >
+              <Maximize2 size={11} className={isCornerFocused ? "text-accent" : ""} />
+              {isCornerFocused ? "Full Lap View" : `Zoom Turn ${selectedCorner.number}`}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCornerFocusedRaw(false);
+                onSelectCorner?.(null);
+              }}
+              className="text-[0.62rem] text-foreground-faint hover:text-foreground transition-colors cursor-pointer"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       {(["Speed", "Throttle", "Brake"] as const).map((label, i) => {
         const ch = label === "Speed"    ? tel?.speed
                  : label === "Throttle" ? tel?.throttle
@@ -99,6 +155,8 @@ export function TelemetryChartGrid({
               hasData={hasData}
               animateKey={animateKey}
               sectorFractions={sectorFractions}
+              highlightFractionRange={cornerFractionRange}
+              sliceRange={isCornerFocused && cornerFractionRange ? { startFraction: cornerFractionRange.start, endFraction: cornerFractionRange.end } : null}
               {...overlay}
             />
           </div>
