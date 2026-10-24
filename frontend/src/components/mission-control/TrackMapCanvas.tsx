@@ -14,6 +14,7 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { CornerInfo, TrackMapPoint, TrackMapResponse } from "@/services/api";
+import { getCornerEnvelope } from "@/lib/corner-analytics";
 
 // ─── Layout & Style constants ──────────────────────────────────────────────
 const VIEWBOX_SIZE = 1000;          // SVG viewBox fallback dimension
@@ -81,23 +82,66 @@ function pointColour(pt: TrackMapPoint, mode: HeatmapMode, minSpeed: number, max
 
 // ─── Sub-components ────────────────────────────────────────────────────────
 
-function CornerMarker({ corner, opacity = 1 }: { corner: CornerInfo; opacity?: number }) {
+function CornerMarker({
+  corner,
+  isSelected = false,
+  onSelect,
+  opacity = 1,
+}: {
+  corner: CornerInfo;
+  isSelected?: boolean;
+  onSelect?: (c: CornerInfo) => void;
+  opacity?: number;
+}) {
+  const isInteractive = Boolean(onSelect);
+
   return (
-    <g opacity={opacity}>
+    <g
+      opacity={opacity}
+      className={isInteractive ? "cursor-pointer group" : ""}
+      role={isInteractive ? "button" : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+      aria-label={`Select Turn ${corner.number}${corner.letter ?? ""}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect?.(corner);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onSelect?.(corner);
+        }
+      }}
+    >
+      {/* Selected outer radar halo */}
+      {isSelected && (
+        <circle
+          cx={corner.x}
+          cy={corner.y}
+          r={CORNER_RADIUS + 7}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth={1.5}
+          opacity={0.6}
+          strokeDasharray="3 3"
+        />
+      )}
       <circle
         cx={corner.x}
         cy={corner.y}
-        r={CORNER_RADIUS}
-        fill="rgba(0,0,0,0.8)"
-        stroke="rgba(255,255,255,0.3)"
-        strokeWidth={1}
+        r={isSelected ? CORNER_RADIUS + 2 : CORNER_RADIUS}
+        fill={isSelected ? "var(--accent)" : "rgba(0,0,0,0.85)"}
+        stroke={isSelected ? "#ffffff" : "rgba(255,255,255,0.4)"}
+        strokeWidth={isSelected ? 2 : 1}
+        className="transition-all duration-200 group-hover:stroke-white group-hover:scale-110"
       />
       <text
         x={corner.x}
         y={corner.y}
         textAnchor="middle"
         dominantBaseline="central"
-        fill="white"
+        fill={isSelected ? "#000000" : "white"}
         fontSize={CORNER_FONT_SIZE}
         fontFamily="var(--font-mono, monospace)"
         fontWeight="bold"
@@ -189,9 +233,16 @@ function SpeedLegend({ min, max }: { min: number; max: number }) {
 interface TrackMapCanvasProps {
   data: TrackMapResponse;
   heightClass?: string;
+  selectedCorner?: CornerInfo | null;
+  onSelectCorner?: (corner: CornerInfo | null) => void;
 }
 
-export function TrackMapCanvas({ data, heightClass = "h-full" }: TrackMapCanvasProps) {
+export function TrackMapCanvas({
+  data,
+  heightClass = "h-full",
+  selectedCorner,
+  onSelectCorner,
+}: TrackMapCanvasProps) {
   const [mode, setMode] = useState<HeatmapMode>("speed");
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; containerWidth: number } | null>(null);
@@ -205,6 +256,19 @@ export function TrackMapCanvas({ data, heightClass = "h-full" }: TrackMapCanvasP
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { points, compare_points, corners, driver, compare_driver } = data;
+
+  // Active corner distance envelope and track segment
+  const cornerEnvelope = useMemo(() => {
+    if (!selectedCorner) return null;
+    return getCornerEnvelope(selectedCorner, data.track_length_m);
+  }, [selectedCorner, data.track_length_m]);
+
+  const cornerSegmentPoints = useMemo(() => {
+    if (!cornerEnvelope || points.length === 0) return [];
+    return points.filter(
+      (pt) => pt.distance >= cornerEnvelope.entryDistance && pt.distance <= cornerEnvelope.exitDistance
+    );
+  }, [cornerEnvelope, points]);
 
   useEffect(() => {
     queueMicrotask(() => setMounted(true));
@@ -442,6 +506,31 @@ export function TrackMapCanvas({ data, heightClass = "h-full" }: TrackMapCanvasP
         );
       })}
 
+      {/* Active corner neon highlight segment */}
+      {cornerSegmentPoints.length > 1 && (
+        <g className="corner-highlight-segment pointer-events-none">
+          <polyline
+            points={buildPolylinePoints(cornerSegmentPoints)}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth={TRACK_STROKE_WIDTH + 8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={0.4}
+            className="filter blur-[2px]"
+          />
+          <polyline
+            points={buildPolylinePoints(cornerSegmentPoints)}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth={TRACK_STROKE_WIDTH + 2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={0.95}
+          />
+        </g>
+      )}
+
       {/* Hover cursor dot */}
       {hoveredPoint && (
         <circle
@@ -456,9 +545,21 @@ export function TrackMapCanvas({ data, heightClass = "h-full" }: TrackMapCanvasP
       )}
 
       {/* Corner annotations */}
-      {corners.map((c) => (
-        <CornerMarker key={`${c.number}${c.letter ?? ""}`} corner={c} />
-      ))}
+      {corners.map((c) => {
+        const isSelected = Boolean(
+          selectedCorner &&
+          selectedCorner.number === c.number &&
+          (selectedCorner.letter || "") === (c.letter || "")
+        );
+        return (
+          <CornerMarker
+            key={`${c.number}${c.letter ?? ""}`}
+            corner={c}
+            isSelected={isSelected}
+            onSelect={onSelectCorner}
+          />
+        );
+      })}
 
       {/* Start/finish marker */}
       {points.length > 0 && (
