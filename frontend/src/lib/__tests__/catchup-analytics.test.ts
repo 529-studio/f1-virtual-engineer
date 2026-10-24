@@ -99,6 +99,21 @@ describe("catchup-analytics engine", () => {
     expect(result.drsCaptureLap).toBe(38);
     expect(result.overtakeLap).toBeLessThanOrEqual(40);
     expect(result.chaseStatus).toBe("SUCCESS");
+    expect(result.tacticalDebrief).toContain("DRS already active.");
+  });
+
+  it("handles fresh tyre stint with 0 initial stint laps without fallback clobber", () => {
+    const freshTyreInput: ChaseSimulationInput = {
+      ...baseInput,
+      chaser: {
+        ...baseInput.chaser,
+        stintLaps: 0, // Freshly fitted tyres
+      },
+    };
+
+    const result = simulateChaseConvergence(freshTyreInput);
+    expect(result.chaseStatus).toBe("SUCCESS");
+    expect(result.drsCaptureLap).toBe(47); // 2 laps earlier than 10-lap old tyre (49)
   });
 
   it("accurately applies interactive what-if pace delta overrides", () => {

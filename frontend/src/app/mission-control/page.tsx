@@ -673,6 +673,7 @@ export default function MissionControlPage() {
                 selectedLap={Number(lap) || 15}
                 pitExitLoading={!isDemoRace && pitExitLoading}
                 initialTyreData={currentTyreStatus}
+                totalLaps={laps.length || demoRaceData?.total_laps || 53}
               />
             </div>
           ) : (

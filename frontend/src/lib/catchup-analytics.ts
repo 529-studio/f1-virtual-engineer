@@ -4,7 +4,7 @@
  *
  * Adheres strictly to 529 Engineering Protocols:
  * - Deterministic, pure mathematical calculations.
- * - Zero Unicode emojis (e.g. no ⚡, 🏁, ⚠️).
+ * - Zero Unicode emojis (e.g. no raw unicode symbols; vector Lucide icons used in UI).
  */
 
 export interface DriverStintProfile {
@@ -55,6 +55,9 @@ const CLIFF_DEGRADATION_MULTIPLIER = 2.5;
 /**
  * Calculates rolling single-lap pace delta between leader and chaser.
  * Positive delta means the chaser is faster than the leader.
+ *
+ * Implements continuous cliff degradation where additional penalty
+ * accumulates exclusively for laps exceeding cliffLapOffset.
  */
 export function calculateRollingPaceDelta(
   leader: DriverStintProfile,
@@ -73,8 +76,11 @@ export function calculateRollingPaceDelta(
   const leaderAge = leader.stintLaps + lapOffset;
   const chaserAge = chaser.stintLaps + lapOffset;
 
-  const leaderInCliff = leaderAge >= leader.cliffLapOffset;
-  const chaserInCliff = chaserAge >= chaser.cliffLapOffset;
+  const leaderCliffLaps = Math.max(0, leaderAge - leader.cliffLapOffset);
+  const chaserCliffLaps = Math.max(0, chaserAge - chaser.cliffLapOffset);
+
+  const leaderInCliff = leaderCliffLaps > 0;
+  const chaserInCliff = chaserCliffLaps > 0;
 
   // Base mechanical pace differential (Leader - Chaser)
   const rawDelta = leader.baseLapTimeSeconds - chaser.baseLapTimeSeconds;
@@ -82,12 +88,13 @@ export function calculateRollingPaceDelta(
   // Differential in grip due to tyre stint age delta
   const tyreAgeDelta = (leaderAge - chaserAge) * TYRE_AGE_GRIP_DELTA_COEFF;
 
-  // Incremental degradation wear over simulated projection horizon
-  const leaderDegFactor = leaderInCliff ? CLIFF_DEGRADATION_MULTIPLIER : 1.0;
-  const chaserDegFactor = chaserInCliff ? CLIFF_DEGRADATION_MULTIPLIER : 1.0;
-
-  const leaderDegradation = leaderDegFactor * leader.degradationRateSecPerLap * lapOffset;
-  const chaserDegradation = chaserDegFactor * chaser.degradationRateSecPerLap * lapOffset;
+  // Continuous incremental degradation wear over simulated projection horizon
+  const leaderDegradation =
+    leader.degradationRateSecPerLap * lapOffset +
+    (CLIFF_DEGRADATION_MULTIPLIER - 1) * leader.degradationRateSecPerLap * leaderCliffLaps;
+  const chaserDegradation =
+    chaser.degradationRateSecPerLap * lapOffset +
+    (CLIFF_DEGRADATION_MULTIPLIER - 1) * chaser.degradationRateSecPerLap * chaserCliffLaps;
 
   const degradationDelta = leaderDegradation - chaserDegradation;
   const drsDelta = isDrsActive ? drsAdvantage : 0.0;
@@ -112,20 +119,27 @@ export function generateChaseDebrief(
   status: ChaseStatus,
   drsLap: number | null,
   overtakeLap: number | null,
-  avgPaceDelta: number
+  avgPaceDelta: number,
+  currentLap = 0
 ): string {
   const tyreDeltaLaps = leader.stintLaps - chaser.stintLaps;
   const paceFormatted = Math.abs(avgPaceDelta).toFixed(2);
 
   if (status === "SUCCESS") {
-    const drsText = drsLap
-      ? `DRS detection projected on Lap ${drsLap}.`
-      : `DRS already active.`;
-    const overtakeText = overtakeLap
-      ? `Overtake window opens at Lap ${overtakeLap}.`
-      : `Overtake imminent.`;
+    const drsText =
+      drsLap === currentLap
+        ? "DRS already active."
+        : drsLap
+        ? `DRS detection projected on Lap ${drsLap}.`
+        : "";
+    const overtakeText =
+      overtakeLap === currentLap
+        ? "Overtake imminent."
+        : overtakeLap
+        ? `Overtake window opens at Lap ${overtakeLap}.`
+        : "";
 
-    return `${chaser.driver} is cutting the deficit by ${paceFormatted}s/lap with a ${tyreDeltaLaps}-lap tyre offset against ${leader.driver}. ${drsText} ${overtakeText}`;
+    return `${chaser.driver} is cutting the deficit by ${paceFormatted}s/lap with a ${tyreDeltaLaps}-lap tyre offset against ${leader.driver}. ${drsText} ${overtakeText}`.trim();
   }
 
   if (status === "CLIFF_STALLED") {
@@ -228,7 +242,8 @@ export function simulateChaseConvergence(input: ChaseSimulationInput): ChaseSimu
     chaseStatus,
     drsCaptureLap,
     overtakeLap,
-    avgDelta
+    avgDelta,
+    currentLap
   );
 
   return {

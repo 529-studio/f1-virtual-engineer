@@ -43,6 +43,7 @@ interface StrategyCanvasProps {
   selectedLap?: number | null;
   pitExitLoading?: boolean;
   initialTyreData?: TyreAnalyzeResponse | null;
+  totalLaps?: number;
 }
 
 export function StrategyCanvas({
@@ -59,6 +60,7 @@ export function StrategyCanvas({
   selectedLap,
   pitExitLoading,
   initialTyreData,
+  totalLaps,
 }: StrategyCanvasProps) {
   if (!hasData || !strat) {
     return (
@@ -149,7 +151,7 @@ export function StrategyCanvas({
       >
         <CatchUpPredictorCard
           currentLap={selectedLap ?? strat.gap_sampled_at_lap ?? 38}
-          totalLaps={53}
+          totalLaps={totalLaps ?? 53}
           initialGapSeconds={strat.current_gap_seconds ?? 5.4}
           driver={driver || "PIA"}
           targetDriver={targetDriver || strat.competitor_ahead || "LEC"}

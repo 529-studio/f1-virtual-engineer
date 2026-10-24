@@ -6,7 +6,7 @@
  * Real-time tyre degradation divergence & DRS overtake convergence predictor.
  * Features:
  * - Mathematical non-linear gap convergence trajectory projection.
- * - Interactive SVG graph with 1.0s DRS threshold, curve gradient, and milestone markers.
+ * - Interactive SVG graph with 1.0s DRS threshold, dynamic ceiling scale, and milestone markers.
  * - What-If pace delta slider (±0.80s/lap) with real-time recalculation.
  * - AI Strategist pit-wall debrief.
  * - Strict 529 Engineering Protocols:
@@ -48,6 +48,14 @@ export interface CatchUpPredictorCardProps {
   isLoading?: boolean;
 }
 
+const COMPOUND_PROFILES: Record<string, { degRate: number; cliff: number; baseOffset: number }> = {
+  SOFT: { degRate: 0.075, cliff: 22, baseOffset: -0.4 },
+  MEDIUM: { degRate: 0.050, cliff: 30, baseOffset: -0.15 },
+  HARD: { degRate: 0.035, cliff: 42, baseOffset: 0.0 },
+  INTERMEDIATE: { degRate: 0.045, cliff: 26, baseOffset: 0.0 },
+  WET: { degRate: 0.040, cliff: 32, baseOffset: 0.0 },
+};
+
 export function CatchUpPredictorCard({
   currentLap = 38,
   totalLaps = 53,
@@ -85,22 +93,32 @@ export function CatchUpPredictorCard({
       return "HARD";
     };
 
+    const targetNorm = normCompound(targetCompound);
+    const driverNorm = normCompound(driverCompound);
+
+    const targetProfileData = COMPOUND_PROFILES[targetNorm] ?? COMPOUND_PROFILES.HARD;
+    const driverProfileData = COMPOUND_PROFILES[driverNorm] ?? COMPOUND_PROFILES.HARD;
+
+    // Issue #29 Code Review Fix (2.1): Fresh tyre stints with 0 stint laps must not be overwritten by fallback
+    const targetStint = targetStintLaps != null && targetStintLaps >= 0 ? targetStintLaps : 23;
+    const driverStint = driverStintLaps != null && driverStintLaps >= 0 ? driverStintLaps : 10;
+
     const leaderProfile: DriverStintProfile = {
       driver: effTargetDriver,
-      compound: normCompound(targetCompound),
-      stintLaps: targetStintLaps && targetStintLaps > 0 ? targetStintLaps : 23,
-      baseLapTimeSeconds: 81.5,
-      degradationRateSecPerLap: 0.040,
-      cliffLapOffset: 38,
+      compound: targetNorm,
+      stintLaps: targetStint,
+      baseLapTimeSeconds: 81.5 + targetProfileData.baseOffset,
+      degradationRateSecPerLap: targetProfileData.degRate,
+      cliffLapOffset: targetProfileData.cliff,
     };
 
     const chaserProfile: DriverStintProfile = {
       driver: effDriver,
-      compound: normCompound(driverCompound),
-      stintLaps: driverStintLaps && driverStintLaps > 0 ? driverStintLaps : 10,
-      baseLapTimeSeconds: 81.1,
-      degradationRateSecPerLap: 0.055,
-      cliffLapOffset: 32,
+      compound: driverNorm,
+      stintLaps: driverStint,
+      baseLapTimeSeconds: 81.1 + driverProfileData.baseOffset,
+      degradationRateSecPerLap: driverProfileData.degRate,
+      cliffLapOffset: driverProfileData.cliff,
     };
 
     return {
@@ -176,7 +194,10 @@ export function CatchUpPredictorCard({
   const graphHeight = svgHeight - padding.top - padding.bottom;
 
   const trajectory = result.trajectory;
-  const maxGap = Math.max(effGap * 1.12, 6.0);
+
+  // Issue #29 Code Review Fix (2.4): Dynamically compute maxGap across projected trajectory so negative overrides don't clip
+  const maxTrajGap = trajectory.reduce((max, pt) => Math.max(max, pt.gapSeconds), effGap);
+  const maxGap = Math.max(maxTrajGap * 1.15, 6.0);
 
   // Coordinate scales
   const getX = (lap: number) => {
@@ -213,6 +234,7 @@ export function CatchUpPredictorCard({
       : "";
 
   const drsY = getY(1.0);
+  const showInitialGapLine = Math.abs(effGap - 1.0) >= 0.25 && effGap >= 0.25;
 
   // DRS capture coordinates
   const drsPoint = result.drsCaptureLap
@@ -249,6 +271,9 @@ export function CatchUpPredictorCard({
     hoveredLapIndex !== null && trajectory[hoveredLapIndex]
       ? trajectory[hoveredLapIndex]
       : null;
+
+  // Issue #29 Code Review Fix (2.5): Dynamic cliff safety margin badge
+  const cliffMargin = simulationInput.chaser.cliffLapOffset - simulationInput.chaser.stintLaps;
 
   return (
     <div
@@ -347,11 +372,19 @@ export function CatchUpPredictorCard({
           </div>
           <div className="mt-1 flex items-baseline gap-1">
             <span className="text-base font-bold text-foreground font-mono">
-              {simulationInput.chaser.cliffLapOffset - simulationInput.chaser.stintLaps > 0
-                ? `+${simulationInput.chaser.cliffLapOffset - simulationInput.chaser.stintLaps} Laps`
-                : "In Cliff"}
+              {cliffMargin > 0 ? `+${cliffMargin} Laps` : "In Cliff"}
             </span>
-            <span className="text-[10px] text-status-ok font-mono">Safe</span>
+            <span
+              className={`text-[10px] font-mono ${
+                cliffMargin <= 0
+                  ? "text-status-error font-semibold"
+                  : cliffMargin <= 3
+                  ? "text-status-warn font-semibold"
+                  : "text-status-ok"
+              }`}
+            >
+              {cliffMargin <= 0 ? "Critical" : cliffMargin <= 3 ? "Warning" : "Safe"}
+            </span>
           </div>
         </div>
       </div>
@@ -359,9 +392,10 @@ export function CatchUpPredictorCard({
       {/* 3. Interactive SVG Convergence Graph */}
       <div className="relative rounded border border-border/60 bg-surface-raised/20 p-2">
         <svg
+          role="img"
+          aria-label="Catch-Up Gap Convergence Graph"
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}
           className="w-full h-36 sm:h-44 select-none"
-          preserveAspectRatio="none"
         >
           <defs>
             <linearGradient id="gapConvergenceGradient" x1="0" y1="0" x2="0" y2="1">
@@ -417,25 +451,29 @@ export function CatchUpPredictorCard({
             DRS Detection Window
           </text>
 
-          {/* Initial Gap Grid line */}
-          <line
-            x1={padding.left}
-            y1={getY(effGap)}
-            x2={svgWidth - padding.right}
-            y2={getY(effGap)}
-            stroke="currentColor"
-            className="text-border/30"
-            strokeDasharray="2 4"
-            strokeWidth="1"
-          />
-          <text
-            x={padding.left - 6}
-            y={getY(effGap) + 3}
-            textAnchor="end"
-            className="text-[10px] fill-muted font-mono"
-          >
-            {effGap.toFixed(1)}s
-          </text>
+          {/* Initial Gap Grid line (conditional to prevent label collision) */}
+          {showInitialGapLine && (
+            <>
+              <line
+                x1={padding.left}
+                y1={getY(effGap)}
+                x2={svgWidth - padding.right}
+                y2={getY(effGap)}
+                stroke="currentColor"
+                className="text-border/30"
+                strokeDasharray="2 4"
+                strokeWidth="1"
+              />
+              <text
+                x={padding.left - 6}
+                y={getY(effGap) + 3}
+                textAnchor="end"
+                className="text-[10px] fill-muted font-mono"
+              >
+                {effGap.toFixed(1)}s
+              </text>
+            </>
+          )}
 
           {/* Convergence Area Fill */}
           {areaPath && <path d={areaPath} fill="url(#gapConvergenceGradient)" />}
@@ -518,7 +556,7 @@ export function CatchUpPredictorCard({
             L{effTotalLaps}
           </text>
 
-          {/* Interactive Lap Hit Areas */}
+          {/* Interactive Lap Hit Areas with touch support */}
           {trajectory.map((pt, i) => {
             const cx = getX(pt.lap);
             return (
@@ -532,6 +570,7 @@ export function CatchUpPredictorCard({
                 className="cursor-pointer"
                 onMouseEnter={() => setHoveredLapIndex(i)}
                 onMouseLeave={() => setHoveredLapIndex(null)}
+                onTouchStart={() => setHoveredLapIndex(i)}
               />
             );
           })}
@@ -595,6 +634,7 @@ export function CatchUpPredictorCard({
             value={paceOverride}
             onChange={(e) => setPaceOverride(parseFloat(e.target.value))}
             aria-label="Pace Delta Override Slider"
+            aria-valuetext={`${paceOverride > 0 ? "+" : ""}${paceOverride.toFixed(2)}s per lap`}
             className="w-full accent-accent cursor-pointer min-h-[44px]"
           />
           <span className="text-[10px] text-muted font-mono shrink-0">+0.80s</span>
