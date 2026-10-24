@@ -7,6 +7,7 @@ import { GapGauge } from "./GapGauge";
 import { ScenarioComparison } from "./ScenarioComparison";
 import { TyreCard } from "./TyreCard";
 import { PitExitCard } from "./PitExitCard";
+import { CatchUpPredictorCard } from "./CatchUpPredictorCard";
 import type { SessionId } from "./constants";
 import {
   CANVAS_ANIM_DURATION,
@@ -140,7 +141,27 @@ export function StrategyCanvas({
         )}
       </motion.div>
 
-      {/* Row 4 — Scenario comparison cards
+      {/* Row 4 — Catch-Up & Overtake Predictor */}
+      <motion.div
+        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.5 }}
+      >
+        <CatchUpPredictorCard
+          currentLap={selectedLap ?? strat.gap_sampled_at_lap ?? 38}
+          totalLaps={53}
+          initialGapSeconds={strat.current_gap_seconds ?? 5.4}
+          driver={driver || "PIA"}
+          targetDriver={targetDriver || strat.competitor_ahead || "LEC"}
+          driverCompound={initialTyreData?.compound || "HARD"}
+          targetCompound="HARD"
+          driverStintLaps={initialTyreData?.stint_laps ?? 10}
+          targetStintLaps={23}
+          isLoading={isLoading}
+        />
+      </motion.div>
+
+      {/* Row 5 — Scenario comparison cards
           `isolate` creates a new stacking context so that when
           AnimatePresence expands ScenarioComparison the animated
           overflow cannot bleed visually into Row 2 above it. */}
@@ -186,6 +207,7 @@ function StrategyCanvasEmpty({ isLoading, driver, eventName }: StrategyCanvasEmp
           <div className="flex-1 animate-pulse border border-border bg-surface-elevated/40" />
           <div className="w-24 animate-pulse border border-border bg-surface-elevated/40" />
         </div>
+        <div className="h-44 animate-pulse border border-border bg-surface-elevated/40" />
         <div className="grid grid-cols-2 gap-3">
           <div className="h-28 animate-pulse border border-border bg-surface-elevated/40" />
           <div className="h-28 animate-pulse border border-border bg-surface-elevated/40" />
