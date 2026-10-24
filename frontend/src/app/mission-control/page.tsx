@@ -6,7 +6,7 @@ import {
   getPitExitProjection, getTelemetry, getWeatherSummary,
 } from "@/services/api";
 import type {
-  AnalyzeHistoryItem, AnalyzeResponse, ControversyFinding, EventInfo,
+  AnalyzeHistoryItem, AnalyzeResponse, ControversyFinding, CornerInfo, EventInfo,
   LapDeltaCrossYearResponse, LapDeltaResponse, LapInfo, PitExitResponse,
   SavedQueryItem, StrategyData, TelemetryHistoryItem, TrackMapResponse, TyreAnalyzeResponse, WeatherSummaryResponse,
 } from "@/services/api";
@@ -14,6 +14,7 @@ import { useMissionStore } from "@/lib/store";
 import { useSupabase } from "@/components/auth/SupabaseProvider";
 import {
   CoachmarksModal,
+  CornerInspectorCard,
   FALLBACK_DRIVERS, IntentTabBar, MissionBoard, MissionFooter, MissionHeader, NavRail,
   SelectorBar, StrategyHUD, TelemetryChartGrid, type SessionId,
 } from "@/components/mission-control";
@@ -128,6 +129,29 @@ export default function MissionControlPage() {
     driver === "LEC";
 
   const isDemoRace = isDemoSession && Boolean(demoRaceData);
+
+  // Issue #28: Corner-by-corner telemetry inspection and track map sync
+  const sessionKey = `${year}|${eventName}|${session}`;
+  const [selectedCornerRaw, setSelectedCornerRaw] = useState<{ sessionKey: string; corner: CornerInfo } | null>(null);
+  const [trackMapData, setTrackMapData] = useState<TrackMapResponse | null>(null);
+
+  const activeTrackMap: TrackMapResponse | null =
+    isDemoSession && demoRaceData?.track_map
+      ? (demoRaceData.track_map as TrackMapResponse)
+      : trackMapData;
+
+  // Derive active corner: validated against current session and circuit corners
+  const selectedCorner: CornerInfo | null =
+    (selectedCornerRaw?.sessionKey === sessionKey
+      ? activeTrackMap?.corners?.find(
+          (c) => c.number === selectedCornerRaw.corner.number && (c.letter || "") === (selectedCornerRaw.corner.letter || "")
+        )
+      : null) ??
+    (activeTrackMap?.corners && activeTrackMap.corners.length > 0 ? activeTrackMap.corners[0] : null);
+
+  const handleSelectCorner = useCallback((corner: CornerInfo | null) => {
+    setSelectedCornerRaw(corner ? { sessionKey, corner } : null);
+  }, [sessionKey]);
 
   const currentPitExit: PitExitResponse | null = isDemoRace
     ? demoRaceData?.pit_exit_by_lap?.[lap || "15"] ?? null
@@ -662,25 +686,56 @@ export default function MissionControlPage() {
                   year={year} compareYear={compareYear}
                   crossYearDelta={crossYearDelta} crossYearLoading={crossYearLoading}
                   weather={weather} compareYearWeather={compareYearWeather}
+                  selectedCorner={selectedCorner}
+                  trackLengthM={activeTrackMap?.track_length_m}
+                  onSelectCorner={handleSelectCorner}
                 />
               </div>
 
-              {/* Right: Track Map column (40% on desktop, full width on mobile/tablet) */}
+              {/* Right: Track Map & Corner Inspector column (40% on desktop, full width on mobile/tablet) */}
               {eventName && session && driver ? (
-                <div className="flex w-full shrink-0 flex-col px-4 py-4 lg:w-[40%] lg:min-h-0 lg:flex-1 overflow-y-auto overflow-x-hidden mc-scroll h-[380px] lg:h-auto">
-                  <div className="mb-2 flex shrink-0 items-center gap-2">
-                    <span className="label text-[0.6rem] uppercase tracking-widest">Track Map</span>
-                    <span className="readout text-[0.5rem] uppercase tracking-widest text-foreground-faint">Fastest Lap</span>
+                <div className="flex w-full shrink-0 flex-col px-4 py-4 lg:w-[40%] lg:min-h-0 lg:flex-1 overflow-y-auto overflow-x-hidden mc-scroll gap-4">
+                  {/* 1. Track Map Canvas */}
+                  <div className="flex flex-col shrink-0 h-[260px] lg:h-[280px]">
+                    <div className="mb-2 flex shrink-0 items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="label text-[0.6rem] uppercase tracking-widest">Track Map</span>
+                        <span className="readout text-[0.5rem] uppercase tracking-widest text-foreground-faint">Interactive Turns</span>
+                      </div>
+                      {selectedCorner && (
+                        <span className="readout text-[0.62rem] text-accent font-semibold">
+                          Turn {selectedCorner.number}{selectedCorner.letter || ""} Active
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-h-0 flex-1 flex flex-col">
+                      <TrackMapPanel
+                        year={year}
+                        event={eventName}
+                        session_type={session}
+                        driver={driver}
+                        lap_number={null}
+                        compare_driver={compareDriver || null}
+                        initialData={isDemoSession ? (demoRaceData?.track_map as TrackMapResponse | null) : null}
+                        selectedCorner={selectedCorner}
+                        onSelectCorner={handleSelectCorner}
+                        onDataLoaded={setTrackMapData}
+                      />
+                    </div>
                   </div>
-                  <div className="min-h-0 flex-1 flex flex-col">
-                    <TrackMapPanel
-                      year={year}
-                      event={eventName}
-                      session_type={session}
+
+                  {/* 2. Corner-by-Corner Telemetry Inspector Cockpit Card */}
+                  <div className="shrink-0">
+                    <CornerInspectorCard
+                      eventName={eventName}
+                      corners={activeTrackMap?.corners ?? []}
+                      selectedCorner={selectedCorner}
+                      onSelectCorner={handleSelectCorner}
+                      points={activeTrackMap?.points ?? []}
+                      comparePoints={activeTrackMap?.compare_points ?? []}
                       driver={driver}
-                      lap_number={null}
-                      compare_driver={compareDriver || null}
-                      initialData={isDemoSession ? (demoRaceData?.track_map as TrackMapResponse | null) : null}
+                      compareDriver={compareDriver || null}
+                      isLoading={!activeTrackMap && isLoading}
                     />
                   </div>
                 </div>

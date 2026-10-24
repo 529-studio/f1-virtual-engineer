@@ -187,3 +187,7 @@ yarn-error.log*
 
 # Local session notes — gitignored so each dev keeps their own
 docs/SESSION_STATUS.md
+
+# Playwright MCP artifacts
+.playwright-mcp/
+
