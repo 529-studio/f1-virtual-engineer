@@ -1,11 +1,18 @@
 .PHONY: backend frontend dev redis-up redis-down redis-logs redis-cli redis-status \
-	stack-up stack-down stack-status stack-logs worker-logs dlq-logs rabbitmq-logs
+	stack-up stack-down stack-status stack-logs worker-logs dlq-logs rabbitmq-logs \
+	fia-regs
 
 backend:
 	./scripts/run-backend.sh
 
 frontend:
 	./scripts/run-frontend.sh
+
+# FIA regulations corpus: download official PDFs + parse to clause-level
+# JSONL under backend/data/fia_regs/ (gitignored — FIA copyright).
+fia-regs:
+	.venv/bin/python backend/scripts/fetch_fia_regs.py
+	PYTHONPATH=backend .venv/bin/python -m tools.fia_reg_parser
 
 dev:
 	./scripts/dev.sh

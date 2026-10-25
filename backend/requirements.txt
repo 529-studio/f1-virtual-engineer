@@ -23,6 +23,9 @@ redis>=5.0.0,<8.0.0
 # us cover the L2 cache wiring in CI without provisioning a real Redis.
 fakeredis>=2.20.0,<3.0.0
 rank-bm25>=0.2.2,<1.0.0
+# FIA regulations PDF pipeline (Issue #36): PDF text extraction for the
+# clause-level corpus (certifi already pinned above covers the fetch CA bundle).
+pdfplumber>=0.11.0,<0.12.0
 # chromadb + Gemini embeddings for semantic regulation lookup (#rag-regulation)
 chromadb>=0.4.0,<2.0.0
 # celery for the async task pipeline (#139). amqp transport ships in
