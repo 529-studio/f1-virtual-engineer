@@ -49,7 +49,7 @@ export function MissionFooter({
           <div className="h-3 w-px bg-border" />
           <span className="label">TRACE</span>
           <span
-            className="readout text-[length:var(--text-readout)] text-muted-foreground truncate max-w-[40ch]"
+            className="readout text-[length:var(--text-readout)] text-foreground-dim truncate max-w-[40ch]"
             title={traceSummary}
           >
             {traceSummary}

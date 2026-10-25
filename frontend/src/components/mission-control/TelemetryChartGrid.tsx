@@ -118,7 +118,7 @@ export function TelemetryChartGrid({
             <button
               type="button"
               onClick={() => setCornerFocusedRaw((prev) => !prev)}
-              className="flex items-center gap-1.5 rounded border border-border/80 bg-surface-raised px-2.5 py-1 text-[0.65rem] font-semibold text-foreground hover:border-accent hover:text-accent transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 rounded border border-border/80 bg-surface-elevated px-2.5 py-1 text-[0.65rem] font-semibold text-foreground hover:border-accent hover:text-accent transition-colors cursor-pointer"
             >
               <Maximize2 size={11} className={isCornerFocused ? "text-accent" : ""} />
               {isCornerFocused ? "Full Lap View" : `Zoom Turn ${selectedCorner.number}`}

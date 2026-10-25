@@ -86,15 +86,15 @@ export function CornerInspectorCard({
         className="flex flex-col gap-3 rounded-lg border border-border/80 bg-surface/90 p-3.5 backdrop-blur-sm animate-pulse"
       >
         <div className="flex items-center justify-between">
-          <div className="h-6 w-32 rounded bg-surface-raised" />
-          <div className="h-6 w-24 rounded bg-surface-raised" />
+          <div className="h-6 w-32 rounded bg-surface-elevated" />
+          <div className="h-6 w-24 rounded bg-surface-elevated" />
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-20 rounded bg-surface-raised/60" />
+            <div key={i} className="h-20 rounded bg-surface-elevated/60" />
           ))}
         </div>
-        <div className="h-14 rounded bg-surface-raised/40" />
+        <div className="h-14 rounded bg-surface-elevated/40" />
       </div>
     );
   }
@@ -204,7 +204,7 @@ export function CornerInspectorCard({
             ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
             : isLoss
             ? "border border-rose-500/30 bg-rose-500/10 text-rose-400"
-            : "border border-border bg-surface-raised text-foreground-dim"
+            : "border border-border bg-surface-elevated text-foreground-dim"
         }`}
       >
         {isGain ? `+${absSeconds}s gain` : isLoss ? `-${absSeconds}s loss` : `±0.000s`}
@@ -221,7 +221,7 @@ export function CornerInspectorCard({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2.5">
         <div className="flex items-center gap-2">
           {/* Quick cycle arrows (Min 44px touch targets on mobile) */}
-          <div className="flex items-center rounded border border-border/70 bg-surface-raised p-0.5">
+          <div className="flex items-center rounded border border-border/70 bg-surface-elevated p-0.5">
             <button
               type="button"
               onClick={handlePrev}
@@ -251,7 +251,7 @@ export function CornerInspectorCard({
                 );
                 if (found) onSelectCorner(found);
               }}
-              className="h-11 sm:h-7 appearance-none rounded border border-border/70 bg-surface-raised pl-2.5 pr-7 py-1 text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
+              className="h-11 sm:h-7 appearance-none rounded border border-border/70 bg-surface-elevated pl-2.5 pr-7 py-1 text-xs font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-accent cursor-pointer"
             >
               {sortedCorners.map((c) => (
                 <option key={`${c.number}${c.letter || ""}`} value={`${c.number}${c.letter || ""}`}>
@@ -280,7 +280,7 @@ export function CornerInspectorCard({
       {/* ── METRICS GRID: 4 Core Race Engineer Dimensions ── */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {/* 1. Braking Point */}
-        <div className="flex flex-col justify-between rounded border border-border/60 bg-surface-raised/40 p-2.5 transition-colors hover:border-border">
+        <div className="flex flex-col justify-between rounded border border-border/60 bg-surface-elevated/40 p-2.5 transition-colors hover:border-border">
           <div className="flex items-center justify-between text-[0.62rem] text-foreground-dim">
             <span className="flex items-center gap-1 font-semibold uppercase tracking-wider">
               <Disc3 size={11} className="text-rose-400" /> Braking Point
@@ -300,7 +300,7 @@ export function CornerInspectorCard({
         </div>
 
         {/* 2. Minimum Apex Speed */}
-        <div className="flex flex-col justify-between rounded border border-border/60 bg-surface-raised/40 p-2.5 transition-colors hover:border-border">
+        <div className="flex flex-col justify-between rounded border border-border/60 bg-surface-elevated/40 p-2.5 transition-colors hover:border-border">
           <div className="flex items-center justify-between text-[0.62rem] text-foreground-dim">
             <span className="flex items-center gap-1 font-semibold uppercase tracking-wider">
               <Gauge size={11} className="text-accent" /> Apex Speed
@@ -320,7 +320,7 @@ export function CornerInspectorCard({
         </div>
 
         {/* 3. Throttle Pickup Point */}
-        <div className="flex flex-col justify-between rounded border border-border/60 bg-surface-raised/40 p-2.5 transition-colors hover:border-border">
+        <div className="flex flex-col justify-between rounded border border-border/60 bg-surface-elevated/40 p-2.5 transition-colors hover:border-border">
           <div className="flex items-center justify-between text-[0.62rem] text-foreground-dim">
             <span className="flex items-center gap-1 font-semibold uppercase tracking-wider">
               <Zap size={11} className="text-emerald-400" /> Throttle Exit
@@ -340,7 +340,7 @@ export function CornerInspectorCard({
         </div>
 
         {/* 4. Apex Distance along Lap */}
-        <div className="flex flex-col justify-between rounded border border-border/60 bg-surface-raised/40 p-2.5 transition-colors hover:border-border">
+        <div className="flex flex-col justify-between rounded border border-border/60 bg-surface-elevated/40 p-2.5 transition-colors hover:border-border">
           <div className="flex items-center justify-between text-[0.62rem] text-foreground-dim">
             <span className="flex items-center gap-1 font-semibold uppercase tracking-wider">
               <Compass size={11} className="text-blue-400" /> Apex Location

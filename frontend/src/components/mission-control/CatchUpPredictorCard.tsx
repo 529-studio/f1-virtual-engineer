@@ -156,16 +156,16 @@ export function CatchUpPredictorCard({
         className="flex flex-col gap-3 rounded-lg border border-border/80 bg-surface/90 p-4 backdrop-blur-sm animate-pulse"
       >
         <div className="flex items-center justify-between">
-          <div className="h-5 w-48 rounded bg-surface-raised" />
-          <div className="h-5 w-24 rounded bg-surface-raised" />
+          <div className="h-5 w-48 rounded bg-surface-elevated" />
+          <div className="h-5 w-24 rounded bg-surface-elevated" />
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-16 rounded bg-surface-raised/60" />
+            <div key={i} className="h-16 rounded bg-surface-elevated/60" />
           ))}
         </div>
-        <div className="h-40 rounded bg-surface-raised/40" />
-        <div className="h-12 rounded bg-surface-raised/30" />
+        <div className="h-40 rounded bg-surface-elevated/40" />
+        <div className="h-12 rounded bg-surface-elevated/30" />
       </div>
     );
   }
@@ -177,9 +177,9 @@ export function CatchUpPredictorCard({
         data-testid="catchup-predictor-empty"
         className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border/60 bg-surface/50 p-6 text-center"
       >
-        <TrendingDown className="h-8 w-8 text-muted/60 stroke-[1.5]" />
+        <TrendingDown className="h-8 w-8 text-foreground-dim/60 stroke-[1.5]" />
         <p className="text-sm font-medium text-foreground">No Target Competitor Tracked</p>
-        <p className="max-w-xs text-xs text-muted">
+        <p className="max-w-xs text-xs text-foreground-dim">
           Select a competitor driver or telemetry delta to activate live catch-up and DRS convergence forecasting.
         </p>
       </div>
@@ -283,16 +283,16 @@ export function CatchUpPredictorCard({
       {/* 1. Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2.5">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded bg-surface-raised text-accent">
+          <div className="flex h-7 w-7 items-center justify-center rounded bg-surface-elevated text-accent">
             <TrendingDown className="h-4 w-4 stroke-[1.75]" />
           </div>
           <div>
             <h3 className="text-xs font-semibold tracking-wider text-foreground uppercase">
               Catch-Up & Overtake Predictor
             </h3>
-            <p className="text-[11px] text-muted flex items-center gap-1 font-mono">
+            <p className="text-[11px] text-foreground-dim flex items-center gap-1 font-mono">
               <span className="text-foreground font-semibold">{effDriver}</span>
-              <ChevronRight className="h-3 w-3 inline text-muted/60" />
+              <ChevronRight className="h-3 w-3 inline text-foreground-dim/60" />
               <span>{effTargetDriver}</span>
               <span className="text-border">|</span>
               <span>Gap {effGap.toFixed(1)}s</span>
@@ -311,8 +311,8 @@ export function CatchUpPredictorCard({
       {/* 2. Key Telemetry Metrics Grid */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {/* Metric 1: Projected DRS Window */}
-        <div className="flex flex-col rounded border border-border/60 bg-surface-raised/40 p-2.5">
-          <div className="flex items-center justify-between text-muted">
+        <div className="flex flex-col rounded border border-border/60 bg-surface-elevated/40 p-2.5">
+          <div className="flex items-center justify-between text-foreground-dim">
             <span className="text-[10px] uppercase font-mono tracking-wider">DRS Window</span>
             <Zap className="h-3.5 w-3.5 text-accent stroke-[1.75]" />
           </div>
@@ -321,7 +321,7 @@ export function CatchUpPredictorCard({
               {result.drsCaptureLap ? `Lap ${result.drsCaptureLap}` : "Unreachable"}
             </span>
             {result.drsCaptureLap && (
-              <span className="text-[10px] text-muted font-mono">
+              <span className="text-[10px] text-foreground-dim font-mono">
                 (+{Math.max(0, result.drsCaptureLap - effCurrentLap)}L)
               </span>
             )}
@@ -329,8 +329,8 @@ export function CatchUpPredictorCard({
         </div>
 
         {/* Metric 2: Projected Pass Window */}
-        <div className="flex flex-col rounded border border-border/60 bg-surface-raised/40 p-2.5">
-          <div className="flex items-center justify-between text-muted">
+        <div className="flex flex-col rounded border border-border/60 bg-surface-elevated/40 p-2.5">
+          <div className="flex items-center justify-between text-foreground-dim">
             <span className="text-[10px] uppercase font-mono tracking-wider">Projected Pass</span>
             <Flag className="h-3.5 w-3.5 text-status-ok stroke-[1.75]" />
           </div>
@@ -339,7 +339,7 @@ export function CatchUpPredictorCard({
               {result.overtakeLap ? `Lap ${result.overtakeLap}` : "Out of Laps"}
             </span>
             {result.overtakeLap && (
-              <span className="text-[10px] text-muted font-mono">
+              <span className="text-[10px] text-foreground-dim font-mono">
                 (+{Math.max(0, result.overtakeLap - effCurrentLap)}L)
               </span>
             )}
@@ -347,8 +347,8 @@ export function CatchUpPredictorCard({
         </div>
 
         {/* Metric 3: Rolling Pace Delta */}
-        <div className="flex flex-col rounded border border-border/60 bg-surface-raised/40 p-2.5">
-          <div className="flex items-center justify-between text-muted">
+        <div className="flex flex-col rounded border border-border/60 bg-surface-elevated/40 p-2.5">
+          <div className="flex items-center justify-between text-foreground-dim">
             <span className="text-[10px] uppercase font-mono tracking-wider">Net Pace Delta</span>
             <Timer className="h-3.5 w-3.5 text-foreground/80 stroke-[1.75]" />
           </div>
@@ -365,8 +365,8 @@ export function CatchUpPredictorCard({
         </div>
 
         {/* Metric 4: Tyre Cliff Safety Margin */}
-        <div className="flex flex-col rounded border border-border/60 bg-surface-raised/40 p-2.5">
-          <div className="flex items-center justify-between text-muted">
+        <div className="flex flex-col rounded border border-border/60 bg-surface-elevated/40 p-2.5">
+          <div className="flex items-center justify-between text-foreground-dim">
             <span className="text-[10px] uppercase font-mono tracking-wider">Tyre Cliff</span>
             <AlertTriangle className="h-3.5 w-3.5 text-status-warn stroke-[1.75]" />
           </div>
@@ -390,7 +390,7 @@ export function CatchUpPredictorCard({
       </div>
 
       {/* 3. Interactive SVG Convergence Graph */}
-      <div className="relative rounded border border-border/60 bg-surface-raised/20 p-2">
+      <div className="relative rounded border border-border/60 bg-surface-elevated/20 p-2">
         <svg
           role="img"
           aria-label="Catch-Up Gap Convergence Graph"
@@ -418,7 +418,7 @@ export function CatchUpPredictorCard({
             x={padding.left - 6}
             y={zeroY + 3}
             textAnchor="end"
-            className="text-[10px] fill-muted font-mono"
+            className="text-[10px] fill-foreground-dim font-mono"
           >
             0.0s
           </text>
@@ -468,7 +468,7 @@ export function CatchUpPredictorCard({
                 x={padding.left - 6}
                 y={getY(effGap) + 3}
                 textAnchor="end"
-                className="text-[10px] fill-muted font-mono"
+                className="text-[10px] fill-foreground-dim font-mono"
               >
                 {effGap.toFixed(1)}s
               </text>
@@ -535,7 +535,7 @@ export function CatchUpPredictorCard({
             x={padding.left}
             y={svgHeight - 8}
             textAnchor="middle"
-            className="text-[10px] fill-muted font-mono"
+            className="text-[10px] fill-foreground-dim font-mono"
           >
             L{effCurrentLap}
           </text>
@@ -543,7 +543,7 @@ export function CatchUpPredictorCard({
             x={getX(Math.round((effCurrentLap + effTotalLaps) / 2))}
             y={svgHeight - 8}
             textAnchor="middle"
-            className="text-[10px] fill-muted font-mono"
+            className="text-[10px] fill-foreground-dim font-mono"
           >
             L{Math.round((effCurrentLap + effTotalLaps) / 2)}
           </text>
@@ -551,7 +551,7 @@ export function CatchUpPredictorCard({
             x={svgWidth - padding.right}
             y={svgHeight - 8}
             textAnchor="middle"
-            className="text-[10px] fill-muted font-mono"
+            className="text-[10px] fill-foreground-dim font-mono"
           >
             L{effTotalLaps}
           </text>
@@ -579,7 +579,7 @@ export function CatchUpPredictorCard({
         {/* Hover inspection readout overlay */}
         {activeHoverPoint && (
           <div className="absolute top-3 right-3 rounded border border-border/80 bg-surface/95 px-2 py-1 text-[11px] font-mono shadow-md backdrop-blur-sm pointer-events-none">
-            <span className="text-muted">Lap {activeHoverPoint.lap}:</span>{" "}
+            <span className="text-foreground-dim">Lap {activeHoverPoint.lap}:</span>{" "}
             <span className="font-semibold text-foreground">
               {activeHoverPoint.gapSeconds.toFixed(2)}s gap
             </span>{" "}
@@ -592,7 +592,7 @@ export function CatchUpPredictorCard({
       </div>
 
       {/* 4. Interactive What-If Pace Slider */}
-      <div className="flex flex-col gap-1.5 rounded border border-border/60 bg-surface-raised/30 p-2.5">
+      <div className="flex flex-col gap-1.5 rounded border border-border/60 bg-surface-elevated/30 p-2.5">
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-1.5 font-medium text-foreground">
             <SlidersHorizontal className="h-3.5 w-3.5 text-accent stroke-[1.75]" />
@@ -605,7 +605,7 @@ export function CatchUpPredictorCard({
                   ? "bg-status-ok/15 text-status-ok"
                   : paceOverride < 0
                   ? "bg-status-warn/15 text-status-warn"
-                  : "bg-surface-raised text-muted"
+                  : "bg-surface-elevated text-foreground-dim"
               }`}
             >
               {paceOverride > 0 ? `+${paceOverride.toFixed(2)}s push` : paceOverride < 0 ? `${paceOverride.toFixed(2)}s conserve` : "Baseline (0.00s)"}
@@ -615,7 +615,7 @@ export function CatchUpPredictorCard({
                 type="button"
                 onClick={() => setPaceOverride(0)}
                 aria-label="Reset pace override"
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-muted hover:text-foreground transition-colors"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-foreground-dim hover:text-foreground transition-colors"
               >
                 <RotateCcw className="h-3.5 w-3.5 stroke-[1.75]" />
               </button>
@@ -625,7 +625,7 @@ export function CatchUpPredictorCard({
 
         {/* Range slider with touch area */}
         <div className="flex items-center gap-2 py-1">
-          <span className="text-[10px] text-muted font-mono shrink-0">-0.80s</span>
+          <span className="text-[10px] text-foreground-dim font-mono shrink-0">-0.80s</span>
           <input
             type="range"
             min="-0.80"
@@ -637,15 +637,15 @@ export function CatchUpPredictorCard({
             aria-valuetext={`${paceOverride > 0 ? "+" : ""}${paceOverride.toFixed(2)}s per lap`}
             className="w-full accent-accent cursor-pointer min-h-[44px]"
           />
-          <span className="text-[10px] text-muted font-mono shrink-0">+0.80s</span>
+          <span className="text-[10px] text-foreground-dim font-mono shrink-0">+0.80s</span>
         </div>
       </div>
 
       {/* 5. AI Strategist Tactical Debrief */}
-      <div className="flex items-start gap-2.5 rounded border border-border/70 bg-surface-raised/50 p-3 text-xs">
+      <div className="flex items-start gap-2.5 rounded border border-border/70 bg-surface-elevated/50 p-3 text-xs">
         <Radio className="h-4 w-4 shrink-0 text-accent stroke-[1.75] mt-0.5" />
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-muted font-semibold">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-foreground-dim font-semibold">
             AI Race Strategist Debrief
           </span>
           <p className="text-[12px] leading-relaxed text-foreground/90 font-sans">

@@ -1,5 +1,7 @@
 "use client";
 
+import { Radio } from "lucide-react";
+
 export function IntentTabBar({
   intent,
   setIntent,
@@ -54,7 +56,8 @@ export function IntentTabBar({
         aria-label="Open Strategy HUD"
         title="Open Strategy HUD"
       >
-        <span className="text-accent uppercase">📻 Strategy HUD</span>
+        <Radio className="h-3.5 w-3.5 text-accent" strokeWidth={1.75} aria-hidden />
+        <span className="text-accent uppercase">Strategy HUD</span>
       </button>
     </div>
   );
