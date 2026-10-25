@@ -613,20 +613,6 @@ export default function MissionControlPage() {
           weather={weather}
         />
 
-        {/* F4: First-run Mission Board (3 story cards: Pit Exit, Tyre Status, Steward's View) */}
-        <MissionBoard
-          lap={Number(lap) || 15}
-          totalLaps={laps.length || demoRaceData?.total_laps || 53}
-          pitExit={currentPitExit}
-          tyreStatus={currentTyreStatus}
-          stewardsFindings={stewardsFindings}
-          isLoading={isLoading && !demoRaceData}
-          year={year}
-          eventName={eventName}
-          session={session}
-          driver={driver}
-        />
-
         <SelectorBar
           year={year} setYear={setYear}
           eventName={eventName} setEvent={setEvent} events={events} eventsLoading={eventsLoading}
@@ -650,6 +636,25 @@ export default function MissionControlPage() {
         />
 
         <IntentTabBar intent={intent} setIntent={setIntent} />
+
+        {/* F4: Mission Board (3 story cards: Pit Exit, Tyre Status, Steward's View).
+            Issue #34: sits BELOW SelectorBar + IntentTabBar so the page reads
+            inputs -> outputs, and only in strategy mode — it summarizes the
+            strategy call, which has no bearing on telemetry charts. */}
+        {intent === "strategy" && (
+          <MissionBoard
+            lap={Number(lap) || 15}
+            totalLaps={laps.length || demoRaceData?.total_laps || 53}
+            pitExit={currentPitExit}
+            tyreStatus={currentTyreStatus}
+            stewardsFindings={stewardsFindings}
+            isLoading={isLoading && !demoRaceData}
+            year={year}
+            eventName={eventName}
+            session={session}
+            driver={driver}
+          />
+        )}
 
         {/* Task 1 (plan: strategy-canvas-layout): gate canvas on mode.
             Strategy mode renders StrategyCanvas with pit window timeline,
