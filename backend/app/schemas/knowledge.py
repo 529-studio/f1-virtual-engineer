@@ -16,6 +16,13 @@ class KnowledgeCitation(BaseModel):
     topics: list[str] = Field(default_factory=list)
     snippet: str
     score: float
+    # Verbatim regulation chunks only (Issue #38): clause anchoring + source PDF.
+    article: str | None = None
+    clause: str | None = None
+    season: int | None = None
+    issue_date: str | None = None
+    source_url: str | None = None
+    verbatim: bool = False
 
 
 class KnowledgeLookupResponse(BaseModel):
@@ -34,6 +41,13 @@ class KnowledgeNote(BaseModel):
     section: str
     topics: list[str] = Field(default_factory=list)
     body: str
+    # Verbatim regulation chunks only (Issue #38).
+    article: str | None = None
+    clause: str | None = None
+    season: int | None = None
+    issue_date: str | None = None
+    source_url: str | None = None
+    verbatim: bool = False
 
 
 class KnowledgeNoteResponse(BaseModel):

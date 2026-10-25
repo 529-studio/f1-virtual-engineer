@@ -7,11 +7,17 @@ from app.main import app
 from tests._helpers import reset_rate_limiter
 from tools.knowledge_retriever import (
     CORPUS_DIR,
+    REGS_DIR,
     _parse_frontmatter,
     get_note,
     lookup,
     reset_index_cache,
 )
+
+# Verbatim regulation chunks are gitignored (FIA copyright), so CI machines
+# run without them. Tests that depend on them skip; everything else must pass
+# with AND without the corpus.
+REGS_PRESENT = REGS_DIR.exists() and any(REGS_DIR.glob("*.jsonl"))
 
 
 class KnowledgeRetrieverTests(unittest.TestCase):
@@ -36,20 +42,33 @@ class KnowledgeRetrieverTests(unittest.TestCase):
     def test_lookup_drs_returns_drs_entry(self):
         hits = lookup("DRS activation rules")
         self.assertTrue(hits, "expected at least one DRS match")
-        self.assertEqual(hits[0]["id"], "drs-activation")
+        # With the verbatim corpus present the authoritative regulation chunk
+        # outranks the curated note — both are acceptable top citations.
+        ids = [h["id"] for h in hits]
+        verbatim_drs = any(
+            h.get("verbatim") and "drs" in h["snippet"].lower() for h in hits
+        )
+        self.assertTrue("drs-activation" in ids or verbatim_drs)
         self.assertGreater(hits[0]["score"], 0.0)
-        self.assertIn("overtaking", hits[0]["topics"])
         self.assertTrue(hits[0]["snippet"])
 
     def test_lookup_yellow_flag_returns_yellow_entry(self):
         hits = lookup("yellow flag driver obligations")
         self.assertTrue(hits)
-        self.assertEqual(hits[0]["id"], "yellow-flag")
+        ids = [h["id"] for h in hits]
+        verbatim_flag = any(
+            h.get("verbatim") and "yellow" in h["snippet"].lower() for h in hits
+        )
+        self.assertTrue("yellow-flag" in ids or verbatim_flag)
 
     def test_lookup_pit_lane_returns_pit_entry(self):
         hits = lookup("pit lane speed limit penalty")
         self.assertTrue(hits)
-        self.assertEqual(hits[0]["id"], "pit-lane-speed")
+        ids = [h["id"] for h in hits]
+        verbatim_pit = any(
+            h.get("verbatim") and "pit lane" in h["snippet"].lower() for h in hits
+        )
+        self.assertTrue("pit-lane-speed" in ids or verbatim_pit)
 
     def test_lookup_undercut_returns_strategy_entry(self):
         hits = lookup("should I undercut now to gain track position")
@@ -94,6 +113,53 @@ class KnowledgeRetrieverTests(unittest.TestCase):
         self.assertIsNone(get_note(""))
 
 
+@unittest.skipUnless(REGS_PRESENT, "verbatim FIA corpus not built (run make fia-regs)")
+class RegulationChunkTests(unittest.TestCase):
+    """Behaviour that only exists once make fia-regs has produced the corpus."""
+
+    def setUp(self):
+        reset_index_cache()
+
+    def test_clause_exact_reference_resolves_to_verbatim_chunk(self):
+        hits = lookup("what does article 55.14 say about lapped cars", season=2024)
+        self.assertTrue(hits)
+        top = hits[0]
+        self.assertTrue(top.get("verbatim"))
+        self.assertEqual(top["clause"], "55.14")
+        self.assertEqual(top["season"], 2024)
+        self.assertIn("LAPPED CARS", top["snippet"].upper())
+
+    def test_sectioned_clause_reference_resolves(self):
+        hits = lookup("B5.15.2 resumption procedure")
+        self.assertTrue(hits)
+        self.assertEqual(hits[0]["clause"], "B5.15.2")
+        self.assertTrue(hits[0]["verbatim"])
+
+    def test_bare_decimal_is_not_treated_as_clause(self):
+        hits = lookup("gap was 1.5 seconds at the exit")
+        for h in hits:
+            # no chunk should be riding the exact-match boost for "1.5"
+            self.assertLess(h["score"], 100.0)
+
+    def test_season_preference_ranks_matching_season_first(self):
+        hits = lookup("track limits white line", k=6, season=2025)
+        self.assertTrue(hits)
+        # Curated notes are season-agnostic and may legitimately top the list,
+        # but no verbatim chunk from another season may outrank the preferred
+        # season's articles.
+        verbatim_seasons = [h["season"] for h in hits if h.get("verbatim")]
+        self.assertTrue(verbatim_seasons)
+        self.assertTrue(all(s == 2025 for s in verbatim_seasons), verbatim_seasons)
+
+    def test_get_note_returns_verbatim_chunk_body(self):
+        note = get_note("sr-2024:55.14")
+        self.assertIsNotNone(note)
+        assert note is not None  # type narrow
+        self.assertTrue(note["verbatim"])
+        self.assertIn("LAPPED CARS", note["body"].upper())
+        self.assertTrue(note["source_url"].startswith("https://www.fia.com/"))
+
+
 class KnowledgeLookupEndpointTests(unittest.TestCase):
     def setUp(self):
         reset_rate_limiter()
@@ -111,7 +177,12 @@ class KnowledgeLookupEndpointTests(unittest.TestCase):
         top = body["citations"][0]
         for key in ("id", "title", "source", "section", "topics", "snippet", "score"):
             self.assertIn(key, top)
-        self.assertEqual(top["id"], "pit-lane-speed")
+        ids = [c["id"] for c in body["citations"]]
+        verbatim_pit = any(
+            c.get("verbatim") and "pit lane" in c["snippet"].lower()
+            for c in body["citations"]
+        )
+        self.assertTrue("pit-lane-speed" in ids or verbatim_pit)
 
     def test_endpoint_validates_k_range(self):
         too_low = self.client.post("/knowledge/lookup", json={"query": "drs", "k": 0})
