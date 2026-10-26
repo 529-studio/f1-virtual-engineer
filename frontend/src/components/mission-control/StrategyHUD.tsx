@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { PanelRightClose, PanelRightOpen } from "lucide-react";
+import { AlertTriangle, PanelRightClose, PanelRightOpen } from "lucide-react";
 import type { AnalyzeHistoryItem, AnalyzeResponse, SavedQueryItem, StrategyData, TelemetryHistoryItem } from "@/services/api";
 import { TeamIcon } from "@/components/icons/TeamIcons";
 import { useSupabase } from "@/components/auth/SupabaseProvider";
@@ -197,9 +197,9 @@ export function StrategyHUD({
         const statusColor = `var(--status-${status})`;
         const statusBg = `var(--status-${status}-dim)`;
         const label = rateLimitMessage
-          ? "⚠ RATE LIMITED"
+          ? "RATE LIMITED"
           : hasData && strat?.undercut_risk === "high"
-            ? "⚠ STRATEGY ALERT"
+            ? "STRATEGY ALERT"
             : isLoading
               ? streamStage !== "idle" ? `${streamStage.toUpperCase()}…` : "ANALYZING"
               : hasData
@@ -211,7 +211,15 @@ export function StrategyHUD({
             data-status={status}
             style={{ borderColor: statusColor, background: statusBg }}
           >
-            <p className="label mb-2" style={{ color: statusColor }}>{label}</p>
+            <p
+              className="label mb-2 inline-flex items-center gap-1.5"
+              style={{ color: statusColor }}
+            >
+              {(status === "warn" || status === "error") && (
+                <AlertTriangle className="h-3 w-3 shrink-0" strokeWidth={1.75} aria-hidden />
+              )}
+              {label}
+            </p>
             <p className="readout text-[0.7rem] font-semibold uppercase leading-snug text-foreground">
               {rateLimitMessage
                 ? rateLimitMessage

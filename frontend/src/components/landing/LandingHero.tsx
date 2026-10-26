@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
+import { Radio } from "lucide-react";
 import { QuestionRotator } from "@/components/landing/QuestionRotator";
 import { JargonTooltip } from "@/components/ui/JargonTooltip";
 
@@ -355,7 +356,7 @@ function InteractiveCockpitSandbox() {
       <div className="rounded-xs border border-border bg-surface-elevated/70 p-3 space-y-1.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[0.65rem]">📻</span>
+            <Radio className="h-3.5 w-3.5 text-accent" strokeWidth={1.75} aria-hidden />
             <span className="readout text-[0.58rem] uppercase font-bold text-accent tracking-[var(--track-wide)]">
               AI Race Engineer Call ({activeMatchup.driver})
             </span>

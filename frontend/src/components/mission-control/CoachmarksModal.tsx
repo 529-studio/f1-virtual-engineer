@@ -116,7 +116,7 @@ export function CoachmarksModal({ onDismiss }: CoachmarksModalProps) {
             <button
               type="button"
               onClick={closeTour}
-              className="text-xs text-foreground-faint transition-colors hover:text-foreground"
+              className="inline-flex min-h-[44px] min-w-[72px] items-center justify-center px-3 text-xs text-foreground-dim transition-colors hover:text-foreground cursor-pointer"
             >
               Skip tour
             </button>
@@ -124,7 +124,7 @@ export function CoachmarksModal({ onDismiss }: CoachmarksModalProps) {
             <button
               type="button"
               onClick={nextStep}
-              className="btn btn--accent px-4 py-1.5 text-xs font-semibold"
+              className="btn btn--accent min-h-[44px] px-5 text-xs font-semibold"
             >
               {currentStep < STEPS.length - 1 ? "Next →" : "Got it"}
             </button>
