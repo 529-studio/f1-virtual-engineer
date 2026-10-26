@@ -49,10 +49,11 @@ export function MissionBoard({
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_COLLAPSE_KEY);
-      if (saved === "true") {
-        queueMicrotask(() => setIsCollapsed(true));
-      } else if (saved === null && typeof window !== "undefined" && window.innerWidth < 768) {
-        // On mobile (<768px), default to compact ribbon so telemetry is immediately visible
+      // Issue #34: ribbon by default on every viewport — the canvas below is
+      // the primary surface and the board duplicates its pit-exit/tyre cards.
+      // Only an explicit saved "false" (the user expanded the board before)
+      // keeps the 3-card grid open.
+      if (saved !== "false") {
         queueMicrotask(() => setIsCollapsed(true));
       }
     } catch {
@@ -252,7 +253,9 @@ export function MissionBoard({
           </p>
           <div className="mt-2 flex items-center justify-between border-t border-border/50 pt-1 text-[0.58rem] font-mono text-foreground-faint">
             <span>AS OF L{lap} / {totalLaps}</span>
-            <span className="text-foreground-dim">Monza · 22.0s loss</span>
+            <span className="text-foreground-dim">
+              {eventName} · {pitExit?.pit_loss_s?.toFixed(1) ?? "—"}s loss
+            </span>
           </div>
         </button>
 

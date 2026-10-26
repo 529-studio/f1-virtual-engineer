@@ -13,7 +13,7 @@ import { RadioLog } from "./RadioLog";
 import { ReferencesPanel } from "./ReferencesPanel";
 import { SavedQueriesPanel } from "./SavedQueriesPanel";
 // ScenarioComparison and TyreCard are promoted to StrategyCanvas (main canvas).
-import { StewardsViewPanel } from "./StewardsViewPanel";
+// StewardsViewPanel lives on the MissionBoard story card (Issue #34).
 import { JargonTooltip } from "@/components/ui/JargonTooltip";
 import { HintTooltip } from "@/components/ui/HintTooltip";
 import { WhyThisCallPanel } from "./WhyThisCallPanel";
@@ -416,13 +416,11 @@ export function StrategyHUD({
         <WhyThisCallPanel result={result} strat={strat} hasData={hasData} />
 
         {/* TyreCard + ScenarioComparison are on the StrategyCanvas (main
-            area) in Strategy mode — no need to repeat them here. */}
+            area) in Strategy mode — no need to repeat them here.
+            StewardsViewPanel likewise lives on the MissionBoard story card
+            (Issue #34) so steward detail is not split across regions. */}
 
         <ReferencesPanel items={result?.citations} />
-
-        {session === "R" && hasData && (result?.controversy_analysis?.length ?? 0) > 0 && (
-          <StewardsViewPanel findings={result!.controversy_analysis!} />
-        )}
 
 
       </div>}
