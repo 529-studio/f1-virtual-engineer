@@ -99,6 +99,11 @@ export function ReferencesPanel({ items }: { items?: KnowledgeCitation[] }) {
                 }}
                 aria-hidden
               />
+              {c.verbatim && (
+                <span className="rounded-sm border border-accent/50 bg-accent-dim/40 px-1 py-px text-[0.5rem] font-bold tracking-widest text-accent">
+                  VERBATIM
+                </span>
+              )}
               <span>{c.title}</span>
             </button>
           );
@@ -123,6 +128,25 @@ export function ReferencesPanel({ items }: { items?: KnowledgeCitation[] }) {
           {activeCitation.source && (
             <p className="readout mt-0.5 text-[0.55rem] text-foreground-faint">
               {activeCitation.source}
+              {activeCitation.source_url && (
+                <>
+                  {" · "}
+                  <a
+                    href={activeCitation.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent underline decoration-accent/40 hover:decoration-accent"
+                  >
+                    Official PDF
+                  </a>
+                </>
+              )}
+            </p>
+          )}
+          {activeCitation.verbatim && activeNote?.body && (
+            <p className="readout mt-1 text-[0.55rem] uppercase tracking-wide text-foreground-faint">
+              Issued {activeCitation.issue_date ?? "—"} · regulation text
+              quoted verbatim from the official FIA document
             </p>
           )}
           <p className="readout mt-2 whitespace-pre-line text-[0.7rem] leading-relaxed text-foreground-dim">

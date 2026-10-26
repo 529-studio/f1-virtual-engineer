@@ -100,6 +100,13 @@ export interface KnowledgeCitation {
   topics: string[];
   snippet: string;
   score: number;
+  // Verbatim FIA regulation chunks only (Issue #38).
+  article?: string | null;
+  clause?: string | null;
+  season?: number | null;
+  issue_date?: string | null;
+  source_url?: string | null;
+  verbatim?: boolean;
 }
 
 export interface TraceEntry {
@@ -799,6 +806,13 @@ export interface KnowledgeNote {
   section: string;
   topics: string[];
   body: string;
+  // Verbatim FIA regulation chunks only (Issue #38).
+  article?: string | null;
+  clause?: string | null;
+  season?: number | null;
+  issue_date?: string | null;
+  source_url?: string | null;
+  verbatim?: boolean;
 }
 
 export interface KnowledgeNoteResponse {

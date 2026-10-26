@@ -596,7 +596,18 @@ def analyze_query(
             # questions ("should HAM undercut at japan 2023 race"). Three
             # hits restores the headroom for the strategy note to land
             # without re-tuning BM25 weights.
-            citations = knowledge_lookup(query, 3) or []
+            # Prefer regulation chunks from the season the query is about
+            # ("... at monza 2024") — parsed here because retrieval runs
+            # before the graph's parse_intent node.
+            _year_match = re.search(r"\b(20\d{2})\b", query or "")
+            citations = (
+                knowledge_lookup(
+                    query,
+                    3,
+                    season=int(_year_match.group(1)) if _year_match else None,
+                )
+                or []
+            )
         except Exception:  # noqa: BLE001 — retrieval must never break /analyze
             citations = []
     try:
