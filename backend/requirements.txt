@@ -28,8 +28,3 @@ rank-bm25>=0.2.2,<1.0.0
 pdfplumber>=0.11.0,<0.12.0
 # chromadb + Gemini embeddings for semantic regulation lookup (#rag-regulation)
 chromadb>=0.4.0,<2.0.0
-# celery for the async task pipeline (#139). amqp transport ships in
-# the base wheel; broker is RabbitMQ in compose, result backend is the
-# same Redis as the L2 cache (different DB index — see
-# backend/tasks/__init__.py).
-celery>=5.4.0,<6.0.0

@@ -1,5 +1,7 @@
 # F1 Race Engineer — Source-Grounded Interview Defense
 
+> **Cập nhật 2026-11-12 (#41):** Pipeline Celery/RabbitMQ đã bị xoá sau audit #40 (0 task trong production). Các mục về Celery, RabbitMQ, DLQ, `RATIONALE_ASYNC`, `rationale_job_id` và `analyze_history_id` bên dưới là snapshot lịch sử tại ngày audit 2026-08-20, không còn mô tả source hiện tại. Rationale hiện chạy đồng bộ với template fallback.
+
 > Mục tiêu: giúp một Java Backend developer quen JDK 1.8 có thể đọc, lần request, chất vấn failure mode và thiết kế lại dự án bằng Spring Boot.
 >
 > Ngày audit: **2026-08-20**. Nhánh làm việc: `develop`. Tài liệu tham chiếu CV: `JavaBackendEngineer_VuThanhDat.pdf` (trích text cục bộ, không sửa PDF).

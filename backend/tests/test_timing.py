@@ -70,34 +70,6 @@ class TimingMiddlewareTests(unittest.TestCase):
             self.assertIn("last_ms", stats)
             self.assertIn("error_rate", stats)
 
-    def test_metrics_endpoint_includes_workers_block(self):
-        # /metrics must always expose the workers counters with a stable
-        # shape so the frontend can render zeros instead of breaking when
-        # Redis or the broker is unreachable (which is the case in CI).
-        response = self.client.get("/metrics")
-        self.assertEqual(response.status_code, 200)
-        body = response.json()
-        self.assertIn("workers", body)
-        workers = body["workers"]
-        # 24h Redis-backed counters
-        self.assertIn("completed_24h", workers)
-        self.assertIn("failed_24h", workers)
-        self.assertIn("redis_enabled", workers)
-        # Live broker stats (#139 PR6)
-        self.assertIn("queue_depth", workers)
-        self.assertIn("in_flight", workers)
-        self.assertIn("dlq_size", workers)
-        self.assertIn("broker_reachable", workers)
-        # Shape contract — values must be integers / bools regardless of
-        # whether Redis or RabbitMQ is reachable in this environment.
-        self.assertIsInstance(workers["completed_24h"], int)
-        self.assertIsInstance(workers["failed_24h"], int)
-        self.assertIsInstance(workers["redis_enabled"], bool)
-        self.assertIsInstance(workers["queue_depth"], int)
-        self.assertIsInstance(workers["in_flight"], int)
-        self.assertIsInstance(workers["dlq_size"], int)
-        self.assertIsInstance(workers["broker_reachable"], bool)
-
     def test_metrics_disabled_via_env(self):
         # Build a fresh app with METRICS_ENABLED=false so the middleware skips work.
         with patch.dict(os.environ, {"METRICS_ENABLED": "false"}):

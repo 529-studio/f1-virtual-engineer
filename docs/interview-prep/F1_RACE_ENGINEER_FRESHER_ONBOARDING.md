@@ -1,5 +1,7 @@
 # F1 Race Engineer — Lộ trình đọc source cho Fresher Java 8
 
+> **Cập nhật 2026-11-12 (#41):** Celery/RabbitMQ đã bị xoá khỏi repo. Các mục nói về Celery, RabbitMQ, DLQ và async rationale bên dưới chỉ còn giá trị lịch sử/ôn phỏng vấn, không còn khớp với source hiện tại. Rationale hiện chạy đồng bộ với template fallback.
+
 > Đối tượng: fresher quen JDK 1.8 và kiến trúc n-tier, chưa quen Python, FastAPI, Next.js, Celery, Redis và RabbitMQ.
 >
 > Mục tiêu: hiểu dự án sớm nhưng vẫn đủ sâu để lần request, giải thích lỗi và thiết kế lại một flow bằng Spring Boot.

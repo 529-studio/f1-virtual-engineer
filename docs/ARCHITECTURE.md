@@ -16,11 +16,10 @@ If you only have 60 seconds, the four big bets are:
 3. **BM25 over a curated markdown corpus, not a vector DB** — RAG
    citations work today on a $0 infra spend; revisit when the corpus
    exceeds ~50 entries.
-4. **Async LLM rationale through Celery + RabbitMQ + DLQ, opt-in only**
-   — signed-in users can flip `RATIONALE_ASYNC=true` for instant template
-   responses while a worker back-fills the LLM text. Anonymous callers
-   always take the synchronous path so nobody sees a degraded
-   "template-only" UX.
+4. **Deterministic strategy core, LLM only narrates** — every pit/tyre
+   call comes from plain Python over FastF1 data; Gemini writes the prose
+   and falls back to a template when unavailable. No broker, worker, or
+   result backend sits on the request path.
 
 ---
 
@@ -66,14 +65,6 @@ sequenceDiagram
     end
 ```
 
-The Async LLM rationale path (#139 PR3, opt-in via `RATIONALE_ASYNC=true`)
-forks at step 11: the synchronous response carries the deterministic
-template plus a `rationale_job_id`, while a Celery worker back-fills the
-LLM text onto the persisted history row. The frontend polls
-`/analyze/history` and swaps the text in once the row's `rationale_source`
-flips from `template` to `llm`. Bounded retries + DLQ surfaced on
-`/admin`.
-
 ---
 
 ## Layered architecture
@@ -108,8 +99,6 @@ graph TD
     subgraph Infra["Infra"]
         L1[(L1 TTLCache<br/>in-process)]
         L2[(L2 Redis<br/>L1 → L2 → compute)]
-        Broker[(RabbitMQ<br/>Celery broker)]
-        Worker[Celery worker<br/>+ DLQ worker]
         DB[(Supabase Postgres<br/>RLS-backed)]
         LLM[(Gemini Flash)]
     end
@@ -127,8 +116,6 @@ graph TD
     Tyre --> FastF1
     Routes -->|fire-and-forget| DB
     Graph -->|sync path| LLM
-    Routes -->|async path| Broker --> Worker --> LLM
-    Worker --> DB
 ```
 
 Notes on the layout:
@@ -156,8 +143,7 @@ Each row: what was picked, what got rejected, and the cost we accepted.
 | **Fail-closed envelope on every helper** | Populated dict with `fallback: True` + reason | Raise on FastF1 hiccups | Every endpoint has to special-case nothing — the cost lives in the helpers, not the routes. |
 | **BM25 over curated markdown for RAG** | `rank-bm25` indexing 13 hand-written `.md` files at import | pgvector / Chroma + embeddings | No semantic similarity. Mitigated by tag-aware tokenisation; revisit when corpus exceeds ~50 entries. |
 | **L1 in-process + L2 Redis cache** | `cachetools.TTLCache` (per-process) → Redis (shared) → compute | Single-tier Redis | Two cache layers to invalidate, but multi-worker deployments share warm state and a Redis outage degrades to L1-only. |
-| **Async LLM rationale opt-in only** | `RATIONALE_ASYNC=true` flag, signed-in users only | Always-async | Anonymous users still pay LLM latency in-line, but they never see a "template-only" response with no upgrade route. |
-| **Celery + RabbitMQ + DLQ** | Real broker with bounded retries (3× exponential backoff) | Redis-as-broker / synchronous everything | RabbitMQ is one more container to operate, but it gives us in-flight + queue-depth observability and a dead-letter queue for permanent failures. |
+| **Synchronous rationale with template fallback** | Gemini inline; deterministic template on failure | Background worker / queue | Signed-in users pay LLM latency in-line, but there is no broker or worker to operate and no silent "template-only" state. |
 | **`numpy.interp` for lap-vs-lap Δt** | Align both drivers' telemetry on a shared distance grid, rebase `SessionTime` per-lap | `fastf1.utils.delta_time` | Wrote ~50 lines of helper. The library helper is deprecated and known-inaccurate, so this was unavoidable. |
 | **Idempotency key in route layer** | SETNX in Redis with 60s TTL, `Retry-After: 2` on PENDING | At-least-once everywhere | Slightly more code in `/analyze`. Pays off because a network retry doesn't double-write history rows or burn duplicate Gemini quota. |
 | **Build-time `NEXT_PUBLIC_*` injection codified in compose** | `${VAR:?msg}` interpolation guards + `URL ✗ KEY ✗` diagnostic pill in AuthButton | Runtime env injection | More verbose compose file. Pays off because the next prod-only auth misconfig is self-explaining instead of a 30-minute debug. |
@@ -178,8 +164,6 @@ worry about as an operator?"
 | Gemini API key missing or rate-limited | LLM rationale | `generate_rationale` returns `None`; caller falls back to deterministic template, response flag flips to `rationale_source: "template"` |
 | Redis L2 unreachable | Cache + idempotency | Helpers fall through to L1 only; idempotency dedupe disabled (fail-open); `/metrics` shows `redis_enabled: false` |
 | Supabase JWKS endpoint down | Auth verification on signed-in routes | 401 — but core Mission Control flow works anonymously; only history/saved-queries panels degrade |
-| RabbitMQ unreachable | Async rationale enqueue | `/analyze` falls back to synchronous LLM path; `/admin` shows `broker_reachable: false` and `queue_depth: 0` |
-| Celery worker crashloop | DLQ workflow | Bounded retries (3×) → DLQ; DLQ consumer is on its own container so a regression there can't take down regular task processing |
 
 The pattern: every dependency has a fail-open or fail-closed contract,
 and `/metrics` exposes a boolean for each so an operator can see
@@ -197,7 +181,6 @@ and `/metrics` exposes a boolean for each so an operator can see
 | Strategy heuristic + scenario compare | `backend/tools/strategy_helper.py`, `backend/tools/strategy_compare.py` |
 | RAG retrieval + corpus | `backend/tools/knowledge_retriever.py`, `backend/rag/corpus/*.md` |
 | LLM client + system prompt | `backend/core/llm.py` |
-| Async rationale task | `backend/tasks/rationale.py` |
 | Idempotency layer | `backend/core/idempotency.py` |
 | Mission Control HUD | `frontend/src/components/mission-control/StrategyHUD.tsx` |
 | Citation chips + popover | `frontend/src/components/mission-control/ReferencesPanel.tsx` |
@@ -219,8 +202,7 @@ and `/metrics` exposes a boolean for each so an operator can see
   analysis side feels done.
 - **No multi-tenant Postgres.** Supabase RLS gates rows by `auth.uid()`,
   but the schema isn't sharded — solo MVP, not a SaaS spin-out.
-- **No SSE / WebSocket.** Async rationale upgrades use polling on
-  `/analyze/history` because the worker pool is single-node and HTTP
-  polling is simpler than maintaining a long-lived connection layer.
-  Revisit when the worker pool moves to multi-node and the connection
-  count starts mattering.
+- **SSE for progress, no WebSocket.** `POST /analyze/stream` emits
+  `status` / `telemetry` / `strategy` / `token` / `done` events over a
+  single HTTP response. A bidirectional channel would add connection-state
+  management with no current use case; revisit when live timing lands.

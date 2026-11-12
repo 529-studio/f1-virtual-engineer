@@ -112,8 +112,6 @@ class IdempotencyTests(unittest.TestCase):
             "telemetry_data": {"fallback": False},
             "strategy_data": None,
             "rationale_source": "template",
-            "rationale_job_id": None,
-            "analyze_history_id": None,
             "error": None,
             "memory": None,
             "execution": None,

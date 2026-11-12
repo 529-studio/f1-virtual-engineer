@@ -84,8 +84,6 @@ export interface AnalyzeResponse {
   };
   strategy_data?: StrategyData | null;
   rationale_source?: "llm" | "template";
-  rationale_job_id?: string | null;
-  analyze_history_id?: string | null;
   execution?: AnalyzeExecution | null;
   citations?: KnowledgeCitation[];
   controversy_analysis?: ControversyFinding[];
@@ -436,10 +434,6 @@ export interface AnalyzeHistoryItem {
   session_type: string | null;
   intent_type: string | null;
   rationale_source: string;
-  // Populated by the async-rationale worker (#139 PR3) when the row
-  // has been upgraded from `template` to `llm`. Always absent on rows
-  // produced by the synchronous LLM path.
-  rationale_text?: string | null;
   created_at: string;
 }
 
@@ -596,15 +590,6 @@ export interface MetricsRouteSummary {
 export interface MetricsResponse {
   routes: Record<string, MetricsRouteSummary>;
   cache: { redis_enabled: boolean };
-  workers?: {
-    completed_24h: number;
-    failed_24h: number;
-    redis_enabled: boolean;
-    queue_depth: number;
-    in_flight: number;
-    dlq_size: number;
-    broker_reachable: boolean;
-  };
 }
 
 export async function getMetrics(accessToken?: string): Promise<MetricsResponse> {

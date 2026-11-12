@@ -26,7 +26,7 @@
 
 services:
   # ──────────────────────────────────────────────────────────────────────
-  # Redis — L2 cache + future Celery broker/result backend (#100, #139).
+  # Redis — L2 cache + idempotency + shared rate-limit counters (#100).
   #
   # Hardening checklist embedded in this config:
   # 1. NO host port mapping. Only the internal docker network can reach
@@ -39,8 +39,7 @@ services:
   #    `CONFIG SET dir /var/spool/cron` → cron entry → root.
   # 3. Cache-only persistence: `save ""` + `appendonly no`. Disk usage
   #    stays at zero for this service — a hard requirement on the disk-
-  #    constrained VPS. If we ever queue jobs through Redis, revisit:
-  #    Celery uses Redis for results, those benefit from persistence.
+  #    constrained VPS.
   # 4. maxmemory + allkeys-lru — hard ceiling so a runaway cache key
   #    can't OOM-kill the VPS. LRU eviction beats refusing writes for a
   #    cache workload.
@@ -92,96 +91,6 @@ services:
       REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD must be set in backend/.env}"
     # No `ports:` block on purpose — see hardening note 1 above.
 
-  # ──────────────────────────────────────────────────────────────────────
-  # RabbitMQ — Celery broker for the async task pipeline (#139).
-  #
-  # Hardening checklist:
-  # 1. NO host port mapping for 5672 (AMQP) or 15672 (management UI). The
-  #    docker network is the only path to either. If you need the UI for
-  #    a demo, tunnel it: `ssh -L 15672:localhost:15672 vps`.
-  # 2. Default `guest` user is left at its built-in `loopback_users.guest`
-  #    setting (only reachable from localhost inside the container). We
-  #    don't disable that — every tutorial that does is wrong.
-  # 3. A dedicated `apex` user + `apex` vhost are created on first boot
-  #    via the RABBITMQ_DEFAULT_* env vars. The Celery app + worker only
-  #    ever talk through this user.
-  # 4. Persistent volume so messages survive a container restart. RabbitMQ
-  #    tries to keep this lean (queue messages only, no payload bloat),
-  #    but watch disk if traffic spikes — see docs/INFRA_HARDENING.md Q4.
-  # 5. Healthcheck uses `rabbitmq-diagnostics check_running` which is the
-  #    cheapest one Erlang exposes — `ping` allocates more.
-  # ──────────────────────────────────────────────────────────────────────
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: "apex"
-      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD must be set in backend/.env}"
-      RABBITMQ_DEFAULT_VHOST: "apex"
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-
-  # ──────────────────────────────────────────────────────────────────────
-  # Celery worker — consumes both apex.tasks and dead-letter queues.
-  #
-  # Consolidated into 1 container with --concurrency=1 to conserve ~250MB
-  # RAM on low-spec host while preserving full DLQ handling.
-  # ──────────────────────────────────────────────────────────────────────
-  worker:
-    image: ghcr.io/529-studio/f1-virtual-engineer/backend:stg-latest
-    container_name: f1-worker
-    env_file:
-      - backend/.env
-    environment:
-      - CORS_ALLOWED_ORIGINS
-      - GEMINI_API_KEY
-      - SUPABASE_URL
-      - SUPABASE_SERVICE_ROLE_KEY
-      - SUPABASE_JWT_SECRET
-      - SUPABASE_DB_URL
-      - REDIS_PASSWORD
-      - REDIS_URL
-      - CELERY_RESULT_BACKEND
-      - RABBITMQ_DEFAULT_PASS
-      - RATIONALE_ASYNC
-      - RABBITMQ_USER
-      - RABBITMQ_PASSWORD
-      - CELERY_BROKER_URL
-      - RABBITMQ_MGMT_URL
-    command:
-      - "celery"
-      - "-A"
-      - "tasks"
-      - "worker"
-      - "--loglevel=info"
-      - "--concurrency=1"
-      - "--queues=apex.tasks,apex.tasks.dead"
-      - "--without-heartbeat"
-      - "--without-mingle"
-      - "--without-gossip"
-    volumes:
-      - ./backend/data:/app/backend/data
-    deploy:
-      resources:
-        limits:
-          cpus: "0.50"
-          memory: 256M
-        reservations:
-          cpus: "0.10"
-          memory: 128M
-    depends_on:
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    restart: unless-stopped
-
   backend:
     image: ghcr.io/529-studio/f1-virtual-engineer/backend:stg-latest
     env_file:
@@ -195,13 +104,6 @@ services:
       - SUPABASE_DB_URL
       - REDIS_PASSWORD
       - REDIS_URL
-      - CELERY_RESULT_BACKEND
-      - RABBITMQ_DEFAULT_PASS
-      - RATIONALE_ASYNC
-      - RABBITMQ_USER
-      - RABBITMQ_PASSWORD
-      - CELERY_BROKER_URL
-      - RABBITMQ_MGMT_URL
       - ENVIRONMENT=production
     ports:
       - "127.0.0.1:8000:8000"
@@ -217,8 +119,6 @@ services:
           memory: 128M
     depends_on:
       redis:
-        condition: service_healthy
-      rabbitmq:
         condition: service_healthy
     restart: unless-stopped
 
@@ -253,6 +153,3 @@ services:
     ports:
       - "3000:3000"
     restart: unless-stopped
-
-volumes:
-  rabbitmq-data:
