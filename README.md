@@ -39,7 +39,6 @@ An end-to-end agentic AI system that acts as a virtual Formula 1 race engineer. 
 - **Lap-Delta Comparison:** Compare two drivers (or the same driver across different years) point-by-point along the track to see exactly where time is gained or lost.
 - **Strategy & Pit Recommendations:** Calculates tire degradation and predicts optimal pit windows and undercut risks based on historical stint data.
 - **Controversy & Penalty Analysis:** Automatically detects race incidents and generates dual-perspective arguments (team vs. steward) grounded in actual FIA Sporting Regulations.
-- **Asynchronous LLM Processing:** Leverages RabbitMQ and Celery to run heavy LLM rationale generation in the background, keeping the main API highly responsive.
 - **Intelligent RAG System:** BM25 keyword retrieval over a curated markdown corpus of FIA rules and F1 strategy concepts, surfacing actionable citations without the overhead of a vector database.
 
 Suggested first run:
@@ -49,7 +48,7 @@ Suggested first run:
 3. Clear the vs-driver and pick a **vs Year** instead (e.g. 2023) — the same chart now compares VER's fastest 2024 lap against his fastest 2023 lap at Japan, with a citation chip pointing at the W14→W15 / RB19→RB20 / regulation notes that explain *why* the new car finds time.
 4. Switch the intent toggle to **Strategy** and re-analyze — the **Compare strategies** panel opens with two side-by-side what-if scenarios, each with cited rationale (click a citation chip to read the full corpus note).
 
-Cold-start latency on first FastF1 fetch is ~5-30s; subsequent calls hit the L1+L2 cache and return in ~50ms. The `/admin` page exposes per-route p50/p95 and worker queue depth (gated behind a single Supabase user id, so it's a no-op for the public).
+Cold-start latency on first FastF1 fetch is ~5-30s; subsequent calls hit the L1+L2 cache and return in ~50ms. The `/admin` page exposes per-route p50/p95 and error rate (gated behind a single Supabase user id, so it's a no-op for the public).
 
 ---
 
@@ -78,7 +77,7 @@ To ensure maintainability and scalability, this project uses a monorepo structur
     * `eval/`: Golden sets and evaluation scripts.
     * `infra/`: Docker, environment variables, and config.
 * **`frontend/`**: Next.js Dashboard for real-time visualization.
-* **`docker-compose.staging.yml`**: Staging-like containerization (api + frontend + redis + rabbitmq + celery worker + dlq-worker). See "Staging-like Docker Compose" below.
+* **`docker-compose.staging.yml`**: Staging-like containerization (api + frontend + redis). See "Staging-like Docker Compose" below.
 * **`Makefile`**: One-shot dev helpers — `make dev`, `make redis-up`, `make stack-up`, etc.
 
 ---
@@ -92,8 +91,7 @@ To ensure maintainability and scalability, this project uses a monorepo structur
 * **Frontend:** Next.js 16 (App Router, Turbopack), framer-motion, Yarn 4 (corepack-pinned, immutable installs)
 * **Auth + Persistence:** Supabase Auth (Google OAuth, asymmetric JWT/JWKS), Supabase Postgres with row-level security
 * **Caching:** `cachetools` TTLCache (L1, in-process) + optional Redis (L2, shared across workers)
-* **Async pipeline:** Celery + RabbitMQ (opt-in async LLM rationale path with bounded retries + dead-letter queue)
-* **Deployment:** Docker, Docker Compose (staging stack hardened — no host port mapping for Redis/RabbitMQ, renamed `CONFIG`/`FLUSHALL`, `requirepass` enforced)
+* **Deployment:** Docker, Docker Compose (staging stack hardened — no host port mapping for Redis, renamed `CONFIG`/`FLUSHALL`, `requirepass` enforced)
 
 ---
 
@@ -108,7 +106,7 @@ The Virtual Engineer is equipped with strict tool-use policies and capabilities.
 | `strategy_analyzer` what-if comparison — side-by-side scenario cards (1-3 slots) so a user can compare "Undercut now vs Hold +3 laps" or "Aggressive vs Steady" and see expected gain + cited rationale per slot. Per-scenario fail-closed: a helper hiccup on one slot doesn't take down the others. | ✅ Shipped | `POST /strategy/compare`; toggle in Mission Control's Strategy HUD |
 | `lap_delta` — per-distance Δt(reference vs compare) computed by aligning two drivers' fastest-lap telemetry on a shared distance grid (`numpy.interp`), so the chart shows *where* on the lap the gap actually accrues, not just the final number | ✅ Shipped | `POST /lap-delta` |
 | `lap_delta_cross_year` — same alignment math, different question: how much faster is the **same driver** at the **same event** in year_b vs year_a, and where on the lap does the new car make up the time. Two sessions loaded independently; distance grid stops at the shorter lap so layout edits don't extrapolate. Pairs with a citation chip pointing at car-generation / regulation notes. | ✅ Shipped | `POST /lap-delta-cross-year` |
-| `race_engineer_rationale` — Gemini Flash-generated natural-language summary, with deterministic template fallback when the LLM is unavailable. Optional async path (`RATIONALE_ASYNC=true`) returns the template instantly and back-fills the LLM rationale onto the persisted history row via a Celery worker — the frontend swaps the text in once it lands. | ✅ Shipped | `POST /analyze` (`rationale_source: "llm" \| "template"`, `analyze_history_id`, `rationale_job_id`) |
+| `race_engineer_rationale` — Gemini Flash-generated natural-language summary, with deterministic template fallback when the LLM is unavailable. | ✅ Shipped | `POST /analyze` (`rationale_source: "llm" \| "template"`) |
 | `radio_interpreter` — closed-set classification of team-radio transcripts (tyre/brake/engine/traffic/weather/strategy/none) with severity + trigger phrase | ✅ Shipped | `POST /radio/analyze` |
 | `predict_tyre_wear` — standalone tyre-degradation snapshot with compound, stint length, observed decay (s/lap), projected cliff-lap, and an `as of L<n>` context line so the headline can't be misread as a real-time call about the lap currently on screen | ✅ Shipped | `POST /tyre/analyze` |
 | `weather_summary` — per-session weather aggregate from FastF1 (mean air + track temp, rainfall fraction, condition label DRY/MIXED/WET). Drives the Mission Control header pill so the viewer sees the conditions the lap was set in, since wet/dry deltas can dwarf any car-spec delta. | ✅ Shipped | `POST /weather` |
@@ -126,8 +124,7 @@ The Virtual Engineer is equipped with strict tool-use policies and capabilities.
 * **FastF1 result cache + threadpool offload** — schedule/roster/lap-list responses are cached in-process for 24 h, telemetry summaries + tyre features for 1 h. Fallback/empty results are *not* cached, so a transient FastF1 hiccup never sticks. Helper calls now run on the FastAPI threadpool (`asyncio.to_thread`) so a slow FastF1 fetch no longer blocks the event loop for concurrent requests.
 * **Pre-baked cache warmup** — `backend/scripts/prebake.py` records helper outputs to `backend/data/prebake/<helper>/*.json.gz`. On startup the FastAPI lifespan hook seeds the in-process TTLCaches from those snapshots, so the first user after a restart hits warm-cache latency for the demo session set instead of paying the multi-second FastF1 cold load.
 * **Optional Redis L2 cache** — set `REDIS_URL` (e.g. `redis://localhost:6379/0`) and the FastF1 helpers gain a second tier: L1 in-process → L2 Redis → compute. Multi-worker / multi-pod deployments share the same warmed-up state instead of each process refilling its own cache. A Redis outage degrades silently to "L1 only" — the API never 5xxs because of cache infrastructure. Inspect `GET /metrics` → `cache.redis_enabled` to confirm the wiring.
-* **Async LLM rationale (opt-in)** — flip `RATIONALE_ASYNC=true` and signed-in callers get an instant template response while a Celery worker back-fills the Gemini rationale onto the persisted `analyze_history` row. Retries are bounded (3× with exponential backoff); terminal failures land in a dead-letter queue and bump `workers.failed_24h`. The frontend polls `/analyze/history` for the row and swaps in the upgraded text — no SSE/WebSocket required. Anonymous callers always take the synchronous path so they never see a degraded "template-only" response.
-* **Admin observability** — `/admin` is gated behind `NEXT_PUBLIC_ADMIN_USER_ID` and renders rolling p50/p95/max latency + error rate per route. Two worker card grids: **last 24h** (`completed_24h`, `failed_24h`, Redis backend status, scraped from Redis counters bumped by the worker on success/failure) and **live** (`queue_depth`, `in_flight`, `dlq_size`, scraped from the RabbitMQ Management API every 5s). Either source unreachable degrades to zeros plus a status flag — `/metrics` itself never 5xxs.
+* **Admin observability** — `/admin` is gated behind `NEXT_PUBLIC_ADMIN_USER_ID` and renders rolling p50/p95/max latency + error rate per route, plus the Redis L2 cache wiring status. An unreachable Redis degrades to a "disabled" pill instead of a 5xx.
 
 ### Engineering decisions worth calling out
 
@@ -137,9 +134,8 @@ A few non-obvious choices a reviewer might want context on. Each is a deliberate
 * **`numpy.interp` for lap-vs-lap Δt instead of `fastf1.utils.delta_time`.** The library's helper is deprecated and known-inaccurate; we align both drivers' telemetry on a shared distance grid ourselves and rebase `SessionTime` to zero per-lap so the trace shows *gap accumulation along the lap*, not session-clock drift.
 * **Build-time `NEXT_PUBLIC_*` injection, codified in compose.** Next inlines public env vars at `next build` time, not runtime. After hitting a prod-only "Sign in unavailable" failure that looked like an OAuth misconfig, we made compose fail-parse with `${VAR:?msg}` if any are missing, added a Makefile pre-flight grep, and put a `URL ✗ KEY ✗` diagnostic pill in the AuthButton so the next failure of this class is self-explaining.
 * **Yarn 4 with `nodeLinker: node-modules`, not PnP.** Berry's PnP would shrink installs further but breaks Next 16 + Turbopack today. We picked the deterministic-install win and skipped the resolution-graph win — revisit when we move off Turbopack.
-* **Async LLM rationale is opt-in, anonymous callers stay sync.** `RATIONALE_ASYNC=true` only kicks in for signed-in users — anonymous callers always get the synchronous path, never a degraded "template only" UX while waiting for a worker. Bounded retries (3× exponential backoff) + dead-letter queue + 24h success/failure counters surfaced on `/admin`.
 * **BM25 + curated markdown for RAG, not a vector DB.** The knowledge corpus is 27 hand-written markdown files (FIA regulation snippets, F1 strategy concepts, plus car-generation, regulation, engine-spec, and tyre-construction deltas for cross-year comparison) under `backend/rag/corpus/`, indexed once at import via `rank-bm25`. Cost: no semantic similarity, no fuzzy paraphrase matching. Benefit: zero infra spend on the indie-hacker VPS, the corpus is auditable in version control, and a recruiter reading the repo can see exactly what the LLM is allowed to ground its rationale in. Revisit when corpus exceeds ~50 entries or when fuzzy retrieval becomes a real demand.
-* **Hardened staging compose by default.** Redis with `requirepass` + renamed `CONFIG`/`FLUSHALL`/`FLUSHDB`, no host port mapping for Redis or RabbitMQ, `maxmemory + allkeys-lru` so a runaway cache key can't OOM-kill the VPS. Notes on each guardrail live inline in `docker-compose.staging.yml` so the reasoning survives the next refactor.
+* **Hardened staging compose by default.** Redis with `requirepass` + renamed `CONFIG`/`FLUSHALL`/`FLUSHDB`, no host port mapping, `maxmemory + allkeys-lru` so a runaway cache key can't OOM-kill the VPS. Notes on each guardrail live inline in `docker-compose.staging.yml` so the reasoning survives the next refactor.
 
 ### Workflow loop
 
@@ -276,18 +272,16 @@ The Makefile auto-detects whether you have `docker compose` (v2 plugin) or `dock
 
 ### 4. Full staging-like stack with Docker Compose
 
-For a reviewer-friendly run that mirrors production (api + frontend + redis + rabbitmq + celery worker + dlq-worker behind a single docker network):
+For a reviewer-friendly run that mirrors production (api + frontend + redis behind a single docker network):
 
 ```bash
 make stack-up        # builds + starts every service
 make stack-status    # confirms each container is healthy
 make stack-logs      # follow combined logs (Ctrl-C to detach)
-make worker-logs     # just the celery worker
-make dlq-logs        # just the dead-letter consumer
 make stack-down      # stops the stack
 ```
 
-Both `REDIS_PASSWORD` and `RABBITMQ_PASSWORD` must be set in `backend/.env` first — the Makefile pre-flights and tells you exactly which one is missing instead of letting compose print its opaque interpolation error.
+`REDIS_PASSWORD` and the two `NEXT_PUBLIC_SUPABASE_*` values must be set in `backend/.env` first — the Makefile pre-flights and tells you exactly which one is missing instead of letting compose print its opaque interpolation error.
 
 If you'd rather invoke compose directly:
 

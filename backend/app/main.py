@@ -130,8 +130,6 @@ from core.persistence import (
     list_telemetry_history,
 )
 
-_snapshot_workers = system._snapshot_workers
-
 if __name__ == "__main__":
     import uvicorn
 

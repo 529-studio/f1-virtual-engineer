@@ -8,10 +8,12 @@ The workflow decides whether the user needs telemetry or strategy analysis. It f
 
 Gemini Flash receives only the computed facts and relevant F1/FIA citations, then turns them into a short engineer-style explanation. If Gemini is unavailable, the backend returns a deterministic template instead of failing. FastAPI returns the result as JSON or as a streamed response, and the frontend renders the charts, strategy call, and explanation.
 
-For signed-in users, there is an optional async path: FastAPI returns the initial result immediately, Celery sends a Gemini-improvement job through RabbitMQ, and a background worker updates the saved analysis. Redis also supports shared caching, idempotency, and worker metrics; RabbitMQ/Celery retries failed jobs and sends permanent failures to a dead-letter queue.
+For signed-in users, results are persisted to Supabase so the history panel can reload them later. Redis, when configured, provides the shared L2 cache and short-lived idempotency keys; when it is absent the API falls back to an in-process cache and runs every request normally.
 
 ## My contribution
 
-I personally implemented the core product: the Next.js UI, FastAPI APIs, FastF1 integration, LangGraph flow, telemetry and strategy logic, Gemini fallback flow, Redis caching, RAG citations, and the Celery/RabbitMQ async rationale pipeline.
+I personally implemented the core product: the Next.js UI, FastAPI APIs, FastF1 integration, LangGraph flow, telemetry and strategy logic, Gemini fallback flow, Redis caching, and RAG citations.
 
-I contributed the application-side Docker/worker configuration, but I would not claim sole ownership of the final DevOps and CI/CD deployment work; that was where I stopped, and the repository also has a separate contributor focused on CI pipeline files.
+I contributed the application-side Docker configuration, but I would not claim sole ownership of the final DevOps and CI/CD deployment work; that was where I stopped, and the repository also has a separate contributor focused on CI pipeline files.
+
+I also built and then removed an opt-in Celery/RabbitMQ rationale pipeline after production telemetry showed it processed zero tasks; the synchronous path with template fallback was simpler and had no user-visible downside.

@@ -5,8 +5,6 @@ import { motion } from "framer-motion";
 import { AlertTriangle, PanelRightClose, PanelRightOpen } from "lucide-react";
 import type { AnalyzeHistoryItem, AnalyzeResponse, SavedQueryItem, StrategyData, TelemetryHistoryItem } from "@/services/api";
 import { TeamIcon } from "@/components/icons/TeamIcons";
-import { useSupabase } from "@/components/auth/SupabaseProvider";
-import { useRationaleUpgrade } from "@/hooks/useRationaleUpgrade";
 import { RecentAnalyses } from "./RecentAnalyses";
 import { RecentTelemetry } from "./RecentTelemetry";
 import { RadioLog } from "./RadioLog";
@@ -85,24 +83,11 @@ export function StrategyHUD({
     { key: "radio" as const, label: "◉ RADIO" },
   ] as const;
 
-  // Async rationale upgrade (#139 PR4): when /analyze returns
-  // rationale_source='template' plus an analyze_history_id, the worker
-  // is back-filling the LLM rationale onto that row. Poll /analyze/history
-  // until the row flips to 'llm' and swap the displayed text.
-  const supa = useSupabase();
-  const accessToken = supa.session?.access_token ?? null;
-  const upgrade = useRationaleUpgrade({
-    rowId: result?.analyze_history_id ?? null,
-    initialSource: result?.rationale_source ?? null,
-    accessToken,
-  });
-  // Priority: streaming tokens (mid-flight) > async upgrade > final result > fallback
+  // Priority: streaming tokens (mid-flight) > final result > fallback
   const displayedAgentResponse =
     (isLoading && streamTokens)
       ? streamTokens
-      : upgrade.status === "upgraded" && upgrade.rationaleText
-        ? upgrade.rationaleText
-        : (result?.agent_response ?? "Analysis complete.");
+      : (result?.agent_response ?? "Analysis complete.");
 
   return (
     <>
@@ -229,30 +214,6 @@ export function StrategyHUD({
                     ? displayedAgentResponse
                     : "Select year, grand prix, session and driver above."}
             </p>
-            {upgrade.status === "pending" && (
-              <p
-                className="readout mt-2 inline-flex items-center gap-1.5 text-[0.6rem] uppercase tracking-[var(--track-wide)]"
-                style={{ color: "var(--status-info)" }}
-                aria-live="polite"
-              >
-                <motion.span
-                  className="inline-block"
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1.4, ease: "linear" }}
-                >
-                  ↻
-                </motion.span>
-                Upgrading rationale…
-              </p>
-            )}
-            {upgrade.status === "upgraded" && (
-              <p
-                className="readout mt-2 text-[0.6rem] uppercase tracking-[var(--track-wide)]"
-                style={{ color: "var(--status-ok)" }}
-              >
-                ✓ Rationale upgraded
-              </p>
-            )}
             {retryState === "retrying" && (
               <p
                 className="readout mt-2 inline-flex items-center gap-1.5 text-[0.6rem] uppercase tracking-[var(--track-wide)]"

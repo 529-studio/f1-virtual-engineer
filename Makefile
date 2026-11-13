@@ -1,6 +1,5 @@
 .PHONY: backend frontend dev redis-up redis-down redis-logs redis-cli redis-status \
-	stack-up stack-down stack-status stack-logs worker-logs dlq-logs rabbitmq-logs \
-	fia-regs
+	stack-up stack-down stack-status stack-logs fia-regs
 
 backend:
 	./scripts/run-backend.sh
@@ -52,12 +51,11 @@ redis-status:
 redis-cli:
 	@$(COMPOSE) exec redis sh -c 'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning'
 
-# ─── full async stack (#139) ──────────────────────────────────────────
-# Brings up the complete pipeline: redis + rabbitmq + worker + dlq-worker
-# + backend + frontend. Pre-flights both REDIS_PASSWORD and
-# RABBITMQ_PASSWORD because the compose file refuses to start without
-# either, and the error compose prints (`required variable X is missing
-# a value`) is opaque if you don't know to look at backend/.env.
+# ─── full stack ───────────────────────────────────────────────────────
+# Brings up redis + backend + frontend through docker compose. Pre-flights
+# REDIS_PASSWORD and the Supabase public vars because compose refuses to
+# parse without them, and its interpolation error is opaque if you don't
+# know to look at backend/.env.
 stack-up:
 	@if [ ! -f backend/.env ]; then \
 		echo "✗ backend/.env missing — copy backend/.env.example first."; \
@@ -65,11 +63,6 @@ stack-up:
 	fi
 	@grep -q '^REDIS_PASSWORD=..' backend/.env || { \
 		echo "✗ REDIS_PASSWORD not set in backend/.env."; \
-		echo "  generate one: openssl rand -base64 32 | tr -d '=+/' | cut -c1-32"; \
-		exit 1; \
-	}
-	@grep -q '^RABBITMQ_PASSWORD=..' backend/.env || { \
-		echo "✗ RABBITMQ_PASSWORD not set in backend/.env."; \
 		echo "  generate one: openssl rand -base64 32 | tr -d '=+/' | cut -c1-32"; \
 		exit 1; \
 	}
@@ -95,13 +88,4 @@ stack-status:
 
 stack-logs:
 	$(COMPOSE) logs -f
-
-worker-logs:
-	$(COMPOSE) logs -f worker
-
-dlq-logs:
-	$(COMPOSE) logs -f dlq-worker
-
-rabbitmq-logs:
-	$(COMPOSE) logs -f rabbitmq
 

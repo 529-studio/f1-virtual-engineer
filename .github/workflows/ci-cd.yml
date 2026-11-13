@@ -52,8 +52,6 @@ jobs:
       - name: Run unit tests
         env:
           PYTHONPATH: backend
-          # Use CELERY eager mode so Celery tasks run inline without broker
-          CELERY_TASK_ALWAYS_EAGER: "true"
         run: |
           python -m pytest backend/tests/ -v --tb=short
 
@@ -61,7 +59,6 @@ jobs:
         env:
           PYTHONPATH: backend
           STRATEGY_PIT_EVAL_SNAPSHOT: "1"
-          CELERY_TASK_ALWAYS_EAGER: "true"
         run: |
           python -m pytest backend/tests/test_strategy_pit_eval.py -s -v
 

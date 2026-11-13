@@ -125,3 +125,50 @@ class AnalyzeApiTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AnalyzeStreamContractTests(unittest.TestCase):
+    """The SSE handler must call ``analyze_query`` with only supported kwargs.
+
+    Regression for #41: removing ``force_template`` from the agent signature
+    left the streaming route passing it, which surfaced as an ``event: error``
+    on a 200 response instead of a failing test. A plain function (rather
+    than a ``Mock``) enforces the real signature here.
+    """
+
+    def setUp(self):
+        reset_rate_limiter()
+        self.client = TestClient(app)
+
+    def test_analyze_stream_emits_done_with_supported_kwargs(self):
+        def fake_analyze(
+            query,
+            *,
+            session_override=None,
+            driver_override=None,
+            target_driver=None,
+        ):
+            return {
+                "intent": {"driver": "HAM", "year": 2023, "session_type": "R", "intent_type": "telemetry"},
+                "telemetry_data": {"fallback": False},
+                "strategy_data": None,
+                "response_text": "streamed answer",
+                "rationale_source": "template",
+                "error": None,
+                "memory": {},
+                "execution": {},
+                "retry": {},
+                "citations": [],
+                "controversy_analysis": [],
+            }
+
+        with patch("app.main.analyze_query", new=fake_analyze):
+            response = self.client.post(
+                "/analyze/stream",
+                json={"query": "show ham telemetry", "driver": "HAM"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("event: done", response.text)
+        self.assertNotIn("event: error", response.text)
+        self.assertIn("streamed answer", response.text)

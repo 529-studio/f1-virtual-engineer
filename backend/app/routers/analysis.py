@@ -1,7 +1,6 @@
 import asyncio
 import json as _json
 import logging
-import os
 from typing import Annotated
 
 from fastapi import APIRouter, Header, Request
@@ -69,11 +68,6 @@ async def analyze_race_data(
             )
 
     try:
-        rationale_async = (
-            os.environ.get("RATIONALE_ASYNC", "").strip().lower() in {"1", "true", "yes", "on"}
-            and user_id is not None
-        )
-
         session_override = body.session_info.model_dump() if body.session_info else None
         result = await asyncio.to_thread(
             _main.analyze_query,
@@ -81,15 +75,12 @@ async def analyze_race_data(
             session_override=session_override,
             driver_override=body.driver,
             target_driver=body.target_driver,
-            force_template=rationale_async,
         )
 
-        rationale_job_id: str | None = None
-        analyze_history_id: str | None = None
         if user_id and not result.get("error"):
             intent = result.get("intent") or {}
-            if rationale_async:
-                row_id = await _main.insert_analyze_history(
+            asyncio.create_task(
+                _main.insert_analyze_history(
                     user_id=user_id,
                     query=body.query,
                     driver=intent.get("driver") or body.driver,
@@ -98,46 +89,10 @@ async def analyze_race_data(
                     session_type=intent.get("session_type")
                     or (body.session_info.session_type if body.session_info else None),
                     agent_response=result["response_text"],
-                    rationale_source="template",
+                    rationale_source=result.get("rationale_source", "template"),
                     intent_type=intent.get("intent_type"),
                 )
-                analyze_history_id = row_id
-                if row_id:
-                    try:
-                        from tasks.rationale import backfill_rationale
-
-                        llm_context = {
-                            "intent": intent,
-                            "telemetry_data": result.get("telemetry_data") or {},
-                            "strategy_data": result.get("strategy_data") or {},
-                            "citations": [
-                                {k: v for k, v in c.items() if k != "score"}
-                                for c in (result.get("citations") or [])
-                            ],
-                        }
-                        async_result = backfill_rationale.delay(
-                            row_id=row_id,
-                            user_id=user_id,
-                            llm_context=llm_context,
-                        )
-                        rationale_job_id = async_result.id
-                    except Exception:  # noqa: BLE001
-                        _logger.warning("Failed to enqueue rationale backfill", exc_info=True)
-            else:
-                asyncio.create_task(
-                    _main.insert_analyze_history(
-                        user_id=user_id,
-                        query=body.query,
-                        driver=intent.get("driver") or body.driver,
-                        event=intent.get("event") or (body.session_info.event if body.session_info else None),
-                        year=intent.get("year") or (body.session_info.year if body.session_info else None),
-                        session_type=intent.get("session_type")
-                        or (body.session_info.session_type if body.session_info else None),
-                        agent_response=result["response_text"],
-                        rationale_source=result.get("rationale_source", "template"),
-                        intent_type=intent.get("intent_type"),
-                    )
-                )
+            )
 
         response_payload = {
             "status": "error" if result.get("error") else "success",
@@ -147,8 +102,6 @@ async def analyze_race_data(
             "telemetry_data": result["telemetry_data"],
             "strategy_data": result.get("strategy_data"),
             "rationale_source": result.get("rationale_source", "template"),
-            "rationale_job_id": rationale_job_id,
-            "analyze_history_id": analyze_history_id,
             "error": result["error"],
             "memory": result.get("memory"),
             "execution": result.get("execution"),
@@ -200,7 +153,6 @@ async def analyze_race_data_stream(
                 session_override=session_override,
                 driver_override=body.driver,
                 target_driver=body.target_driver,
-                force_template=False,
             )
         finally:
             _main.set_emit_fn(None)
@@ -240,8 +192,6 @@ async def analyze_race_data_stream(
                 "telemetry_data": result.get("telemetry_data") or {},
                 "strategy_data": result.get("strategy_data"),
                 "rationale_source": result.get("rationale_source", "template"),
-                "rationale_job_id": None,
-                "analyze_history_id": None,
                 "error": result.get("error"),
                 "memory": result.get("memory"),
                 "execution": result.get("execution"),

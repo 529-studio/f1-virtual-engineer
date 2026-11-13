@@ -77,17 +77,8 @@ class AnalyzePersistenceTests(unittest.TestCase):
     def setUp(self) -> None:
         reset_rate_limiter()
         self.client = TestClient(app)
-        # Pin RATIONALE_ASYNC off — these tests verify the *synchronous*
-        # persistence path. If a developer's local backend/.env has
-        # RATIONALE_ASYNC=true the handler tries to enqueue Celery and
-        # the redis result backend connect blows up unrelated to the
-        # behaviour under test. The async path has its own coverage in
-        # test_analyze_async_persistence below.
-        self._async_patch = patch.dict("os.environ", {"RATIONALE_ASYNC": ""})
-        self._async_patch.start()
 
     def tearDown(self) -> None:
-        self._async_patch.stop()
         app.dependency_overrides.pop(get_optional_user_id, None)
         app.dependency_overrides.pop(get_required_user_id, None)
 
@@ -177,39 +168,6 @@ class AnalyzePersistenceTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         _drain_tasks()
         mock_insert.assert_not_called()
-
-    @patch.dict("os.environ", {"RATIONALE_ASYNC": "true"})
-    @patch("app.main.insert_analyze_history", new_callable=AsyncMock)
-    @patch("app.main.analyze_query")
-    def test_async_path_returns_analyze_history_id(self, mock_analyze, mock_insert):
-        # PR4: signed-in callers on the async path get the persisted row id
-        # back so the frontend can poll /analyze/history for the upgrade.
-        mock_analyze.return_value = _AGENT_RESPONSE_FIXTURE
-        row_id = str(uuid4())
-        mock_insert.return_value = row_id
-        app.dependency_overrides[get_optional_user_id] = lambda: _VALID_USER_ID
-
-        # Stub the Celery task so we don't reach a broker.
-        from tasks import rationale as _rationale_module
-
-        class _StubAsyncResult:
-            id = "stub-job"
-
-        with patch.object(
-            _rationale_module.backfill_rationale,
-            "delay",
-            return_value=_StubAsyncResult(),
-        ):
-            response = self.client.post(
-                "/analyze",
-                json=_analyze_request_body(),
-                headers={"Authorization": "Bearer fake.jwt.token"},
-            )
-        self.assertEqual(response.status_code, 200)
-        payload = response.json()
-        self.assertEqual(payload["analyze_history_id"], row_id)
-        self.assertEqual(payload["rationale_job_id"], "stub-job")
-
 
 class HistoryEndpointTests(unittest.TestCase):
     def setUp(self) -> None:
