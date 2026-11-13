@@ -313,12 +313,14 @@ class AuthHelperUnitTests(unittest.TestCase):
             algorithm="HS256",
         )
         os.environ["SUPABASE_JWT_SECRET"] = secret
+        os.environ["SUPABASE_ALLOW_LEGACY_HS256"] = "1"
         try:
             claims = verify_supabase_jwt(token)
             self.assertIsNotNone(claims)
             self.assertEqual(claims["sub"], "user-123")
         finally:
             os.environ.pop("SUPABASE_JWT_SECRET", None)
+            os.environ.pop("SUPABASE_ALLOW_LEGACY_HS256", None)
 
     def test_verify_supabase_jwt_asymmetric_via_jwks(self):
         """ES256 Supabase tokens must verify through the JWKS fetch path.
