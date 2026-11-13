@@ -248,7 +248,7 @@ Compose defines `redis`, `rabbitmq`, `worker`, `dlq-worker`, `backend`, `fronten
 | Area | Keys | Behavior |
 | --- | --- | --- |
 | LLM | `GEMINI_API_KEY` | Missing → template; code also has deprecated SDK |
-| Auth/DB | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `SUPABASE_DB_URL` | JWKS/legacy verify, PostgREST, manual migrations |
+| Auth/DB | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL` | JWKS verify, PostgREST, manual migrations |
 | Cache | `REDIS_URL`, `REDIS_PASSWORD`, rename keys | Blank → L1 only; compose password required |
 | Queue | `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, `CELERY_TASK_ALWAYS_EAGER`, `RATIONALE_ASYNC` | Async path opt-in |
 | Rabbit metrics | `RABBITMQ_MANAGEMENT_URL`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`, `RABBITMQ_VHOST` | Missing creds → zeros + unreachable |
