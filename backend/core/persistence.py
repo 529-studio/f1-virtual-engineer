@@ -38,6 +38,19 @@ def _get_service_role_key() -> str | None:
     return os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or None
 
 
+def _auth_headers(key: str) -> dict[str, str]:
+    """Build PostgREST auth headers for a Supabase API key.
+
+    Legacy keys are JWTs, and PostgREST reads the role from the bearer token, so
+    both headers are sent. The new opaque secret keys (``sb_secret_...``) are not
+    JWTs, so they travel in ``apikey`` only.
+    """
+    headers = {"apikey": key, "Content-Type": "application/json"}
+    if key.count(".") == 2:
+        headers["Authorization"] = f"Bearer {key}"
+    return headers
+
+
 async def _get_client() -> httpx.AsyncClient | None:
     global _client
     url = _get_supabase_url()
@@ -50,11 +63,7 @@ async def _get_client() -> httpx.AsyncClient | None:
         if _client is None:
             _client = httpx.AsyncClient(
                 base_url=f"{url.rstrip('/')}/rest/v1",
-                headers={
-                    "apikey": key,
-                    "Authorization": f"Bearer {key}",
-                    "Content-Type": "application/json",
-                },
+                headers=_auth_headers(key),
                 timeout=httpx.Timeout(5.0),
             )
     return _client

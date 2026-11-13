@@ -4,7 +4,8 @@ Public surface:
 - ``verify_supabase_jwt(token)`` — decode and verify the token. Supabase projects
   issue asymmetric (ES256/RS256) tokens signed by the project's JWT Signing Keys;
   legacy projects still emit HS256 tokens signed by ``SUPABASE_JWT_SECRET``. We
-  try JWKS first, then fall back to the legacy symmetric secret when present.
+  try JWKS first, then fall back to the legacy symmetric secret only when both
+  ``SUPABASE_JWT_SECRET`` and ``SUPABASE_ALLOW_LEGACY_HS256=1`` are set.
 - ``get_optional_user_id(request)`` — FastAPI dep returning user id or None.
 - ``get_required_user_id(request)`` — FastAPI dep raising 401 on missing/invalid token.
 
@@ -108,7 +109,23 @@ def _verify_via_jwks(token: str) -> dict[str, Any] | None:
     return claims if isinstance(claims, dict) and claims.get("sub") else None
 
 
+def _legacy_hs256_allowed() -> bool:
+    """Legacy symmetric tokens are opt-in, not opt-out.
+
+    Supabase projects now sign with asymmetric keys and revoke HS256. The
+    symmetric secret was exposed once (it lived in the stack environment and in
+    git history), so a leftover ``SUPABASE_JWT_SECRET`` must not by itself
+    re-open the HS256 path to forged tokens. Both the secret and the explicit
+    ``SUPABASE_ALLOW_LEGACY_HS256=1`` flag are required.
+    """
+    if os.environ.get("SUPABASE_ALLOW_LEGACY_HS256") != "1":
+        return False
+    return _get_jwt_secret() is not None
+
+
 def _verify_via_legacy_secret(token: str) -> dict[str, Any] | None:
+    if not _legacy_hs256_allowed():
+        return None
     secret = _get_jwt_secret()
     if not secret:
         return None
@@ -128,9 +145,10 @@ def _verify_via_legacy_secret(token: str) -> dict[str, Any] | None:
 def verify_supabase_jwt(token: str) -> dict[str, Any] | None:
     """Verify a Supabase-issued JWT. Return claims dict or None on any failure.
 
-    Tries JWKS (ES256/RS256 — the new JWT Signing Keys path) first, falls back
-    to the legacy symmetric ``SUPABASE_JWT_SECRET`` (HS256) when JWKS is not
-    configured or the token header specifies HS256.
+    Tries JWKS (ES256/RS256 — the new JWT Signing Keys path) first. An HS256
+    token is only accepted when the legacy path is explicitly enabled with
+    ``SUPABASE_ALLOW_LEGACY_HS256=1`` and ``SUPABASE_JWT_SECRET`` is present, so
+    a revoked symmetric key cannot verify anything by accident.
     """
     if not token:
         return None
