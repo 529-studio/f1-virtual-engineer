@@ -179,112 +179,12 @@ jobs:
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
   # ────────────────────────────────────────────────────────────────────────────
-  # JOB 4: Trigger Portainer redeploy via API
-  # ────────────────────────────────────────────────────────────────────────────
-  deploy:
-    name: Deploy via Portainer
-    runs-on: ubuntu-latest
-    needs: [build-push]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    env:
-      # Job-level so the tailnet step can test it in `if`: secrets are not
-      # available in expressions, but their env projection is.
-      TS_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # Portainer is tailnet-only. The runner joins the tailnet when the OAuth
-      # client is configured; until then the job keeps using the public Access
-      # path, so this step is optional and the deploy never depends on it.
-      - name: Join the tailnet for Portainer access
-        if: env.TS_CLIENT_ID != ''
-        uses: tailscale/github-action@v3
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
-
-      - name: Trigger Portainer redeploy
-        env:
-          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
-          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
-          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
-          PORTAINER_TAILNET_URL: ${{ secrets.PORTAINER_TAILNET_URL }}
-        run: |
-          if [ -z "$PORTAINER_API_KEY" ]; then
-            echo "PORTAINER_API_KEY is not set — skipping deploy trigger."
-            exit 0
-          fi
-          if [ -n "$TS_CLIENT_ID" ]; then
-            PORTAINER_BASE="${PORTAINER_TAILNET_URL}"
-            echo "Reaching Portainer over the tailnet at ${PORTAINER_BASE}."
-          else
-            PORTAINER_BASE="https://portainer.529studio.site"
-            echo "[WARN] TS_OAUTH_CLIENT_ID is not set; using the public Access path."
-          fi
-          echo "Triggering Portainer stack redeploy..."
-          # The stack environment holds credentials and IMAGE_TAG only: every other
-          # value is a default in docker-compose.staging.yml, so the repository owns
-          # the configuration and the environment cannot silently override it.
-          # Diagnostics carry variable names, never values.
-          assert_stack_env() {
-            local env_json="$1" compose_file="$2" required="$3" catalog
-            catalog=$(grep -oE '\$\{[A-Z_][A-Z0-9_]*' "$compose_file" | sed 's/^\${//' | sort -u)
-            echo "$env_json" | jq -e --arg req "$required" --arg cat "$catalog" '
-              ($req | split(" ")) as $required_names
-              | ([.[].name]) as $names
-              | ($required_names - $names) as $missing
-              | ([.[] | select(((.value // "") | length) == 0) | .name]) as $empty
-              | ([.[] | select((.name | test("_(URL|ENDPOINT)$"))
-                    and ((.name | test("_(DB|DATABASE)_URL$|_API_BASE_URL$|_BASE_URL$")) | not)
-                    and (((.value // "") | test("^https?://")) | not)) | .name]) as $bad_web_url
-              | ([.[] | select((.name | test("_(KEY|KEY_ID|SECRET|SECRET_ACCESS_KEY|TOKEN|PASSWORD)$"))
-                    and (((.value // "") | length) < 8)) | .name]) as $weak_secret
-              | ($names - ($cat | split("\n") | map(select(length > 0)))) as $unknown
-              | if (($missing | length) + ($empty | length) + ($bad_web_url | length) + ($weak_secret | length) + ($unknown | length)) > 0
-                then error("stack env assertion failed: missing=\($missing) empty=\($empty) bad_web_url=\($bad_web_url) weak_secret=\($weak_secret) unknown=\($unknown)")
-                else "stack env assertions passed for \($names | length) names" end'
-          }
-          SHORT_SHA="${GITHUB_SHA::8}"
-          STACK_RES=$(curl -sS -f -X GET "${PORTAINER_BASE}/api/stacks/6" \
-            -H "X-API-Key: $PORTAINER_API_KEY" \
-            -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
-            -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
-            -H "User-Agent: Mozilla/5.0")
-
-          STACK_FILE=$(cat docker-compose.staging.yml)
-
-          ENV_JSON=$(echo "$STACK_RES" | jq -e 'if (.Env | type) == "array" then .Env else error("CRITICAL: stack Env missing or not an array") end')
-          ENV_JSON=$(echo "$ENV_JSON" | jq --arg t "sha-${SHORT_SHA}" 'map(select(.name != "IMAGE_TAG")) + [{"name":"IMAGE_TAG","value":$t}]')
-          assert_stack_env "$ENV_JSON" docker-compose.staging.yml "GEMINI_API_KEY SUPABASE_SERVICE_ROLE_KEY SUPABASE_DB_URL REDIS_PASSWORD"
-
-          PAYLOAD=$(jq -n \
-            --arg file "$STACK_FILE" \
-            --argjson env "$ENV_JSON" \
-            '{stackFileContent: $file, env: $env, prune: true, pullImage: true}')
-
-          curl -sS -f -o /dev/null -X PUT "${PORTAINER_BASE}/api/stacks/6?endpointId=3" \
-            -H "X-API-Key: $PORTAINER_API_KEY" \
-            -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
-            -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
-            -H "Content-Type: application/json" \
-            -H "User-Agent: Mozilla/5.0" \
-            -d "$PAYLOAD"
-
-          echo "Portainer deploy completed successfully; verifying backend through frontend..."
-          curl -fsS --retry 30 --retry-delay 5 --retry-all-errors --max-time 10 \
-            https://f1.529studio.site/api
-          echo "F1 smoke /api returned 200."
-
-  # ────────────────────────────────────────────────────────────────────────────
-  # JOB 5: Notify the generic alert webhook (failure and deploy success)
+  # JOB 4: Notify the generic alert webhook (failure and publish success)
   # ────────────────────────────────────────────────────────────────────────────
   notify-status:
     name: Notify Generic Webhook
     runs-on: ubuntu-latest
-    needs: [test-backend, test-frontend, build-push, deploy]
+    needs: [test-backend, test-frontend, build-push]
     if: always()
 
     steps:
@@ -297,23 +197,22 @@ jobs:
           TB_RES: ${{ needs.test-backend.result }}
           TF_RES: ${{ needs.test-frontend.result }}
           BP_RES: ${{ needs.build-push.result }}
-          DP_RES: ${{ needs.deploy.result }}
           REPOSITORY: ${{ github.repository }}
           BRANCH: ${{ github.ref_name }}
           ACTOR: ${{ github.actor }}
         run: |
           set -euo pipefail
 
-          if [ "$TB_RES" = "failure" ] || [ "$TF_RES" = "failure" ] || [ "$BP_RES" = "failure" ] || [ "$DP_RES" = "failure" ]; then
+          if [ "$TB_RES" = "failure" ] || [ "$TF_RES" = "failure" ] || [ "$BP_RES" = "failure" ]; then
             CHANNEL="alerts"
             TITLE="[ERR] CI/CD pipeline failed: $REPOSITORY"
-            MESSAGE="Pipeline failed on branch $BRANCH at commit $COMMIT_MSG (jobs: backend=$TB_RES frontend=$TF_RES build=$BP_RES deploy=$DP_RES). Run: $RUN_URL"
-          elif [ "$DP_RES" = "success" ]; then
+            MESSAGE="Pipeline failed on branch $BRANCH at commit $COMMIT_MSG (jobs: backend=$TB_RES frontend=$TF_RES build=$BP_RES). Run: $RUN_URL"
+          elif [ "$BP_RES" = "success" ]; then
             CHANNEL="ops"
-            TITLE="[OK] Staging deploy succeeded: $REPOSITORY"
-            MESSAGE="F1 Virtual Engineer was built and deployed to staging (Portainer stack 6) on branch $BRANCH at commit $COMMIT_MSG. Run: $RUN_URL"
+            TITLE="[OK] Images published: $REPOSITORY"
+            MESSAGE="F1 Virtual Engineer images were built and published on branch $BRANCH at commit $COMMIT_MSG. The scheduler container on the staging host deploys the newest green commit to Portainer stack 6 within five minutes. Run: $RUN_URL"
           else
-            echo "[INFO] no alert: deploy=$DP_RES"
+            echo "[INFO] no alert: backend=$TB_RES frontend=$TF_RES build=$BP_RES"
             exit 0
           fi
 
