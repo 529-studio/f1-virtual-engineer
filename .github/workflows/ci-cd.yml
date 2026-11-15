@@ -186,20 +186,43 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-push]
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    env:
+      # Job-level so the tailnet step can test it in `if`: secrets are not
+      # available in expressions, but their env projection is.
+      TS_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Portainer is tailnet-only. The runner joins the tailnet when the OAuth
+      # client is configured; until then the job keeps using the public Access
+      # path, so this step is optional and the deploy never depends on it.
+      - name: Join the tailnet for Portainer access
+        if: env.TS_CLIENT_ID != ''
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
 
       - name: Trigger Portainer redeploy
         env:
           PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
           CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          PORTAINER_TAILNET_URL: ${{ secrets.PORTAINER_TAILNET_URL }}
         run: |
           if [ -z "$PORTAINER_API_KEY" ]; then
             echo "PORTAINER_API_KEY is not set — skipping deploy trigger."
             exit 0
+          fi
+          if [ -n "$TS_CLIENT_ID" ]; then
+            PORTAINER_BASE="${PORTAINER_TAILNET_URL}"
+            echo "Reaching Portainer over the tailnet at ${PORTAINER_BASE}."
+          else
+            PORTAINER_BASE="https://portainer.529studio.site"
+            echo "[WARN] TS_OAUTH_CLIENT_ID is not set; using the public Access path."
           fi
           echo "Triggering Portainer stack redeploy..."
           # The stack environment holds credentials and IMAGE_TAG only: every other
@@ -225,7 +248,7 @@ jobs:
                 else "stack env assertions passed for \($names | length) names" end'
           }
           SHORT_SHA="${GITHUB_SHA::8}"
-          STACK_RES=$(curl -sS -f -X GET "https://portainer.529studio.site/api/stacks/6" \
+          STACK_RES=$(curl -sS -f -X GET "${PORTAINER_BASE}/api/stacks/6" \
             -H "X-API-Key: $PORTAINER_API_KEY" \
             -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
             -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
@@ -242,7 +265,7 @@ jobs:
             --argjson env "$ENV_JSON" \
             '{stackFileContent: $file, env: $env, prune: true, pullImage: true}')
 
-          curl -sS -f -o /dev/null -X PUT "https://portainer.529studio.site/api/stacks/6?endpointId=3" \
+          curl -sS -f -o /dev/null -X PUT "${PORTAINER_BASE}/api/stacks/6?endpointId=3" \
             -H "X-API-Key: $PORTAINER_API_KEY" \
             -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
             -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
