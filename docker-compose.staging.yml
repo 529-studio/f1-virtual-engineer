@@ -29,6 +29,12 @@ services:
       start_period: 10s
     volumes:
       - fastf1-cache:/app/backend/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=core-network"
+      - "traefik.http.routers.f1-backend.rule=Host(`f1-api.529studio.site`)"
+      - "traefik.http.routers.f1-backend.entrypoints=web"
+      - "traefik.http.services.f1-backend.loadbalancer.server.port=8000"
     deploy:
       resources:
         limits:
