@@ -1,154 +1,82 @@
-# ──────────────────────────────────────────────────────────────────────
-# How to bring this up
-# ──────────────────────────────────────────────────────────────────────
-# Easiest: `make redis-up` from the repo root. It auto-detects which
-# compose flavor you have (`docker compose` plugin vs standalone
-# `docker-compose`) and reads backend/.env for you.
-#
-# Manual invocation, if you'd rather not use make:
-#
-#   docker-compose --env-file backend/.env -f docker-compose.staging.yml up -d redis
-#   # or, if you have the v2 plugin instead of the standalone binary:
-#   docker compose  --env-file backend/.env -f docker-compose.staging.yml up -d redis
-#
-# Why the --env-file flag is non-optional: compose's auto-loaded `.env`
-# lives next to this file at the repo root, NOT at backend/.env. The
-# redis service interpolates REDIS_PASSWORD at compose-parse time
-# (before any container starts). Without --env-file you'll see:
-#
-#   error while interpolating services.redis.environment.REDIS_PASSWORD:
-#   required variable REDIS_PASSWORD is missing a value
-#
-# The `env_file:` keys on individual services (backend, frontend) only
-# inject env vars INTO those containers at runtime — they do nothing
-# for top-level interpolation like ${REDIS_PASSWORD:?...}.
-# ──────────────────────────────────────────────────────────────────────
-
 services:
-  # ──────────────────────────────────────────────────────────────────────
-  # Redis — L2 cache + idempotency + shared rate-limit counters (#100).
-  #
-  # Hardening checklist embedded in this config:
-  # 1. NO host port mapping. Only the internal docker network can reach
-  #    6379. If you ever need redis-cli from the host, prefer
-  #    `docker compose exec redis redis-cli -a "$REDIS_PASSWORD"` — that
-  #    keeps the port off the public interface.
-  # 2. requirepass is mandatory. Backend connects with a URL that includes
-  #    the password (REDIS_URL=redis://:PASSWORD@redis:6379/0). With no
-  #    password and a public bind, Redis is trivially RCE-able via
-  #    `CONFIG SET dir /var/spool/cron` → cron entry → root.
-  # 3. Cache-only persistence: `save ""` + `appendonly no`. Disk usage
-  #    stays at zero for this service — a hard requirement on the disk-
-  #    constrained VPS.
-  # 4. maxmemory + allkeys-lru — hard ceiling so a runaway cache key
-  #    can't OOM-kill the VPS. LRU eviction beats refusing writes for a
-  #    cache workload.
-  # 5. `protected-mode yes` is the implicit default; we leave it on.
-  # 6. Renamed CONFIG to a hard-to-guess token so even an authed attacker
-  #    can't flip persistence + dump RDB to a writable path.
-  # ──────────────────────────────────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    # The whole config is in `command` so it lives next to the rest of
-    # this file; no separate redis.conf to keep in sync.
-    command:
-      - "redis-server"
-      - "--requirepass"
-      - "${REDIS_PASSWORD:?REDIS_PASSWORD must be set in backend/.env}"
-      - "--save"
-      - ""
-      - "--appendonly"
-      - "no"
-      - "--maxmemory"
-      - "256mb"
-      - "--maxmemory-policy"
-      - "allkeys-lru"
-      # rename-command takes TWO tokens after the flag: original name +
-      # new name. Each goes in its own list item — quoting them as a
-      # single "CONFIG NEWNAME" string makes redis-server parse it as
-      # one ill-formed directive and refuse to start.
-      - "--rename-command"
-      - "CONFIG"
-      - "${REDIS_CONFIG_RENAME:-CONFIG_a4d2}"
-      - "--rename-command"
-      - "FLUSHALL"
-      - "${REDIS_FLUSHALL_RENAME:-FLUSHALL_a4d2}"
-      - "--rename-command"
-      - "FLUSHDB"
-      - "${REDIS_FLUSHDB_RENAME:-FLUSHDB_a4d2}"
-    healthcheck:
-      # AUTH first, then PING — verifies both that the server is up AND
-      # that the password handshake works. A bare PING returns NOAUTH on
-      # a hardened server and would still report "healthy."
-      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli --no-auth-warning ping | grep -q PONG"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
-    environment:
-      # Used by the healthcheck only; the server itself reads --requirepass.
-      REDIS_PASSWORD: "${REDIS_PASSWORD:?REDIS_PASSWORD must be set in backend/.env}"
-    # No `ports:` block on purpose — see hardening note 1 above.
-
   backend:
-    image: ghcr.io/529-studio/f1-virtual-engineer/backend:stg-latest
-    env_file:
-      - backend/.env
+    image: ghcr.io/529-studio/f1-virtual-engineer/backend:${IMAGE_TAG:-stg-latest}
+    container_name: f1-backend
+    pull_policy: always
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - core-network
     environment:
-      - CORS_ALLOWED_ORIGINS
-      - GEMINI_API_KEY
-      - SUPABASE_URL
-      - SUPABASE_SERVICE_ROLE_KEY
-      - SUPABASE_DB_URL
-      - REDIS_PASSWORD
-      - REDIS_URL
-      - ENVIRONMENT=production
-    ports:
-      - "127.0.0.1:8000:8000"
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_DB_URL=${SUPABASE_DB_URL}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - FASTF1_CACHE_DIR=/app/backend/data
+      - PYTHONPATH=/app/backend
+    healthcheck:
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/', timeout=3).status == 200 else 1)"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     volumes:
-      - ./backend/data:/app/backend/data
+      - fastf1-cache:/app/backend/data
     deploy:
       resources:
         limits:
-          cpus: "1.00"
+          cpus: "0.75"
           memory: 384M
         reservations:
-          cpus: "0.20"
+          cpus: "0.10"
           memory: 128M
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
 
   frontend:
-    # Pre-built by GitHub Actions CI/CD and pushed to GHCR.
-    # NEXT_PUBLIC_* vars are already baked into this image at CI build time
-    # (see ci-cd.yml build-push job). No local build needed.
-    image: ghcr.io/529-studio/f1-virtual-engineer/frontend:stg-latest
-    env_file:
-      - frontend/.env.local
-    environment:
-      BACKEND_INTERNAL_URL: http://backend:8000
-      NEXT_PUBLIC_API_BASE_URL: /api
-      # The same NEXT_PUBLIC_SUPABASE_* values are ALSO required at
-      # runtime — `app/auth/callback/route.ts` runs server-side and
-      # calls supabase.auth.exchangeCodeForSession, which reads from
-      # process.env. Build-time inlining handles the browser bundle;
-      # this block handles the route handler. If only one is set, prod
-      # symptom is the Google login completing then redirecting back
-      # with `?auth_error=fetch+failed`.
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?NEXT_PUBLIC_SUPABASE_URL must be set at runtime too}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?NEXT_PUBLIC_SUPABASE_ANON_KEY must be set at runtime too}
-      # Canonical origin for the auth callback redirect. Without this,
-      # if the reverse proxy doesn't forward X-Forwarded-Host, Next
-      # falls back to the listen address (0.0.0.0:3000) and bounces
-      # the user to https://0.0.0.0:3000 post-login. Defaults blank
-      # which preserves the legacy behaviour for environments where
-      # the proxy already passes Host correctly.
-      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
-    depends_on:
-      - backend
-    ports:
-      - "3000:3000"
+    image: ghcr.io/529-studio/f1-virtual-engineer/frontend:${IMAGE_TAG:-stg-latest}
+    container_name: f1-frontend
+    pull_policy: always
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - core-network
+    environment:
+      - BACKEND_INTERNAL_URL=http://backend:8000
+      - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-/api}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - GITHUB_URL=${GITHUB_URL:-}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=core-network"
+      - "traefik.http.routers.f1-frontend.rule=Host(`f1.529studio.site`)"
+      - "traefik.http.routers.f1-frontend.entrypoints=web"
+      - "traefik.http.services.f1-frontend.loadbalancer.server.port=3000"
+
+volumes:
+  fastf1-cache: {}
+
+networks:
+  core-network:
+    external: true

@@ -199,19 +199,17 @@ jobs:
             exit 0
           fi
           echo "Triggering Portainer stack redeploy..."
+          SHORT_SHA="${GITHUB_SHA::8}"
           STACK_RES=$(curl -sS -f -X GET "https://portainer.529studio.site/api/stacks/6" \
             -H "X-API-Key: $PORTAINER_API_KEY" \
             -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
             -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
             -H "User-Agent: Mozilla/5.0")
 
-          STACK_FILE=$(curl -sS -f -X GET "https://portainer.529studio.site/api/stacks/6/file" \
-            -H "X-API-Key: $PORTAINER_API_KEY" \
-            -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
-            -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
-            -H "User-Agent: Mozilla/5.0" | jq -r .StackFileContent)
+          STACK_FILE=$(cat docker-compose.staging.yml)
 
-          ENV_JSON=$(echo "$STACK_RES" | jq .Env)
+          ENV_JSON=$(echo "$STACK_RES" | jq -e 'if (.Env | type) == "array" then .Env else error("CRITICAL: stack Env missing or not an array") end')
+          ENV_JSON=$(echo "$ENV_JSON" | jq --arg t "sha-${SHORT_SHA}" 'map(select(.name != "IMAGE_TAG")) + [{"name":"IMAGE_TAG","value":$t}]')
 
           PAYLOAD=$(jq -n \
             --arg file "$STACK_FILE" \
@@ -226,7 +224,10 @@ jobs:
             -H "User-Agent: Mozilla/5.0" \
             -d "$PAYLOAD"
 
-          echo "Portainer deploy completed successfully."
+          echo "Portainer deploy completed successfully; verifying backend through frontend..."
+          curl -fsS --retry 30 --retry-delay 5 --retry-all-errors --max-time 10 \
+            https://f1.529studio.site/api
+          echo "F1 smoke /api returned 200."
 
   # ────────────────────────────────────────────────────────────────────────────
   # JOB 5: Notify the generic alert webhook (failure and deploy success)
