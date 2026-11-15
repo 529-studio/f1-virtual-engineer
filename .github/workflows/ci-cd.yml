@@ -202,6 +202,28 @@ jobs:
             exit 0
           fi
           echo "Triggering Portainer stack redeploy..."
+          # The stack environment holds credentials and IMAGE_TAG only: every other
+          # value is a default in docker-compose.staging.yml, so the repository owns
+          # the configuration and the environment cannot silently override it.
+          # Diagnostics carry variable names, never values.
+          assert_stack_env() {
+            local env_json="$1" compose_file="$2" required="$3" catalog
+            catalog=$(grep -oE '\$\{[A-Z_][A-Z0-9_]*' "$compose_file" | sed 's/^\${//' | sort -u)
+            echo "$env_json" | jq -e --arg req "$required" --arg cat "$catalog" '
+              ($req | split(" ")) as $required_names
+              | ([.[].name]) as $names
+              | ($required_names - $names) as $missing
+              | ([.[] | select(((.value // "") | length) == 0) | .name]) as $empty
+              | ([.[] | select((.name | test("_(URL|ENDPOINT)$"))
+                    and ((.name | test("_(DB|DATABASE)_URL$|_API_BASE_URL$|_BASE_URL$")) | not)
+                    and (((.value // "") | test("^https?://")) | not)) | .name]) as $bad_web_url
+              | ([.[] | select((.name | test("_(KEY|KEY_ID|SECRET|SECRET_ACCESS_KEY|TOKEN|PASSWORD)$"))
+                    and (((.value // "") | length) < 8)) | .name]) as $weak_secret
+              | ($names - ($cat | split("\n") | map(select(length > 0)))) as $unknown
+              | if (($missing | length) + ($empty | length) + ($bad_web_url | length) + ($weak_secret | length) + ($unknown | length)) > 0
+                then error("stack env assertion failed: missing=\($missing) empty=\($empty) bad_web_url=\($bad_web_url) weak_secret=\($weak_secret) unknown=\($unknown)")
+                else "stack env assertions passed for \($names | length) names" end'
+          }
           SHORT_SHA="${GITHUB_SHA::8}"
           STACK_RES=$(curl -sS -f -X GET "https://portainer.529studio.site/api/stacks/6" \
             -H "X-API-Key: $PORTAINER_API_KEY" \
@@ -213,6 +235,7 @@ jobs:
 
           ENV_JSON=$(echo "$STACK_RES" | jq -e 'if (.Env | type) == "array" then .Env else error("CRITICAL: stack Env missing or not an array") end')
           ENV_JSON=$(echo "$ENV_JSON" | jq --arg t "sha-${SHORT_SHA}" 'map(select(.name != "IMAGE_TAG")) + [{"name":"IMAGE_TAG","value":$t}]')
+          assert_stack_env "$ENV_JSON" docker-compose.staging.yml "GEMINI_API_KEY SUPABASE_SERVICE_ROLE_KEY SUPABASE_DB_URL REDIS_PASSWORD"
 
           PAYLOAD=$(jq -n \
             --arg file "$STACK_FILE" \

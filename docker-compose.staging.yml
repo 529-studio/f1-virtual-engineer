@@ -10,8 +10,8 @@ services:
       - core-network
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
-      - SUPABASE_URL=${SUPABASE_URL}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.6-flash}
+      - SUPABASE_URL=${SUPABASE_URL:-https://yffuavatjbhegieytqda.supabase.co}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - SUPABASE_DB_URL=${SUPABASE_DB_URL}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
@@ -50,9 +50,9 @@ services:
     environment:
       - BACKEND_INTERNAL_URL=http://backend:8000
       - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-/api}
-      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL:-https://yffuavatjbhegieytqda.supabase.co}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      - GITHUB_URL=${GITHUB_URL:-}
+      - GITHUB_URL=${GITHUB_URL:-https://github.com/529-studio/f1-virtual-engineer}
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
       interval: 5s
