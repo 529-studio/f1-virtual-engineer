@@ -1,7 +1,7 @@
 # F1 Virtual Engineer: Tài liệu Đặc tả Dự án (Agent-Ready)
 
 ## Tổng quan
-**F1 Virtual Engineer** là một hệ thống Agentic AI được thiết kế để đóng vai trò là Kỹ sư Đua xe Ảo (Virtual F1 Race Engineer). Hệ thống xử lý dữ liệu viễn thám (telemetry) thời gian thực, dữ liệu lịch sử và điều kiện đường đua để đưa ra các phân tích chiến thuật (ví dụ: thời điểm vào pit, độ mòn lốp, dự đoán undercut/overcut).
+**F1 Virtual Engineer** là bàn làm việc phân tích chiến thuật đua xe (race-strategy analysis workbench) đóng vai trò là Kỹ sư Đua xe Ảo. Hệ thống thực thi các mô hình chiến thuật định lượng tất định trên dữ liệu FastF1 sau chặng đua (post-session) và đưa ra các phân tích chiến thuật (thời điểm vào pit, độ mòn lốp, dự đoán undercut/overcut) kèm lập luận ngôn ngữ tự nhiên đối chiếu luật FIA.
 
 ## Kiến trúc: Cấu trúc Monorepo
 Dự án được cấu trúc để tách biệt phần tư duy AI (Backend) và phần hiển thị giao diện (Frontend).
@@ -16,13 +16,13 @@ Dự án được cấu trúc để tách biệt phần tư duy AI (Backend) và
 - **`eval/`**: Bộ công cụ đánh giá và "Golden Sets" để kiểm tra hiệu suất của Agent.
 
 ### `/frontend` (Next.js 15 + TypeScript)
-- **Dashboard**: Giao diện hiệu suất cao sử dụng Tailwind CSS để hiển thị dữ liệu telemetry và phản hồi của Agent theo thời gian thực.
+- **Dashboard**: Giao diện hiệu suất cao sử dụng Tailwind CSS để hiển thị dữ liệu viễn thám phiên chạy, so sánh kịch bản chiến thuật và phản hồi của Agent.
 
 ## Tech Stack
 - **Ngôn ngữ**: Python 3.11+ (Backend), TypeScript (Frontend).
 - **Điều phối Agent**: LangGraph, LangChain.
 - **Trí tuệ nhân tạo**: Gemini API (Flash/Pro) để phân tích dữ liệu và lập luận.
-- **Nguồn dữ liệu**: FastF1 (Dữ liệu telemetry trực tiếp và lịch sử).
+- **Nguồn dữ liệu**: FastF1 (Dữ liệu telemetry và lịch trình lưu trữ sau chặng đua).
 - **Cơ sở dữ liệu**: Supabase (PostgreSQL + Vector).
 - **Giao diện**: Tailwind CSS (Phong cách đua xe chuyên nghiệp).
 

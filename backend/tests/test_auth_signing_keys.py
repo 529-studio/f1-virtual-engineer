@@ -17,7 +17,10 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 
-from backend.core import auth, persistence
+try:
+    from core import auth, persistence
+except ImportError:
+    from backend.core import auth, persistence
 
 LEGACY_SECRET = "legacy-hs256-secret-that-was-exposed"
 

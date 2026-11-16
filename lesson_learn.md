@@ -97,3 +97,16 @@ When modeling what-if pace slider scrubbers (e.g. `-0.80s` tyre conservation) or
 
 ### 4. Strict Ban on Raw Unicode Emojis
 Raw unicode emojis (⚡, 🏁, ⚠️, 🏎️, 🔥) look amateurish and clash with the Apple automotive / F1 telemetry dark glass aesthetic. Enforce scalable vector icons (`lucide-react`: `Zap`, `Flag`, `AlertTriangle`, `Timer`) with subtle telemetry tinting and micro-typography.
+
+---
+
+## [2026-11-16] Redis L2 Cache Decision & Product Positioning Realignment (Issues #42 & #43)
+
+### 1. Context & Architectural Dilemma
+- Infrastructure audit (#40) revealed that Redis was deployed on `core-network` but unpopulated (0 keys in DB 0). Every Redis call site had fail-open handlers, so production ran quietly on single-tier in-process caches while documentation and architecture diagrams claimed a shared 2-tier cache.
+- The repository previously oversold its capabilities using buzzwords like "Real-time Telemetry" and "production-ready", which posed a credibility risk when reviewers noticed the engine relies on historical FastF1 session data and single-process hosting.
+
+### 2. Architectural Solution
+1. **Formalized ADR 0001 (Redis L2 Option 1)**: Codified the decision in `docs/adr/0001-redis-l2-cache.md`. Retained Redis L2 to protect Gemini free-tier RPM limits across restarts, preserve idempotency deduplication, and support the rate-limiting budget required by the upcoming OpenF1 live adapter (#44).
+2. **Explicit Startup Cache Mode Logging**: Added explicit startup logging in FastAPI lifespan (`cache: L1+L2 (redis)` vs `cache: L1 only`) so that configuration drift or missing `REDIS_URL` immediately surfaces in deployment container logs instead of failing silently.
+3. **Honest Product Positioning**: Realigned `README.md` and project specs (`docs/PROJECT_SPEC.md`, `docs/PROJECT_SPEC_VN.md`) by defining the product as an on-demand *race-strategy analysis workbench* using deterministic Python models over historical FastF1 archives. Added a "What this is / What this isn't" section and a Data Freshness & Provenance table so users can answer "is this live?" in under 10 seconds.

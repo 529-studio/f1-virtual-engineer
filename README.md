@@ -8,7 +8,20 @@
 ![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-An end-to-end agentic AI system that acts as a virtual Formula 1 race engineer. It processes telemetry, retrieves historical race data, and produces strategy recommendations — pit-stop timing (undercut/overcut), tire-degradation analysis, explainable race calls.
+An on-demand race-strategy analysis workbench: deterministic Python strategy heuristics over FastF1 session data, with natural-language narration grounded in curated FIA Sporting Regulations.
+
+### What this is / What this isn't
+
+* **What this is:** An on-demand analytical workbench for Formula 1 strategy post-mortems and scenario what-ifs. It executes deterministic Python models over historical FastF1 session telemetry (tyre degradation, pit windows, undercut/overcut simulation, lap-delta traces). Google Gemini functions purely as an explanatory narrator (with deterministic fallback templates if unreachable), grounded via BM25 retrieval across curated FIA Sporting Regulations.
+* **What this isn't:** This is **not a real-time live timing ingest** or broadcast feed. Sessions are loaded and processed on-demand from historical FastF1 data archives. If you are asking *"is this live?"*, the answer is **no — this is post-session analysis**.
+
+### Data Freshness & Provenance
+
+| Data Class | Source | Freshness & Latency |
+| :--- | :--- | :--- |
+| **Session telemetry & laps** | FastF1 (cached on local disk in `backend/data`) | Historical / post-session archive data (on-demand cold fetch ~5–30s; cached ~50ms) |
+| **Strategy models & deltas** | Deterministic Python models (`tools/strategy_helper.py`, `tyre_helper.py`, `lap_delta.py`, `pit_loss.py`) | Recomputed deterministically per request |
+| **Rationale & Citations** | Google Gemini + BM25 FIA corpus (`rag/corpus/`) | Generated per request with deterministic template fallback |
 
 ## ▶︎ Try it live
 
@@ -35,7 +48,7 @@ An end-to-end agentic AI system that acts as a virtual Formula 1 race engineer. 
 ## Core Features
 
 - **Agentic AI Race Engineer:** Uses LangGraph to orchestrate a sophisticated reasoning engine that decides whether a query needs telemetry analysis, strategy computation, or rulebook retrieval.
-- **Real-time Telemetry & Track Maps:** Integrates with FastF1 to pull real lap data and render 2D circuit traces with speed/throttle/brake heatmaps.
+- **Session Telemetry & Track Maps:** Integrates with FastF1 to pull lap data and render 2D circuit traces with speed/throttle/brake heatmaps.
 - **Lap-Delta Comparison:** Compare two drivers (or the same driver across different years) point-by-point along the track to see exactly where time is gained or lost.
 - **Strategy & Pit Recommendations:** Calculates tire degradation and predicts optimal pit windows and undercut risks based on historical stint data.
 - **Controversy & Penalty Analysis:** Automatically detects race incidents and generates dual-perspective arguments (team vs. steward) grounded in actual FIA Sporting Regulations.
@@ -54,9 +67,9 @@ Cold-start latency on first FastF1 fetch is ~5-30s; subsequent calls hit the L1+
 
 ## System Architecture
 
-The project follows a robust, production-ready agentic workflow separating business logic from AI execution:
+The project architecture separates deterministic race-strategy computation from AI narration and UI rendering, designed for a single-node deployment (single VPS on `home-srv`, single backend process, local disk cache, and shared Redis L2):
 
-* **Frontend (Next.js Dashboard):** A real-time interface displaying telemetry charts and the agent's reasoning traces.
+* **Frontend (Next.js Dashboard):** An interactive dashboard displaying session telemetry charts and the agent's reasoning traces.
 * **Backend API (FastAPI):** Chosen because FastAPI is fast to develop, supports async, has strong typing via Pydantic, and generates OpenAPI docs[cite: 303].
 * **Agent Orchestrator (LangGraph):** Manages multi-agent coordination. It models agent behavior as a graph with nodes (steps) and edges (transitions), which is easier to reason about than implicit loops.
 * **Data Connectors:** Custom Python wrappers for the `FastF1` library to extract speed, throttle, brake, and tire data.
@@ -76,8 +89,8 @@ To ensure maintainability and scalability, this project uses a monorepo structur
     * `rag/`: Chunking and retrieval for historical data.
     * `eval/`: Golden sets and evaluation scripts.
     * `infra/`: Docker, environment variables, and config.
-* **`frontend/`**: Next.js Dashboard for real-time visualization.
-* **`docker-compose.staging.yml`**: Staging-like containerization (api + frontend + redis). See "Staging-like Docker Compose" below.
+* **`frontend/`**: Next.js Dashboard for session telemetry visualization.
+* **`docker-compose.staging.yml`**: Production/staging containerization (backend + frontend with shared `core-network` Redis).
 * **`Makefile`**: One-shot dev helpers — `make dev`, `make redis-up`, `make stack-up`, etc.
 
 ---
@@ -90,8 +103,8 @@ To ensure maintainability and scalability, this project uses a monorepo structur
 * **Telemetry Data:** FastF1 (numpy-aligned distance grids for lap-vs-lap Δt)
 * **Frontend:** Next.js 16 (App Router, Turbopack), framer-motion, Yarn 4 (corepack-pinned, immutable installs)
 * **Auth + Persistence:** Supabase Auth (Google OAuth, asymmetric JWT/JWKS), Supabase Postgres with row-level security
-* **Caching:** `cachetools` TTLCache (L1, in-process) + optional Redis (L2, shared across workers)
-* **Deployment:** Docker, Docker Compose (staging stack hardened — no host port mapping for Redis, renamed `CONFIG`/`FLUSHALL`, `requirepass` enforced)
+* **Caching:** `cachetools` TTLCache (L1, in-process) + shared Redis on `core-network` DB 0 (L2, persists across restarts, protects Gemini RPM quotas, ADR 0001)
+* **Deployment:** Docker, Docker Compose (single VPS on `home-srv`, Traefik v3 ingress via Cloudflare Tunnel, no host port mapping for Redis, `requirepass` enforced)
 
 ---
 
@@ -123,7 +136,7 @@ The Virtual Engineer is equipped with strict tool-use policies and capabilities.
 * **In-memory response cache (60 s TTL)** — repeated identical LLM calls are served from a SHA-256-keyed cache, namespaced by call type.
 * **FastF1 result cache + threadpool offload** — schedule/roster/lap-list responses are cached in-process for 24 h, telemetry summaries + tyre features for 1 h. Fallback/empty results are *not* cached, so a transient FastF1 hiccup never sticks. Helper calls now run on the FastAPI threadpool (`asyncio.to_thread`) so a slow FastF1 fetch no longer blocks the event loop for concurrent requests.
 * **Pre-baked cache warmup** — `backend/scripts/prebake.py` records helper outputs to `backend/data/prebake/<helper>/*.json.gz`. On startup the FastAPI lifespan hook seeds the in-process TTLCaches from those snapshots, so the first user after a restart hits warm-cache latency for the demo session set instead of paying the multi-second FastF1 cold load.
-* **Optional Redis L2 cache** — set `REDIS_URL` (e.g. `redis://localhost:6379/0`) and the FastF1 helpers gain a second tier: L1 in-process → L2 Redis → compute. Multi-worker / multi-pod deployments share the same warmed-up state instead of each process refilling its own cache. A Redis outage degrades silently to "L1 only" — the API never 5xxs because of cache infrastructure. Inspect `GET /metrics` → `cache.redis_enabled` to confirm the wiring.
+* **Shared Redis L2 cache (ADR 0001)** — with `REDIS_URL` configured (`redis://127.0.0.1:6379/0` locally or `redis://:${REDIS_PASSWORD}@redis:6379/0` on `core-network`), the FastF1 helpers and LLM rationales use a two-tier cache: L1 in-process → L2 Redis → compute. On startup, the backend explicitly logs `cache: L1+L2 (redis)` (or `cache: L1 only` if disabled). Multi-worker deployments share the same warmed-up state across deploys and container restarts. A Redis outage degrades silently to "L1 only" via fail-open try/except wrappers — the API never returns 5xx because of cache infrastructure. Inspect `GET /metrics` → `cache.redis_enabled` to confirm the wiring.
 * **Admin observability** — `/admin` is gated behind `NEXT_PUBLIC_ADMIN_USER_ID` and renders rolling p50/p95/max latency + error rate per route, plus the Redis L2 cache wiring status. An unreachable Redis degrades to a "disabled" pill instead of a 5xx.
 
 ### Engineering decisions worth calling out

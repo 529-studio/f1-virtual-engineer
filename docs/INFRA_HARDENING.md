@@ -27,6 +27,7 @@ The goal isn't paranoia — it's that the cheapest paths to root on this stack a
 | R4 | `--save "" --appendonly no` (cache-only mode) | same |
 | R5 | `--rename-command CONFIG <random>` plus FLUSHALL/FLUSHDB rename. | same |
 | R6 | `redis_cache.py` keeps `decode_responses=False` and JSON-encodes values explicitly. | `backend/core/redis_cache.py` |
+| DB isolation | Logical DB allocation: DB 0 for F1, DB 1 retired (former Celery), DB 2 for Outline Wiki. | `docs/adr/0001-redis-l2-cache.md` |
 
 ### What's still on you (the operator)
 

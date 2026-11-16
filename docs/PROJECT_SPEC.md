@@ -1,7 +1,7 @@
 # F1 Virtual Engineer: Project Specification (Agent-Ready)
 
 ## Overview
-**F1 Virtual Engineer** is an Agentic AI system designed to function as a Virtual F1 Race Engineer. It processes real-time telemetry, historical data, and race conditions to provide strategic insights (e.g., pit windows, tire degradation, undercut/overcut predictions).
+**F1 Virtual Engineer** is an on-demand race strategy analysis workbench functioning as a Virtual F1 Race Engineer. It executes deterministic strategy models over historical FastF1 session data and generates citation-grounded natural language rationales (e.g., pit windows, tyre degradation, undercut/overcut predictions).
 
 ## Architecture: Monorepo Structure
 The project is structured to separate AI reasoning (Backend) from visualization (Frontend).
@@ -16,13 +16,13 @@ The project is structured to separate AI reasoning (Backend) from visualization 
 - **`eval/`**: Evaluation suites and "Golden Sets" for testing agent performance.
 
 ### `/frontend` (Next.js 15 + TypeScript)
-- **Dashboard**: A high-performance UI using Tailwind CSS for real-time telemetry visualization and Agent feedback.
+- **Dashboard**: A high-performance UI using Tailwind CSS for session telemetry visualization, what-if strategy comparisons, and Agent feedback.
 
 ## Tech Stack
 - **Language**: Python 3.11+ (Backend), TypeScript (Frontend).
 - **Orchestration**: LangGraph, LangChain.
 - **AI Brain**: Gemini API (Flash/Pro) for data analysis and reasoning.
-- **Data Source**: FastF1 (Live and Historical telemetry).
+- **Data Source**: FastF1 (Historical session telemetry and schedule data).
 - **Database**: Supabase (PostgreSQL + Vector).
 - **Styling**: Tailwind CSS (Racing-inspired dark theme).
 

@@ -71,6 +71,24 @@ class RedisCacheModuleTests(unittest.TestCase):
         self.assertIsNone(redis_cache.get("schedule", "x"))
         redis_cache.set("schedule", "x", {"k": 1}, ttl_seconds=60)  # must not raise
 
+    def test_lifespan_startup_log_cache_modes(self):
+        import asyncio
+        from app.main import _lifespan, app
+
+        async def _run():
+            with self.assertLogs("app.main", level="INFO") as cm:
+                async with _lifespan(app):
+                    pass
+            self.assertTrue(any("cache: L1 only" in msg for msg in cm.output))
+
+            _install_fake_redis()
+            with self.assertLogs("app.main", level="INFO") as cm:
+                async with _lifespan(app):
+                    pass
+            self.assertTrue(any("cache: L1+L2 (redis)" in msg for msg in cm.output))
+
+        asyncio.run(_run())
+
 
 class TwoTierLookupTests(unittest.TestCase):
     """Verify the L1 → L2 → compute order in tools/fastf1_helper."""
