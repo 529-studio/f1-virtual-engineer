@@ -23,6 +23,17 @@ _logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
+    # Log explicit cache mode so deploys cannot silently regress (#42)
+    try:
+        from core import redis_cache
+
+        if redis_cache.is_enabled():
+            _logger.info("cache: L1+L2 (redis)")
+        else:
+            _logger.info("cache: L1 only")
+    except Exception:  # noqa: BLE001
+        _logger.info("cache: L1 only")
+
     # Warm the FastF1 helper caches from any pre-baked snapshots on disk
     # (slice C of #100). The load is best-effort: a missing/empty prebake
     # dir is fine, and a corrupt file is logged & skipped rather than

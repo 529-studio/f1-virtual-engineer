@@ -1,5 +1,7 @@
 # Redis — what it is, and why we'd add it to this project
 
+> **Update 2026-11-16 (ADR 0001 / Issue #42):** The formal architecture decision for the Redis L2 Cache is documented in [`docs/adr/0001-redis-l2-cache.md`](adr/0001-redis-l2-cache.md). The project runs Redis L2 (DB 0: F1 Virtual Engineer, DB 1: retired, DB 2: Outline) on `core-network` to protect Gemini free-tier RPM quotas, preserve idempotency keys, and support rate-limiting for the OpenF1 live ingest (Issue #44).
+
 Written as a prep note: half a Redis primer for a backend-engineer interview,
 half a design rationale for slice D of issue #100 in this repo.
 

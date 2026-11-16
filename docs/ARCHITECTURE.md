@@ -186,6 +186,7 @@ and `/metrics` exposes a boolean for each so an operator can see
 | Citation chips + popover | `frontend/src/components/mission-control/ReferencesPanel.tsx` |
 | Scenario comparison | `frontend/src/components/mission-control/ScenarioComparison.tsx` |
 | Hardened staging compose | `docker-compose.staging.yml` |
+| Architecture Decision Records (ADRs) | `docs/adr/0001-redis-l2-cache.md` |
 
 ---
 
