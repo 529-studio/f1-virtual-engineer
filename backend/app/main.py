@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 
-from app.routers import analysis, history, knowledge, system, telemetry
+from app.routers import analysis, history, knowledge, live, system, telemetry
 from core.limiter import (
     _rate_limit_handler,
     _real_client_ip,
@@ -85,6 +85,7 @@ app = FastAPI(
         {"name": "analysis", "description": "Telemetry and strategy analysis workflows for the mission-control UI."},
         {"name": "telemetry", "description": "Strict telemetry contract endpoints backed by FastF1 summaries."},
         {"name": "knowledge", "description": "FIA regulation retrieval for citation-backed answers."},
+        {"name": "live", "description": "OpenF1-backed live session metadata and streaming telemetry."},
     ],
 )
 
@@ -129,6 +130,7 @@ app.include_router(telemetry.router)
 app.include_router(analysis.router)
 app.include_router(history.router)
 app.include_router(knowledge.router)
+app.include_router(live.router)
 
 # Re-exports for backwards compatibility and test mocking targets
 from agents.race_engineer import analyze_query, set_emit_fn
