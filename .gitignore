@@ -159,9 +159,11 @@ cython_debug/
 .vscode/
 
 # Project Specific
-backend/data/
+backend/data/*
+!backend/data/fixtures/
 *.csv
 *.json
+!backend/data/fixtures/*.json
 !package.json
 !tsconfig.json
 !backend/evals/cases/*.json

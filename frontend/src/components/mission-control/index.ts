@@ -13,4 +13,6 @@ export { CoachmarksModal } from "./CoachmarksModal";
 export { StrategyCanvas } from "./StrategyCanvas";
 export { CornerInspectorCard } from "./CornerInspectorCard";
 export { CatchUpPredictorCard } from "./CatchUpPredictorCard";
+export { LiveRacePanel } from "./LiveRacePanel";
+export { type MissionIntent } from "./IntentTabBar";
 

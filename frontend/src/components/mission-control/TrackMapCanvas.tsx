@@ -15,6 +15,7 @@ import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import type { CornerInfo, TrackMapPoint, TrackMapResponse } from "@/services/api";
 import { getCornerEnvelope } from "@/lib/corner-analytics";
+import type { LiveDriverSnapshot } from "@/types/live";
 
 // ─── Layout & Style constants ──────────────────────────────────────────────
 const VIEWBOX_SIZE = 1000;          // SVG viewBox fallback dimension
@@ -235,6 +236,7 @@ interface TrackMapCanvasProps {
   heightClass?: string;
   selectedCorner?: CornerInfo | null;
   onSelectCorner?: (corner: CornerInfo | null) => void;
+  liveDrivers?: LiveDriverSnapshot[];
 }
 
 export function TrackMapCanvas({
@@ -242,6 +244,7 @@ export function TrackMapCanvas({
   heightClass = "h-full",
   selectedCorner,
   onSelectCorner,
+  liveDrivers,
 }: TrackMapCanvasProps) {
   const [mode, setMode] = useState<HeatmapMode>("speed");
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
@@ -572,6 +575,37 @@ export function TrackMapCanvas({
           strokeWidth={2.5}
         />
       )}
+
+      {/* Live car dots overlay */}
+      {liveDrivers &&
+        liveDrivers.map((driver) => {
+          if (!driver.coordinates) return null;
+          const [cx, cy] = driver.coordinates;
+          return (
+            <g key={driver.driver_number} className="live-car-dot pointer-events-none">
+              <circle
+                cx={cx}
+                cy={cy}
+                r={8}
+                fill="var(--accent)"
+                stroke="#ffffff"
+                strokeWidth={2}
+                className="filter drop-shadow-[0_0_6px_rgba(34,197,94,0.8)]"
+              />
+              <text
+                x={cx}
+                y={cy - 11}
+                textAnchor="middle"
+                fill="#ffffff"
+                fontSize={9}
+                fontWeight="bold"
+                fontFamily="var(--font-mono, monospace)"
+              >
+                {driver.driver_code}
+              </text>
+            </g>
+          );
+        })}
     </svg>
   );
 
