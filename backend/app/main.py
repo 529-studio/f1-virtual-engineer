@@ -44,7 +44,26 @@ async def _lifespan(app: FastAPI):
             _logger.info("Loaded %d pre-baked FastF1 entries into cache", loaded)
     except Exception:  # noqa: BLE001
         _logger.warning("Prebake warmup failed", exc_info=True)
+
+    # Start live poller if configured (#44)
+    live_poller = None
+    try:
+        from core.live_poller import get_live_poller
+        live_source = os.getenv("LIVE_DATA_SOURCE", "replay").lower().strip()
+        if live_source != "none":
+            live_poller = get_live_poller()
+            await live_poller.start()
+            _logger.info("Live poller initialized with source=%s", live_source)
+    except Exception:  # noqa: BLE001
+        _logger.warning("Live poller startup failed", exc_info=True)
+
     yield
+
+    if live_poller:
+        try:
+            await live_poller.stop()
+        except Exception:  # noqa: BLE001
+            _logger.warning("Live poller shutdown failed", exc_info=True)
 
 
 _is_production = os.getenv("ENVIRONMENT", "").lower() == "production"
