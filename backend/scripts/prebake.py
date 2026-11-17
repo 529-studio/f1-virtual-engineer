@@ -47,9 +47,8 @@ from tools.fastf1_helper import (  # noqa: E402 — after env var
 # four FastF1 loads (roster, lap_list, telemetry, tyre_features). The
 # schedule for each year is baked once.
 DEMO_SESSIONS: list[dict] = [
-    {"year": 2024, "event": "Monza", "session_type": "R", "driver": "VER"},
-    {"year": 2024, "event": "Monza", "session_type": "R", "driver": "HAM"},
-    {"year": 2024, "event": "Monza", "session_type": "R", "driver": "LEC"},
+    {"year": 2024, "event": "Italian Grand Prix", "session_type": "R", "driver": "LEC"},
+    {"year": 2024, "event": "Italian Grand Prix", "session_type": "R", "driver": "PIA"},
 ]
 
 

@@ -12,6 +12,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getTrackMap, type CornerInfo, type TrackMapResponse } from "@/services/api";
 import { TrackMapCanvas } from "./TrackMapCanvas";
+import type { LiveDriverSnapshot } from "@/types/live";
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 /** Minimum ms between successive fetches for same params (debounce). */
@@ -29,6 +30,7 @@ export interface TrackMapPanelProps {
   selectedCorner?: CornerInfo | null;
   onSelectCorner?: (corner: CornerInfo | null) => void;
   onDataLoaded?: (data: TrackMapResponse) => void;
+  liveDrivers?: LiveDriverSnapshot[];
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────
@@ -43,6 +45,7 @@ export function TrackMapPanel({
   selectedCorner,
   onSelectCorner,
   onDataLoaded,
+  liveDrivers,
 }: TrackMapPanelProps) {
   const [data, setData] = useState<TrackMapResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -145,6 +148,7 @@ export function TrackMapPanel({
         data={activeData}
         selectedCorner={selectedCorner}
         onSelectCorner={onSelectCorner}
+        liveDrivers={liveDrivers}
       />
     </div>
   );

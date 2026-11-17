@@ -38,11 +38,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.75"
-          memory: 384M
+          cpus: "1.5"
+          memory: 1G
         reservations:
-          cpus: "0.10"
-          memory: 128M
+          cpus: "0.20"
+          memory: 256M
 
   frontend:
     image: ghcr.io/529-studio/f1-virtual-engineer/frontend:${IMAGE_TAG:-stg-latest}

@@ -5,7 +5,7 @@ import type { AnalyzeRequest, AnalyzeResponse } from "@/services/api";
 import { analyzeTelemetry, RateLimitError } from "@/services/api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || "/api";
-const STREAM_TIMEOUT_MS = 60_000;
+const STREAM_TIMEOUT_MS = 120_000;
 
 export type StreamStage = "idle" | "telemetry" | "strategy" | "rationale" | "done" | "error";
 
@@ -58,7 +58,12 @@ export function useAnalyzeStream() {
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
+    let timer = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
+
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => controller.abort(), STREAM_TIMEOUT_MS);
+    };
 
     try {
       const response = await fetch(`${API_BASE}/analyze/stream`, {
@@ -87,6 +92,7 @@ export function useAnalyzeStream() {
 
       while (true) {
         const { done, value } = await reader.read();
+        resetTimer();
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
@@ -140,7 +146,14 @@ export function useAnalyzeStream() {
         opts.onRateLimit?.(`Rate limited — retry in ${err.retryAfterSeconds}s`);
         return null;
       }
-      opts.onRetry?.();
+      
+      // Handle AbortError (timeout) specifically
+      if (err instanceof Error && err.name === 'AbortError') {
+         setStreamState((s) => ({ ...s, stage: "error", message: "Analysis timeout — check connection" }));
+      } else {
+         opts.onRetry?.();
+      }
+
       try {
         const fallback = await analyzeTelemetry(payload, accessToken);
         setStreamState({ stage: "done", message: "", tokens: "", partialStrategy: null, partialTelemetry: null });

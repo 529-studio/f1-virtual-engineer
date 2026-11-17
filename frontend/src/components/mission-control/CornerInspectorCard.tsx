@@ -278,83 +278,78 @@ export function CornerInspectorCard({
       </div>
 
       {/* ── METRICS GRID: 4 Core Race Engineer Dimensions ── */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
         {/* 1. Braking Point */}
         <div className="flex flex-col justify-between rounded border border-border/60 bg-surface-elevated/40 p-2.5 transition-colors hover:border-border">
-          <div className="flex items-center justify-between text-[0.62rem] text-foreground-dim">
-            <span className="flex items-center gap-1 font-semibold uppercase tracking-wider">
-              <Disc3 size={11} className="text-rose-400" /> Braking Point
-            </span>
-            {renderBrakeDelta()}
+          <div className="flex items-center gap-1 text-[0.62rem] text-foreground-dim font-semibold uppercase tracking-wider">
+            <Disc3 size={11} className="text-rose-400" /> Braking Point
           </div>
-          <div className="mt-1.5 flex items-baseline justify-between">
+          <div className="mt-1 flex items-baseline justify-between gap-1">
             <span className="readout text-sm font-bold text-foreground tabular-nums">
               {primaryMetrics?.brakeDistance !== null ? `${Math.round(primaryMetrics?.brakeDistance ?? 0)}m` : "Flat"}
             </span>
-            {compareMetrics && compareMetrics.brakeDistance !== null ? (
-              <span className="readout text-[0.65rem] text-foreground-faint tabular-nums">
-                {compareDriver}: {Math.round(compareMetrics.brakeDistance)}m
-              </span>
-            ) : null}
+            <div className="flex flex-col items-end gap-0.5">
+              {renderBrakeDelta()}
+              {compareMetrics && compareMetrics.brakeDistance !== null ? (
+                <span className="readout text-[0.65rem] text-foreground-faint tabular-nums">
+                  {compareDriver}: {Math.round(compareMetrics.brakeDistance)}m
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
 
         {/* 2. Minimum Apex Speed */}
         <div className="flex flex-col justify-between rounded border border-border/60 bg-surface-elevated/40 p-2.5 transition-colors hover:border-border">
-          <div className="flex items-center justify-between text-[0.62rem] text-foreground-dim">
-            <span className="flex items-center gap-1 font-semibold uppercase tracking-wider">
-              <Gauge size={11} className="text-accent" /> Apex Speed
-            </span>
-            {renderApexDelta()}
+          <div className="flex items-center gap-1 text-[0.62rem] text-foreground-dim font-semibold uppercase tracking-wider">
+            <Gauge size={11} className="text-accent" /> Apex Speed
           </div>
-          <div className="mt-1.5 flex items-baseline justify-between">
+          <div className="mt-1 flex items-baseline justify-between gap-1">
             <span className="readout text-sm font-bold text-foreground tabular-nums">
               {primaryMetrics?.minApexSpeed ? `${primaryMetrics.minApexSpeed.toFixed(0)} km/h` : "—"}
             </span>
-            {compareMetrics?.minApexSpeed ? (
-              <span className="readout text-[0.65rem] text-foreground-faint tabular-nums">
-                {compareDriver}: {compareMetrics.minApexSpeed.toFixed(0)} km/h
-              </span>
-            ) : null}
+            <div className="flex flex-col items-end gap-0.5">
+              {renderApexDelta()}
+              {compareMetrics?.minApexSpeed ? (
+                <span className="readout text-[0.65rem] text-foreground-faint tabular-nums">
+                  {compareDriver}: {compareMetrics.minApexSpeed.toFixed(0)} km/h
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
 
         {/* 3. Throttle Pickup Point */}
         <div className="flex flex-col justify-between rounded border border-border/60 bg-surface-elevated/40 p-2.5 transition-colors hover:border-border">
-          <div className="flex items-center justify-between text-[0.62rem] text-foreground-dim">
-            <span className="flex items-center gap-1 font-semibold uppercase tracking-wider">
-              <Zap size={11} className="text-emerald-400" /> Throttle Exit
-            </span>
-            {renderThrottleDelta()}
+          <div className="flex items-center gap-1 text-[0.62rem] text-foreground-dim font-semibold uppercase tracking-wider">
+            <Zap size={11} className="text-emerald-400" /> Throttle Exit
           </div>
-          <div className="mt-1.5 flex items-baseline justify-between">
+          <div className="mt-1 flex items-baseline justify-between gap-1">
             <span className="readout text-sm font-bold text-foreground tabular-nums">
               {primaryMetrics?.throttlePickupDistance !== null ? `${Math.round(primaryMetrics?.throttlePickupDistance ?? 0)}m` : "—"}
             </span>
-            {compareMetrics && compareMetrics.throttlePickupDistance !== null ? (
-              <span className="readout text-[0.65rem] text-foreground-faint tabular-nums">
-                {compareDriver}: {Math.round(compareMetrics.throttlePickupDistance)}m
-              </span>
-            ) : null}
+            <div className="flex flex-col items-end gap-0.5">
+              {renderThrottleDelta()}
+              {compareMetrics && compareMetrics.throttlePickupDistance !== null ? (
+                <span className="readout text-[0.65rem] text-foreground-faint tabular-nums">
+                  {compareDriver}: {Math.round(compareMetrics.throttlePickupDistance)}m
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
 
         {/* 4. Apex Distance along Lap */}
         <div className="flex flex-col justify-between rounded border border-border/60 bg-surface-elevated/40 p-2.5 transition-colors hover:border-border">
-          <div className="flex items-center justify-between text-[0.62rem] text-foreground-dim">
-            <span className="flex items-center gap-1 font-semibold uppercase tracking-wider">
-              <Compass size={11} className="text-blue-400" /> Apex Location
-            </span>
-            <span className="readout text-[0.65rem] text-foreground-faint">
+          <div className="flex items-center gap-1 text-[0.62rem] text-foreground-dim font-semibold uppercase tracking-wider">
+            <Compass size={11} className="text-blue-400" /> Apex Location
+          </div>
+          <div className="mt-1 flex flex-col gap-0.5">
+            <span className="readout text-sm font-bold text-foreground truncate min-w-0" title={friendlyName}>
               {friendlyName}
             </span>
-          </div>
-          <div className="mt-1.5 flex items-baseline justify-between">
-            <span className="readout text-sm font-bold text-foreground tabular-nums">
-              {Math.round(activeCorner.distance)}m
-            </span>
             <span className="readout text-[0.65rem] text-foreground-faint tabular-nums">
-              {(activeCorner.distance / 1000).toFixed(2)} km
+              {Math.round(activeCorner.distance)}m ({ (activeCorner.distance / 1000).toFixed(2) } km)
             </span>
           </div>
         </div>
