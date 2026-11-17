@@ -7,6 +7,7 @@ import { Select, VDivider } from "./primitives";
 import { formatLapTime } from "./TelemetryChart";
 import { StarButton } from "./StarButton";
 import { HelpModal } from "./HelpModal";
+import type { MissionIntent } from "./IntentTabBar";
 
 export function SelectorBar({
   year, setYear,
@@ -56,7 +57,7 @@ export function SelectorBar({
   compareYear: number | null;
   setCompareYear: (n: number | null) => void;
   setCrossYearDelta: (v: null) => void;
-  intent: "telemetry" | "strategy";
+  intent: MissionIntent;
   result: AnalyzeResponse | null;
   isLoading: boolean;
   canRun: boolean;

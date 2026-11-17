@@ -60,6 +60,16 @@ export function MissionFooter({
           h-screen mission-control layout can't take a second footer row.
           Landing uses the standard <Footer /> component. */}
       <div className="ml-auto flex items-center gap-3">
+        <a
+          href="https://openf1.org"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="readout flex items-center gap-1 text-[length:var(--text-readout)] text-foreground-faint transition-colors hover:text-foreground"
+          title="OpenF1 Live Timing Data (CC BY-NC-SA 4.0)"
+        >
+          <span>OpenF1 (CC BY-NC-SA 4.0)</span>
+        </a>
+        <div className="h-3 w-px bg-border" />
         {GITHUB_URL && (
           <a
             href={GITHUB_URL}

@@ -15,17 +15,19 @@ import { useSupabase } from "@/components/auth/SupabaseProvider";
 import {
   CoachmarksModal,
   CornerInspectorCard,
-  FALLBACK_DRIVERS, IntentTabBar, MissionBoard, MissionFooter, MissionHeader, NavRail,
-  SelectorBar, StrategyHUD, TelemetryChartGrid, type SessionId,
+  FALLBACK_DRIVERS, IntentTabBar, LiveRacePanel, MissionBoard, MissionFooter, MissionHeader, NavRail,
+  SelectorBar, StrategyHUD, TelemetryChartGrid, type MissionIntent, type SessionId,
 } from "@/components/mission-control";
 import { StrategyCanvas } from "@/components/mission-control/StrategyCanvas";
 import { TrackMapPanel } from "@/components/mission-control/TrackMapPanel";
 import { useDriverRoster } from "@/hooks/useDriverRoster";
 import { useAnalyzeStream } from "@/hooks/useAnalyzeStream";
+import { useLiveStore } from "@/store/useLiveStore";
 
 export default function MissionControlPage() {
   const { theme, result, setResult } = useMissionStore();
   const { session: authSession } = useSupabase();
+  const { latestTick: liveTick } = useLiveStore();
   const [historyRefreshSignal, setHistoryRefreshSignal] = useState(0);
   const [telemetryHistoryRefreshSignal, setTelemetryHistoryRefreshSignal] = useState(0);
   const [radioHistoryRefreshSignal] = useState(0);
@@ -91,7 +93,7 @@ export default function MissionControlPage() {
 
   // Issue #182: explicit intent toggle. Default "strategy" routes to the Strategy HUD
   // and reveals the pit window + pit exit card immediately on first run.
-  const [intent, setIntent] = useState<"telemetry" | "strategy">("strategy");
+  const [intent, setIntent] = useState<MissionIntent>("strategy");
 
   // Cleared on the next successful Analyze; surfaced in StrategyHUD when set.
   const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
@@ -449,7 +451,7 @@ export default function MissionControlPage() {
     session: SessionId;
     driver: string;
     targetDriver?: string;
-    intent?: "telemetry" | "strategy";
+    intent?: MissionIntent;
   }) => {
     setRateLimitMessage(null);
     setRetryState("idle");
@@ -681,6 +683,10 @@ export default function MissionControlPage() {
                 totalLaps={laps.length || demoRaceData?.total_laps || 53}
               />
             </div>
+          ) : intent === "live" ? (
+            <div className="flex w-full shrink-0 flex-col lg:min-h-0 lg:flex-1">
+              <LiveRacePanel onSwitchHistorical={() => setIntent("telemetry")} />
+            </div>
           ) : (
             <>
               {/* Left: Charts column (60% on desktop, full width on mobile/tablet) */}
@@ -726,6 +732,7 @@ export default function MissionControlPage() {
                         selectedCorner={selectedCorner}
                         onSelectCorner={handleSelectCorner}
                         onDataLoaded={setTrackMapData}
+                        liveDrivers={liveTick?.drivers}
                       />
                     </div>
                   </div>
