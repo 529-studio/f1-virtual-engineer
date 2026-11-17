@@ -100,6 +100,33 @@ Raw unicode emojis (⚡, 🏁, ⚠️, 🏎️, 🔥) look amateurish and clash 
 
 ---
 
+## [2026-11-17] OpenF1 Live Adapter & Live Session Mode (Issue #44)
+
+### 1. Upstream Rate Limiting & Singleton Poller Architecture
+- **Problem**: OpenF1 free tier enforces a strict ceiling of 30 requests/minute. Directly fetching upstream telemetry from multiple connected client browsers would exhaust the quota within seconds and trigger HTTP 429 errors.
+- **Solution**: Implemented a server-side singleton background poller (`core.live_poller.py`) polling at an 8-second tick ($\approx 15\text{ req/min}$ total, well below the 30 req/min limit). Polled snapshots are persisted into Redis L2 / in-process cache with a 30s TTL and fanned out to connected clients via `GET /live/stream` (SSE: `text/event-stream`). Ten browser tabs consume identical broadcast streams with zero additional upstream requests.
+
+### 2. Session-Window Guard & Idle Polling Prevention
+- **Problem**: Polling OpenF1 when no race or session is taking place burns upstream budget unnecessarily and generates empty polling cycles.
+- **Solution**: Implemented a session-window guard `[date_start - 30m, date_end + 30m]`. When the current time falls outside this window, `GET /live/session` returns HTTP `204 No Content` and zero upstream requests are dispatched. The frontend transitions to an Empty state displaying a countdown to the upcoming Las Vegas GP Free Practice 1 with a quick CTA to switch to historical telemetry analysis.
+
+### 3. Fail-Closed Envelope & Resilient Degradation
+- **Problem**: Upstream network timeouts or transient hiccups could throw uncaught exceptions, breaking client streams or displaying blank error pages.
+- **Solution**: Followed the fail-closed envelope pattern `{..., fallback: bool, fallback_reason: str | None}` and resilient User-Agent header (`f1-virtual-engineer/1.0`). If an upstream poll fails mid-session, the poller emits the last known snapshot marked with `stale: true`. The UI surfaces an amber `LIVE · OpenF1 · STALE DATA` badge with an alert icon while keeping the position ladder and gap data visible.
+
+### 4. Coordinate Transformation & Circuit SVG Alignment
+- **Problem**: OpenF1 `/location` coordinates use arbitrary Cartesian coordinates without track boundaries, making direct rendering onto FastF1 SVG circuit paths impossible.
+- **Solution**: Implemented a least-squares 2D affine transform engine (`tools.track_transform.py`) mapping $(x_{openf1}, y_{openf1}) \to (x_{svg}, y_{svg})$. Residual root-mean-square error (RMSE) is checked against a threshold ($\le 25\text{ px}$); if the fit exceeds the threshold or points are collinear, `is_valid` is set to `False` and car dots are hidden safely without breaking the position ladder.
+
+### 5. Async Testing Across Heterogeneous Environments
+- **Problem**: Test functions decorated with `@pytest.mark.asyncio` failed during git pre-commit hooks in environments that only had `anyio` installed, reporting `Unknown pytest.mark.asyncio`.
+- **Solution**: Standardized on Python's standard library `unittest.IsolatedAsyncioTestCase` for asynchronous test suites (`backend/tests/test_live_poller.py`). This guarantees zero dependency on third-party pytest plugins across CI/CD, local developer machines, and pre-commit hooks.
+
+### 6. Strict Ban on Unicode Emojis & Multi-Viewport Verification
+- **Solution**: Followed the Apple automotive dark glass aesthetic with vector icons (`Radio`, `Timer`, `Activity`, `Flag`, `AlertTriangle`), eliminating all unicode emojis. Verified responsive rendering with Playwright end-to-end testing across 1440px (Desktop), 834px (Tablet), and 390px (Mobile), confirming zero horizontal scroll leakage (`scrollWidth === clientWidth`) and touch target heights $\ge 44\text{px}$.
+
+---
+
 ## [2026-11-16] Redis L2 Cache Decision & Product Positioning Realignment (Issues #42 & #43)
 
 ### 1. Context & Architectural Dilemma
