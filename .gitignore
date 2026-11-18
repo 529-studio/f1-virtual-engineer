@@ -190,6 +190,9 @@ yarn-error.log*
 # Local session notes — gitignored so each dev keeps their own
 docs/SESSION_STATUS.md
 
+# Personal interview prep — local only, not for public repo
+docs/interview-prep/INTERVIEW_KIT_2026.md
+
 # Playwright MCP artifacts
 .playwright-mcp/
 
