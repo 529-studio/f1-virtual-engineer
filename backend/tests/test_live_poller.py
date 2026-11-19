@@ -87,3 +87,71 @@ class LivePollerTests(unittest.IsolatedAsyncioTestCase):
             snapshot = await poller.get_latest_snapshot()
             self.assertIsNotNone(snapshot)
             self.assertTrue(snapshot["stale"])
+
+    async def test_fallback_warning_logged_once_per_state(self):
+        """An unchanged fallback reason must not emit one line per tick."""
+        poller = LivePoller(poll_interval_seconds=0.05, replay_mode=True)
+        fallback = {
+            "fallback": True,
+            "fallback_reason": "Replay fixture not found at /app/backend/data/fixtures/x.json",
+            "data": None,
+        }
+
+        with patch("tools.openf1_helper.normalize_live_snapshot", return_value=fallback):
+            with self.assertLogs("core.live_poller", level="DEBUG") as logs:
+                for _ in range(5):
+                    await poller._poll_tick()
+
+        warnings = [
+            record.getMessage()
+            for record in logs.records
+            if record.getMessage().startswith("Live poll returned fallback")
+        ]
+        self.assertEqual(len(warnings), 1, warnings)
+        self.assertIn("Replay fixture not found", warnings[0])
+
+    async def test_fallback_warning_logged_again_on_reason_change(self):
+        poller = LivePoller(poll_interval_seconds=0.05, replay_mode=True)
+
+        def missing_fixture(*args, **kwargs):
+            return {"fallback": True, "fallback_reason": "reason A", "data": None}
+
+        def upstream_down(*args, **kwargs):
+            return {"fallback": True, "fallback_reason": "reason B", "data": None}
+
+        with patch("tools.openf1_helper.normalize_live_snapshot", side_effect=missing_fixture):
+            with self.assertLogs("core.live_poller", level="WARNING") as first:
+                await poller._poll_tick()
+                await poller._poll_tick()
+
+        with patch("tools.openf1_helper.normalize_live_snapshot", side_effect=upstream_down):
+            with self.assertLogs("core.live_poller", level="WARNING") as second:
+                await poller._poll_tick()
+
+        self.assertEqual(len(first.records), 1)
+        self.assertIn("reason A", first.records[0].getMessage())
+        self.assertEqual(len(second.records), 1)
+        self.assertIn("reason B", second.records[0].getMessage())
+
+    async def test_recovery_logged_once_when_poll_succeeds_again(self):
+        poller = LivePoller(poll_interval_seconds=0.05, replay_mode=True)
+        fallback = {"fallback": True, "fallback_reason": "reason A", "data": None}
+        recovered = {"fallback": False, "fallback_reason": None, "data": {"session_key": 11412}}
+
+        with patch("tools.openf1_helper.normalize_live_snapshot", return_value=fallback):
+            with self.assertLogs("core.live_poller", level="WARNING"):
+                await poller._poll_tick()
+
+        with patch("tools.openf1_helper.normalize_live_snapshot", return_value=recovered):
+            with self.assertLogs("core.live_poller", level="INFO") as logs:
+                await poller._poll_tick()
+                await poller._poll_tick()
+
+        recovered_lines = [
+            record.getMessage()
+            for record in logs.records
+            if record.getMessage().startswith("Live poll recovered")
+        ]
+        self.assertEqual(len(recovered_lines), 1, recovered_lines)
+        self.assertIsNone(poller._fallback_reason)
+
