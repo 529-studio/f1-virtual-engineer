@@ -22,4 +22,7 @@ htmlcov/
 *~
 
 # Data cache (pre-baked snapshots are volume-mounted at runtime, not baked in)
-data/
+data/*
+# The recorded replay fixture is application content, not cache.
+!data/fixtures/
+!data/fixtures/*.json

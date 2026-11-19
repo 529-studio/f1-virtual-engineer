@@ -17,7 +17,14 @@ docs/
 backend/.env
 backend/.env.*
 !backend/.env.example
-backend/data/
+# `backend/data` holds the FastF1 runtime cache (a named volume at
+# `/app/backend/data/cache`), so it stays out of the build context.
+# The recorded replay fixture is application content, not cache: the
+# runtime reads it through `app/schemas/live.py::get_default_fixture_path()`
+# and returns `source="replay"` ticks from it. Keep it in the image.
+backend/data/*
+!backend/data/fixtures/
+!backend/data/fixtures/*.json
 backend/tests/
 backend/.pytest_cache/
 backend/notebooks/

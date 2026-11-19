@@ -31,6 +31,10 @@ class LivePoller:
         self._latest_snapshot: Optional[Dict[str, Any]] = None
         self._subscribers: Set[asyncio.Queue] = set()
         self.upstream_call_count: int = 0
+        # Last fallback reason reported at WARNING. Polling runs every few
+        # seconds, so an unchanged reason is logged at DEBUG instead of
+        # flooding the log with one identical line per tick.
+        self._fallback_reason: Optional[str] = None
 
     @property
     def is_running(self) -> bool:
@@ -96,6 +100,23 @@ class LivePoller:
         for q in dead_queues:
             self._subscribers.discard(q)
 
+    def _report_fallback(self, reason: Any) -> None:
+        """Log a poll fallback once per state transition, not once per tick."""
+        current = str(reason) if reason is not None else "unknown"
+        if current == self._fallback_reason:
+            logger.debug("Live poll still returning fallback (%s); suppressed.", current)
+            return
+        self._fallback_reason = current
+        logger.warning("Live poll returned fallback: %s", current)
+
+    def _report_recovery(self) -> None:
+        """Log a single line when polling leaves a fallback state."""
+        if self._fallback_reason is None:
+            return
+        previous = self._fallback_reason
+        self._fallback_reason = None
+        logger.info("Live poll recovered from fallback (%s)", previous)
+
     async def _poll_tick(self) -> None:
         """Execute one polling iteration."""
         self.upstream_call_count += 1
@@ -105,7 +126,7 @@ class LivePoller:
                 self.session_key,
             )
             if res.get("fallback") or not res.get("data"):
-                logger.warning("Live poll returned fallback: %s", res.get("fallback_reason"))
+                self._report_fallback(res.get("fallback_reason"))
                 if self._latest_snapshot:
                     stale_copy = dict(self._latest_snapshot)
                     stale_copy["stale"] = True
@@ -114,6 +135,7 @@ class LivePoller:
                     self._broadcast(stale_copy)
                 return
 
+            self._report_recovery()
             tick_data = res["data"]
             self._latest_snapshot = tick_data
 

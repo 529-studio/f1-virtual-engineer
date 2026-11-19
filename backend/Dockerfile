@@ -67,6 +67,14 @@ COPY --from=builder /install /usr/local
 
 COPY backend /app/backend
 
+# The FastF1 cache lives in a named volume mounted at
+# /app/backend/data/cache (see docker-compose.staging.yml). Creating the
+# mount point here makes a fresh volume inherit the app:app ownership that
+# the chown below applies; without it Docker creates a root-owned directory
+# and the non-root process cannot write its cache. Keeping the volume off
+# /app/backend/data also leaves the baked-in replay fixtures visible.
+RUN mkdir -p /app/backend/data/cache
+
 # Security: run as a non-root user to limit blast radius from
 # container escapes or dependency exploits.
 RUN addgroup --system app && adduser --system --ingroup app app \

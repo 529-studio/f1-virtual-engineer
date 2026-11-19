@@ -16,8 +16,15 @@ from core import redis_cache
 _logger = logging.getLogger(__name__)
 
 # Setup caching for FastF1
-# Ensure the backend/data directory exists
-CACHE_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
+# FastF1's cache is mutable runtime state, so it gets its own subdirectory of
+# `backend/data` (`backend/data/cache`) and deployment mounts the cache volume
+# there. Mounting the volume on `backend/data` itself would shadow the
+# baked-in `backend/data/fixtures/`, which the runtime serves replay ticks
+# from. `FASTF1_CACHE_DIR` overrides the location.
+_BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+_DATA_DIR = os.path.join(_BACKEND_DIR, "data")
+
+CACHE_DIR = os.path.abspath(os.getenv("FASTF1_CACHE_DIR") or os.path.join(_DATA_DIR, "cache"))
 if not os.path.exists(CACHE_DIR):
     os.makedirs(CACHE_DIR)
 
@@ -129,6 +136,9 @@ _TTL_FOR_NAME: dict[str, int] = {
 # Parquet's row-oriented schema is a bad fit for these dict shapes and would
 # pull pyarrow onto the import path. gzip+json keeps each entry under ~5 KB.
 
+# Pre-baked snapshots live under the cache directory so the persisted volume
+# keeps serving them: the deployment mount moved from `backend/data` to
+# `backend/data/cache`, and the volume root already holds `prebake/`.
 PREBAKE_DIR = os.path.join(CACHE_DIR, "prebake")
 _PREBAKE_NAMES: dict[str, TTLCache] = {}  # name -> cache, populated by _ttl_cached
 
