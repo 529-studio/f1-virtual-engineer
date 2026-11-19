@@ -136,7 +136,10 @@ _TTL_FOR_NAME: dict[str, int] = {
 # Parquet's row-oriented schema is a bad fit for these dict shapes and would
 # pull pyarrow onto the import path. gzip+json keeps each entry under ~5 KB.
 
-PREBAKE_DIR = os.path.join(_DATA_DIR, "prebake")
+# Pre-baked snapshots live under the cache directory so the persisted volume
+# keeps serving them: the deployment mount moved from `backend/data` to
+# `backend/data/cache`, and the volume root already holds `prebake/`.
+PREBAKE_DIR = os.path.join(CACHE_DIR, "prebake")
 _PREBAKE_NAMES: dict[str, TTLCache] = {}  # name -> cache, populated by _ttl_cached
 
 
