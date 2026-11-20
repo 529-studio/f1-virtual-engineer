@@ -1,4 +1,37 @@
+# Deployed to desk-srv-02 (Portainer environment 6). This stack MUST NOT rely on
+# services running on desk-srv-01 (`redis`, `shared-postgres`, Traefik): all
+# dependencies are either containerised here or reachable over the internet.
 services:
+  f1-redis:
+    image: redis:7-alpine
+    container_name: f1-redis
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - core-network
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --appendonly
+      - no
+      - --maxmemory
+      - 64mb
+      - --maxmemory-policy
+      - allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 96M
+
   backend:
     image: ghcr.io/529-studio/f1-virtual-engineer/backend:${IMAGE_TAG:-stg-latest}
     container_name: f1-backend
@@ -14,9 +47,12 @@ services:
       - SUPABASE_URL=${SUPABASE_URL:-https://yffuavatjbhegieytqda.supabase.co}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - SUPABASE_DB_URL=${SUPABASE_DB_URL}
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - REDIS_URL=redis://f1-redis:6379/0
       - FASTF1_CACHE_DIR=/app/backend/data/cache
       - PYTHONPATH=/app/backend
+    depends_on:
+      f1-redis:
+        condition: service_healthy
     healthcheck:
       test:
         - "CMD"
@@ -29,12 +65,6 @@ services:
       start_period: 10s
     volumes:
       - fastf1-cache:/app/backend/data/cache
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=core-network"
-      - "traefik.http.routers.f1-backend.rule=Host(`f1-api.529studio.site`)"
-      - "traefik.http.routers.f1-backend.entrypoints=web"
-      - "traefik.http.services.f1-backend.loadbalancer.server.port=8000"
     deploy:
       resources:
         limits:
@@ -73,12 +103,6 @@ services:
         limits:
           cpus: "0.50"
           memory: 256M
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=core-network"
-      - "traefik.http.routers.f1-frontend.rule=Host(`f1.529studio.site`)"
-      - "traefik.http.routers.f1-frontend.entrypoints=web"
-      - "traefik.http.services.f1-frontend.loadbalancer.server.port=3000"
 
 volumes:
   fastf1-cache: {}
