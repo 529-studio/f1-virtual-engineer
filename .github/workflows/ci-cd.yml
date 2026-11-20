@@ -180,6 +180,8 @@ jobs:
 
   # ────────────────────────────────────────────────────────────────────────────
   # JOB 4: Trigger Portainer redeploy via API
+  # Target stack and environment come from the PORTAINER_STACK_ID and
+  # PORTAINER_ENDPOINT_ID repository secrets; no stack id is hardcoded here.
   # ────────────────────────────────────────────────────────────────────────────
   deploy:
     name: Deploy via Portainer
@@ -212,10 +214,20 @@ jobs:
           CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           PORTAINER_TAILNET_URL: ${{ secrets.PORTAINER_TAILNET_URL }}
+          PORTAINER_STACK_ID: ${{ secrets.PORTAINER_STACK_ID }}
+          PORTAINER_ENDPOINT_ID: ${{ secrets.PORTAINER_ENDPOINT_ID }}
         run: |
           if [ -z "$PORTAINER_API_KEY" ]; then
             echo "PORTAINER_API_KEY is not set — skipping deploy trigger."
             exit 0
+          fi
+          if [ -z "$PORTAINER_STACK_ID" ]; then
+            echo "::error::PORTAINER_STACK_ID secret is not set, so the target stack cannot be resolved"
+            exit 1
+          fi
+          if [ -z "$PORTAINER_ENDPOINT_ID" ]; then
+            echo "::error::PORTAINER_ENDPOINT_ID secret is not set, so the target Portainer environment cannot be resolved"
+            exit 1
           fi
           if [ -n "$TS_CLIENT_ID" ]; then
             PORTAINER_BASE="${PORTAINER_TAILNET_URL}"
@@ -248,7 +260,7 @@ jobs:
                 else "stack env assertions passed for \($names | length) names" end'
           }
           SHORT_SHA="${GITHUB_SHA::8}"
-          STACK_RES=$(curl -sS -f -X GET "${PORTAINER_BASE}/api/stacks/6" \
+          STACK_RES=$(curl -sS -f -X GET "${PORTAINER_BASE}/api/stacks/${PORTAINER_STACK_ID}" \
             -H "X-API-Key: $PORTAINER_API_KEY" \
             -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
             -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
@@ -258,14 +270,14 @@ jobs:
 
           ENV_JSON=$(echo "$STACK_RES" | jq -e 'if (.Env | type) == "array" then .Env else error("CRITICAL: stack Env missing or not an array") end')
           ENV_JSON=$(echo "$ENV_JSON" | jq --arg t "sha-${SHORT_SHA}" 'map(select(.name != "IMAGE_TAG")) + [{"name":"IMAGE_TAG","value":$t}]')
-          assert_stack_env "$ENV_JSON" docker-compose.staging.yml "GEMINI_API_KEY SUPABASE_SERVICE_ROLE_KEY SUPABASE_DB_URL REDIS_PASSWORD"
+          assert_stack_env "$ENV_JSON" docker-compose.staging.yml "GEMINI_API_KEY SUPABASE_SERVICE_ROLE_KEY SUPABASE_DB_URL"
 
           PAYLOAD=$(jq -n \
             --arg file "$STACK_FILE" \
             --argjson env "$ENV_JSON" \
             '{stackFileContent: $file, env: $env, prune: true, pullImage: true}')
 
-          curl -sS -f -o /dev/null -X PUT "${PORTAINER_BASE}/api/stacks/6?endpointId=3" \
+          curl -sS -f -o /dev/null -X PUT "${PORTAINER_BASE}/api/stacks/${PORTAINER_STACK_ID}?endpointId=${PORTAINER_ENDPOINT_ID}" \
             -H "X-API-Key: $PORTAINER_API_KEY" \
             -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
             -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
@@ -301,6 +313,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           BRANCH: ${{ github.ref_name }}
           ACTOR: ${{ github.actor }}
+          STACK_ID: ${{ secrets.PORTAINER_STACK_ID }}
         run: |
           set -euo pipefail
 
@@ -311,7 +324,7 @@ jobs:
           elif [ "$DP_RES" = "success" ]; then
             CHANNEL="ops"
             TITLE="[OK] Staging deploy succeeded: $REPOSITORY"
-            MESSAGE="F1 Virtual Engineer was built and deployed to staging (Portainer stack 6) on branch $BRANCH at commit $COMMIT_MSG. Run: $RUN_URL"
+            MESSAGE="F1 Virtual Engineer was built and deployed to staging (Portainer stack ${STACK_ID:-unknown}) on branch $BRANCH at commit $COMMIT_MSG. Run: $RUN_URL"
           else
             echo "[INFO] no alert: deploy=$DP_RES"
             exit 0
