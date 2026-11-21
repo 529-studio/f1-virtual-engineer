@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Maximize2 } from "lucide-react";
+import { Activity, Compass, Gauge, Maximize2 } from "lucide-react";
 import { lookupKnowledge } from "@/services/api";
 import type { AnalyzeResponse, CornerInfo, KnowledgeCitation, LapDeltaCrossYearResponse, LapDeltaResponse, WeatherSummaryResponse } from "@/services/api";
 import { getCornerEnvelope } from "@/lib/corner-analytics";
@@ -10,6 +10,8 @@ import { ReferencesPanel } from "./ReferencesPanel";
 import { TelemetryChart } from "./TelemetryChart";
 import { TimeAxis } from "./TimeAxis";
 import { WeatherMismatchBadge } from "./WeatherMismatchBadge";
+import { GGFrictionCanvas } from "./GGFrictionCanvas";
+import { SteeringTraceCard } from "./SteeringTraceCard";
 
 export function TelemetryChartGrid({
   tel, isLoading, hasData, animateKey, compareDriver, compareSpeedSeries,
@@ -39,6 +41,7 @@ export function TelemetryChartGrid({
 }) {
   const [cornerFocusedRaw, setCornerFocusedRaw] = useState(false);
   const isCornerFocused = selectedCorner ? cornerFocusedRaw : false;
+  const [viewMode, setViewMode] = useState<"standard" | "dynamics" | "all">("standard");
 
   // Derive active corner fractional envelope along lap
   const cornerFractionRange = useMemo(() => {
@@ -137,7 +140,81 @@ export function TelemetryChartGrid({
         </div>
       )}
 
-      {(["Speed", "Throttle", "Brake"] as const).map((label, i) => {
+      {/* Cockpit Channels Mode Switcher */}
+      <div className="mb-3 flex shrink-0 items-center justify-between gap-2 border-b border-border/60 pb-2">
+        <div className="flex items-center gap-1.5">
+          <Activity className="h-3.5 w-3.5 text-accent" />
+          <span className="readout text-[0.62rem] font-bold uppercase tracking-wider text-foreground">
+            Channels
+          </span>
+        </div>
+
+        <div role="tablist" aria-label="Cockpit channel views" className="flex rounded border border-border bg-surface-elevated/60 p-0.5">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === "standard"}
+            onClick={() => setViewMode("standard")}
+            className={`flex min-h-[32px] sm:min-h-[28px] items-center gap-1.5 rounded px-2.5 py-1 text-[0.6rem] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+              viewMode === "standard"
+                ? "bg-accent text-background"
+                : "text-foreground-faint hover:text-foreground"
+            }`}
+          >
+            <Gauge className="h-3 w-3" />
+            Standard
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === "dynamics"}
+            onClick={() => setViewMode("dynamics")}
+            className={`flex min-h-[32px] sm:min-h-[28px] items-center gap-1.5 rounded px-2.5 py-1 text-[0.6rem] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+              viewMode === "dynamics"
+                ? "bg-accent text-background"
+                : "text-foreground-faint hover:text-foreground"
+            }`}
+          >
+            <Compass className="h-3 w-3" />
+            G-G & Steering
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === "all"}
+            onClick={() => setViewMode("all")}
+            className={`hidden sm:flex min-h-[32px] sm:min-h-[28px] items-center gap-1.5 rounded px-2.5 py-1 text-[0.6rem] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+              viewMode === "all"
+                ? "bg-accent text-background"
+                : "text-foreground-faint hover:text-foreground"
+            }`}
+          >
+            Full Cockpit
+          </button>
+        </div>
+      </div>
+
+      {/* DYNAMICS VIEW: G-G Friction Circle & Steering Trace */}
+      {(viewMode === "dynamics" || viewMode === "all") && (
+        <div className="mb-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <GGFrictionCanvas
+            gLat={tel?.g_lat}
+            gLong={tel?.g_long}
+            speed={tel?.speed}
+            gear={tel?.gear}
+            isLoading={isLoading}
+          />
+          <SteeringTraceCard
+            steering={tel?.steering}
+            speed={tel?.speed}
+            isLoading={isLoading}
+          />
+        </div>
+      )}
+
+      {/* SENSORS VIEW: Speed, Throttle, Brake */}
+      {(viewMode === "standard" || viewMode === "all") && (
+        (["Speed", "Throttle", "Brake"] as const).map((label, i) => {
         const ch = label === "Speed"    ? tel?.speed
                  : label === "Throttle" ? tel?.throttle
                  :                        tel?.brake;
@@ -161,7 +238,9 @@ export function TelemetryChartGrid({
             />
           </div>
         );
-      })}
+      })
+      )}
+
 
       {compareDriver ? (
         <div className="mt-3 min-h-0 flex-1">

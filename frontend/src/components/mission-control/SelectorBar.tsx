@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { Layers } from "lucide-react";
 import type { AnalyzeResponse, EventInfo, LapInfo, SavedQueryItem } from "@/services/api";
+import type { ExportParams } from "@/types/telemetry-advanced";
+import type { ExportStatus } from "@/hooks/useAdvancedTelemetry";
 import { SESSIONS, f1Seasons, type SessionId } from "./constants";
 import { Select, VDivider } from "./primitives";
 import { formatLapTime } from "./TelemetryChart";
 import { StarButton } from "./StarButton";
 import { HelpModal } from "./HelpModal";
+import { ExportButton } from "./ExportButton";
 import type { MissionIntent } from "./IntentTabBar";
 
 export function SelectorBar({
@@ -22,6 +26,7 @@ export function SelectorBar({
   compareYear, setCompareYear, setCrossYearDelta,
   result, isLoading, canRun, onAnalyze,
   savedQueries, onSavedQueriesChange,
+  onOpenStintCompare, onExport, exportStatus = "idle", exportError = null,
 }: {
   year: number;
   setYear: (n: number) => void;
@@ -64,6 +69,10 @@ export function SelectorBar({
   onAnalyze: () => void;
   savedQueries: SavedQueryItem[];
   onSavedQueriesChange: (items: SavedQueryItem[]) => void;
+  onOpenStintCompare?: () => void;
+  onExport?: (params: ExportParams) => Promise<boolean>;
+  exportStatus?: ExportStatus;
+  exportError?: string | null;
 }) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [showCompareMobile, setShowCompareMobile] = useState(Boolean(compareDriver || compareYear));
@@ -235,6 +244,32 @@ export function SelectorBar({
               className="w-full"
             />
           </div>
+
+          {onOpenStintCompare && (
+            <button
+              type="button"
+              onClick={onOpenStintCompare}
+              disabled={!driver}
+              className="flex h-11 min-h-[44px] items-center justify-center rounded border border-border bg-surface-elevated px-2.5 py-1 text-xs font-semibold uppercase text-foreground hover:border-accent hover:text-accent disabled:opacity-40 cursor-pointer"
+              title="Compare laps"
+              aria-label="Open Stint Comparison"
+            >
+              <Layers className="h-4 w-4 text-accent" />
+            </button>
+          )}
+
+          {onExport && (
+            <ExportButton
+              onExport={onExport}
+              exportStatus={exportStatus}
+              exportError={exportError}
+              year={year}
+              event={eventName}
+              session={session}
+              driver={driver}
+              lapNumber={lap}
+            />
+          )}
 
           <button
             type="button"
@@ -454,6 +489,33 @@ export function SelectorBar({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          {onOpenStintCompare && (
+            <button
+              type="button"
+              onClick={onOpenStintCompare}
+              disabled={!driver}
+              className="flex h-11 min-h-[44px] items-center gap-1.5 rounded border border-border bg-surface-elevated px-2.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-wider text-foreground hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40 transition-colors cursor-pointer"
+              title="Compare telemetry curves between two laps of this driver"
+              aria-label="Open Stint Comparison"
+            >
+              <Layers className="h-4 w-4 text-accent" />
+              <span className="hidden xl:inline">Stint Compare</span>
+            </button>
+          )}
+
+          {onExport && (
+            <ExportButton
+              onExport={onExport}
+              exportStatus={exportStatus}
+              exportError={exportError}
+              year={year}
+              event={eventName}
+              session={session}
+              driver={driver}
+              lapNumber={lap}
+            />
+          )}
+
           <button
             type="button"
             onClick={() => setHelpOpen(true)}
