@@ -16,6 +16,7 @@ import { createPortal } from "react-dom";
 import type { CornerInfo, TrackMapPoint, TrackMapResponse } from "@/services/api";
 import { getCornerEnvelope } from "@/lib/corner-analytics";
 import type { LiveDriverSnapshot } from "@/types/live";
+import { getTeamColor, interpolateSplinePosition } from "@/lib/live-telemetry";
 
 // ─── Layout & Style constants ──────────────────────────────────────────────
 const VIEWBOX_SIZE = 1000;          // SVG viewBox fallback dimension
@@ -272,6 +273,140 @@ export function TrackMapCanvas({
       (pt) => pt.distance >= cornerEnvelope.entryDistance && pt.distance <= cornerEnvelope.exitDistance
     );
   }, [cornerEnvelope, points]);
+
+  // Target positions for live animated cars
+  const targetPositions = useMemo(() => {
+    if (!liveDrivers || liveDrivers.length === 0 || points.length === 0) return [];
+
+    const numDrivers = liveDrivers.length;
+
+    return liveDrivers.map((d, index) => {
+      let x: number;
+      let y: number;
+
+      if (
+        d.coordinates &&
+        d.coordinates.length === 2 &&
+        !isNaN(d.coordinates[0]) &&
+        !isNaN(d.coordinates[1])
+      ) {
+        x = d.coordinates[0];
+        y = d.coordinates[1];
+      } else {
+        const gapOffset =
+          d.gap_to_leader != null
+            ? d.gap_to_leader / 90
+            : index / numDrivers;
+        const progress = (((0.88 - gapOffset) % 1.0) + 1.0) % 1.0;
+        const pt = interpolateSplinePosition(progress, points);
+        x = pt.x;
+        y = pt.y;
+      }
+
+      const teamColor = getTeamColor(d.team_name, d.driver_code);
+
+      return {
+        driverNumber: d.driver_number,
+        driverCode: d.driver_code,
+        teamColor,
+        targetX: x,
+        targetY: y,
+        inPit: d.in_pit,
+        position: d.position,
+      };
+    });
+  }, [liveDrivers, points]);
+
+  const [animatedCars, setAnimatedCars] = useState<
+    Array<{
+      driverNumber: number;
+      driverCode: string;
+      teamColor: string;
+      x: number;
+      y: number;
+      inPit: boolean;
+      position: number;
+    }>
+  >([]);
+
+  const carsRef = useRef<
+    Array<{
+      driverNumber: number;
+      driverCode: string;
+      teamColor: string;
+      x: number;
+      y: number;
+      inPit: boolean;
+      position: number;
+    }>
+  >([]);
+
+  useEffect(() => {
+    if (targetPositions.length === 0) {
+      carsRef.current = [];
+      return;
+    }
+
+    let rafId: number;
+    const animate = () => {
+      let moved = false;
+      const updated = targetPositions.map((target) => {
+        const current = carsRef.current.find(
+          (c) => c.driverNumber === target.driverNumber
+        );
+        if (!current) {
+          moved = true;
+          return {
+            driverNumber: target.driverNumber,
+            driverCode: target.driverCode,
+            teamColor: target.teamColor,
+            x: target.targetX,
+            y: target.targetY,
+            inPit: target.inPit,
+            position: target.position,
+          };
+        }
+
+        const dx = target.targetX - current.x;
+        const dy = target.targetY - current.y;
+        if (Math.abs(dx) > 0.05 || Math.abs(dy) > 0.05) {
+          moved = true;
+          return {
+            ...current,
+            teamColor: target.teamColor,
+            x: current.x + dx * 0.15,
+            y: current.y + dy * 0.15,
+            inPit: target.inPit,
+            position: target.position,
+          };
+        }
+        return current;
+      });
+
+      carsRef.current = updated;
+      if (moved || carsRef.current.length !== targetPositions.length) {
+        setAnimatedCars([...updated]);
+        rafId = requestAnimationFrame(animate);
+      }
+    };
+
+    rafId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafId);
+  }, [targetPositions]);
+
+  const carsToRender = useMemo(() => {
+    if (targetPositions.length === 0) return [];
+    if (animatedCars.length > 0) return animatedCars;
+    return targetPositions.map((t) => ({
+      driverNumber: t.driverNumber,
+      driverCode: t.driverCode,
+      teamColor: t.teamColor,
+      x: t.targetX,
+      y: t.targetY,
+      inPit: t.inPit,
+      position: t.position,
+    }));
+  }, [targetPositions, animatedCars]);
 
   useEffect(() => {
     queueMicrotask(() => setMounted(true));
@@ -576,36 +711,77 @@ export function TrackMapCanvas({
         />
       )}
 
-      {/* Live car dots overlay */}
-      {liveDrivers &&
-        liveDrivers.map((driver) => {
-          if (!driver.coordinates) return null;
-          const [cx, cy] = driver.coordinates;
-          return (
-            <g key={driver.driver_number} className="live-car-dot pointer-events-none">
-              <circle
-                cx={cx}
-                cy={cy}
-                r={8}
-                fill="var(--accent)"
-                stroke="#ffffff"
-                strokeWidth={2}
-                className="filter drop-shadow-[0_0_6px_rgba(34,197,94,0.8)]"
-              />
-              <text
-                x={cx}
-                y={cy - 11}
-                textAnchor="middle"
-                fill="#ffffff"
-                fontSize={9}
-                fontWeight="bold"
-                fontFamily="var(--font-mono, monospace)"
-              >
-                {driver.driver_code}
-              </text>
-            </g>
-          );
-        })}
+      {/* Live animated car dots overlay */}
+      {carsToRender.map((car) => {
+        return (
+          <g key={car.driverNumber} className="live-car-dot pointer-events-none transition-opacity duration-300">
+            {/* Outer Team Glow Halo */}
+            <circle
+              cx={car.x}
+              cy={car.y}
+              r={11}
+              fill={car.teamColor}
+              opacity={0.3}
+            />
+            {/* Inner Core Circle */}
+            <circle
+              cx={car.x}
+              cy={car.y}
+              r={6.5}
+              fill={car.teamColor}
+              stroke="#ffffff"
+              strokeWidth={1.5}
+              className="filter drop-shadow-[0_0_4px_rgba(0,0,0,0.7)]"
+            />
+            {/* Driver Code Pill Label */}
+            <rect
+              x={car.x - 13}
+              y={car.y - 18}
+              width={26}
+              height={11}
+              rx={2.5}
+              fill="#09090b"
+              stroke="rgba(255,255,255,0.35)"
+              strokeWidth={0.75}
+              opacity={0.92}
+            />
+            <text
+              x={car.x}
+              y={car.y - 9.5}
+              textAnchor="middle"
+              fill="#ffffff"
+              fontSize={7.5}
+              fontWeight="bold"
+              fontFamily="var(--font-mono, monospace)"
+            >
+              {car.driverCode}
+            </text>
+            {car.inPit && (
+              <g>
+                <rect
+                  x={car.x - 9}
+                  y={car.y + 8}
+                  width={18}
+                  height={8}
+                  rx={2}
+                  fill="#f59e0b"
+                />
+                <text
+                  x={car.x}
+                  y={car.y + 14.5}
+                  textAnchor="middle"
+                  fill="#000000"
+                  fontSize={6}
+                  fontWeight="black"
+                  fontFamily="var(--font-mono, monospace)"
+                >
+                  PIT
+                </text>
+              </g>
+            )}
+          </g>
+        );
+      })}
     </svg>
   );
 

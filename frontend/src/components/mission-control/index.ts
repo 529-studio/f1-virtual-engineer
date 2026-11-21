@@ -18,5 +18,8 @@ export { GGFrictionCanvas } from "./GGFrictionCanvas";
 export { SteeringTraceCard } from "./SteeringTraceCard";
 export { StintCompareModal } from "./StintCompareModal";
 export { ExportButton } from "./ExportButton";
+export { BroadcastDelaySlider } from "./BroadcastDelaySlider";
+export { OvertakeProbabilityGauge } from "./OvertakeProbabilityGauge";
+export { MiniSectorBar } from "./MiniSectorBar";
 export { type MissionIntent } from "./IntentTabBar";
 
