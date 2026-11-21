@@ -33,6 +33,10 @@ def force_template_rationale(monkeypatch=None) -> None:
     core_llm._reset_cache_for_tests()
     if monkeypatch is not None:
         monkeypatch.setattr(race_engineer, "generate_rationale", lambda *_a, **_k: None)
+        monkeypatch.setattr(race_engineer, "generate_structured", lambda *_a, **_k: None)
+        monkeypatch.setattr(race_engineer, "detect_controversies", lambda *_a, **_k: [])
     else:
         race_engineer.generate_rationale = lambda *_a, **_k: None  # type: ignore[assignment]
+        race_engineer.generate_structured = lambda *_a, **_k: None  # type: ignore[assignment]
+        race_engineer.detect_controversies = lambda *_a, **_k: []  # type: ignore[assignment]
 

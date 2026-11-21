@@ -6,6 +6,10 @@ from tools.fastf1_helper import (
     get_current_gap_to_ahead,
     get_gap_to_competitor,
 )
+from tools.fuel_helper import (
+    calculate_fuel_burn_per_lap,
+    calculate_fuel_time_delta_per_lap,
+)
 from tools.pit_loss import (
     estimate_expected_undercut_gain_seconds,
     estimate_undercut_break_even_laps,
@@ -46,15 +50,28 @@ def predict_tyre_wear(
                 "confidence_band": "low",
                 "expected_performance_drop_window_laps": [0, 0],
                 "reasons": ["No tyre-wear features available."],
+                "fuel_correction": {
+                    "applied": False,
+                    "fuel_delta_seconds_per_lap": 0.0,
+                    "nominal_burn_kg_per_lap": 0.0,
+                },
             },
         }
+
+    lap_count_raw = features.get("lap_count")
+    lap_count = int(lap_count_raw) if lap_count_raw else 55
+
+    is_race = session_type.upper() == "R"
+    fuel_delta = calculate_fuel_time_delta_per_lap(lap_count, event) if is_race else 0.0
+    burn_rate = calculate_fuel_burn_per_lap(lap_count) if is_race else 0.0
 
     lap_decay = float(features["lap_time_decay_seconds_per_lap"])
     stint_progress = float(features["stint_progress_ratio"])
     temp_trend = features["track_temp_trend_c_per_lap"]
     temp_trend_value = float(temp_trend) if temp_trend is not None else 0.0
 
-    degradation_rate = lap_decay + (0.05 * stint_progress) + (0.02 * temp_trend_value)
+    effective_decay = lap_decay + fuel_delta
+    degradation_rate = effective_decay + (0.05 * stint_progress) + (0.02 * temp_trend_value)
     degradation_rate = max(degradation_rate, 0.0)
 
     if features["temperature_missing"]:
@@ -68,6 +85,11 @@ def predict_tyre_wear(
         reasons = [
             "Prediction combines lap-time decay, stint progression, and track temperature trend.",
         ]
+
+    if is_race and fuel_delta > 0:
+        reasons.append(
+            f"Fuel burn-off correction (+{fuel_delta:.3f}s/lap, {burn_rate:.2f} kg/lap) applied to isolate mechanical tyre degradation."
+        )
 
     if degradation_rate < 0.2:
         # Low degradation: 1-stop or save-tyres 2-stop. Real first stops
@@ -115,6 +137,11 @@ def predict_tyre_wear(
             "confidence_band": confidence,
             "expected_performance_drop_window_laps": drop_window,
             "reasons": reasons,
+            "fuel_correction": {
+                "applied": is_race and fuel_delta > 0,
+                "fuel_delta_seconds_per_lap": round(fuel_delta, 4),
+                "nominal_burn_kg_per_lap": round(burn_rate, 3),
+            },
         },
         "features_used": features,
     }

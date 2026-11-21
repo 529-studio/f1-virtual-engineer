@@ -1,7 +1,7 @@
 import asyncio
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Path, Request
+from fastapi import APIRouter, HTTPException, Path, Query, Request, Response
 
 import app.main as _main
 from app.schemas.common import COMMON_RATE_LIMIT_RESPONSES
@@ -12,6 +12,7 @@ from app.schemas.lap_delta_cross_year import (
 )
 from app.schemas.pit_exit import PitExitRequest, PitExitResponse
 from app.schemas.schedule import LapListResponse, RosterResponse, ScheduleResponse
+from app.schemas.stint_compare import StintCompareRequest, StintCompareResponse
 from app.schemas.telemetry import ApiError, TelemetryQueryRequest, TelemetryResponse, TelemetrySummary
 from app.schemas.track_map import TrackMapRequest, TrackMapResponse
 from app.schemas.tyre import TyreAnalyzeRequest, TyreAnalyzeResponse
@@ -27,6 +28,7 @@ from tools.fastf1_helper import (
 )
 from tools.lap_delta import compute_lap_delta
 from tools.lap_delta_cross_year import compute_cross_year_lap_delta
+from tools.telemetry_export import compare_stint_laps, export_telemetry_bytes
 from tools.tyre_helper import compute_tyre_decay
 from tools.weather_helper import get_weather_summary
 
@@ -362,3 +364,130 @@ async def lap_delta_cross_year(
         status="error" if payload.get("fallback") else "success",
         **payload,
     )
+
+
+@router.get(
+    "/export",
+    summary="Export lap telemetry as CSV or Apache Parquet attachment",
+    description=(
+        "Streams a structured telemetry dataframe for a given driver and lap. "
+        "Includes standard speed/throttle/brake channels plus advanced channels "
+        "(steering angle, DRS status, derived lateral/longitudinal acceleration). "
+        "Content-Disposition attachment prompts file download. (#62)"
+    ),
+)
+@router.get(
+    "/telemetry/export",
+    summary="Export lap telemetry as CSV or Apache Parquet attachment (telemetry prefix alias)",
+)
+@router.get(
+    "/api/telemetry/export",
+    summary="Export lap telemetry as CSV or Apache Parquet attachment (api prefix alias)",
+)
+@limiter.limit("20/minute")
+async def export_telemetry(
+    request: Request,
+    year: Annotated[int, Query(ge=2018, le=2100)],
+    event: Annotated[str, Query(min_length=2, max_length=120)],
+    session_type: Annotated[Literal["FP1", "FP2", "FP3", "Q", "R", "S", "SQ"], Query()],
+    driver: Annotated[str, Query(min_length=3, max_length=3)],
+    lap_number: Annotated[int | None, Query(ge=1, le=120)] = None,
+    format: Annotated[Literal["csv", "parquet"], Query()] = "csv",
+):
+    try:
+        content_bytes, media_type, filename = await asyncio.to_thread(
+            export_telemetry_bytes,
+            year=year,
+            event=event,
+            session_type=session_type,
+            driver=driver,
+            lap_number=lap_number,
+            export_format=format,
+        )
+        return Response(
+            content=content_bytes,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Cache-Control": "private, max-age=3600",
+            },
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to generate telemetry export: {exc}")
+
+
+@router.post(
+    "/stint-compare",
+    response_model=StintCompareResponse,
+    summary="Compare two arbitrary laps of the same driver along distance",
+    description=(
+        "Interpolates two laps of the same driver onto a shared distance axis. "
+        "Surfaces speed delta, throttle delta, brake delta, and continuous "
+        "cumulative time delta along the lap (e.g. Lap 10 fresh vs Lap 45 worn tyres). (#62)"
+    ),
+)
+@router.post(
+    "/telemetry/stint-compare",
+    response_model=StintCompareResponse,
+    summary="Compare two arbitrary laps of the same driver along distance (telemetry alias)",
+)
+@router.post(
+    "/api/telemetry/stint-compare",
+    response_model=StintCompareResponse,
+    summary="Compare two arbitrary laps of the same driver along distance (api alias)",
+)
+@limiter.limit("30/10seconds")
+async def stint_compare(
+    request: Request,
+    body: StintCompareRequest,
+):
+    payload = await asyncio.to_thread(
+        compare_stint_laps,
+        year=body.year,
+        event=body.event,
+        session_type=body.session_type,
+        driver=body.driver,
+        lap1=body.lap1,
+        lap2=body.lap2,
+    )
+    return StintCompareResponse(**payload)
+
+
+@router.get(
+    "/stint-compare",
+    response_model=StintCompareResponse,
+    summary="Compare two arbitrary laps of the same driver along distance (GET method)",
+)
+@router.get(
+    "/telemetry/stint-compare",
+    response_model=StintCompareResponse,
+    summary="Compare two arbitrary laps of the same driver along distance (GET telemetry alias)",
+)
+@router.get(
+    "/api/telemetry/stint-compare",
+    response_model=StintCompareResponse,
+    summary="Compare two arbitrary laps of the same driver along distance (GET api alias)",
+)
+@limiter.limit("30/10seconds")
+async def stint_compare_get(
+    request: Request,
+    year: Annotated[int, Query(ge=2018, le=2100)],
+    event: Annotated[str, Query(min_length=2, max_length=120)],
+    session_type: Annotated[Literal["FP1", "FP2", "FP3", "Q", "R", "S", "SQ"], Query()],
+    driver: Annotated[str, Query(min_length=3, max_length=3)],
+    lap1: Annotated[int, Query(ge=1, le=120)],
+    lap2: Annotated[int, Query(ge=1, le=120)],
+):
+    payload = await asyncio.to_thread(
+        compare_stint_laps,
+        year=year,
+        event=event,
+        session_type=session_type,
+        driver=driver,
+        lap1=lap1,
+        lap2=lap2,
+    )
+    return StintCompareResponse(**payload)
+
