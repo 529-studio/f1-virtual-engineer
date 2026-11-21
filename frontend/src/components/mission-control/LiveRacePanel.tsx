@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -12,6 +12,11 @@ import {
 } from "lucide-react";
 import { useLiveStore } from "@/store/useLiveStore";
 import type { LiveDriverSnapshot, LiveTyreCompound } from "@/types/live";
+import { calculateOvertakeProbability, generateMiniSectors } from "@/lib/live-telemetry";
+import { BroadcastDelaySlider } from "./BroadcastDelaySlider";
+import { OvertakeProbabilityGauge } from "./OvertakeProbabilityGauge";
+import { MiniSectorBar } from "./MiniSectorBar";
+import { TrackMapPanel } from "./TrackMapPanel";
 
 const TYRE_STYLES: Record<
   LiveTyreCompound,
@@ -46,11 +51,39 @@ interface LiveRacePanelProps {
 }
 
 export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
-  const { sessionMeta, latestTick, status, errorMessage, fetchSession, retry } = useLiveStore();
+  const {
+    sessionMeta,
+    latestTick,
+    displayedTick,
+    delaySeconds,
+    setDelaySeconds,
+    status,
+    errorMessage,
+    fetchSession,
+    retry,
+  } = useLiveStore();
 
   useEffect(() => {
     fetchSession();
   }, [fetchSession]);
+
+  // Derive active tick from delayed state or latest
+  const tick = displayedTick ?? latestTick;
+
+  const overtakeData = useMemo(() => {
+    if (!tick?.drivers || tick.drivers.length < 2) return null;
+    return calculateOvertakeProbability(
+      tick.drivers,
+      sessionMeta?.circuit_short_name || "Interlagos"
+    );
+  }, [tick, sessionMeta]);
+
+  const miniSectors = useMemo(() => {
+    if (!tick?.drivers || tick.drivers.length < 2) return [];
+    const d1 = tick.drivers[0]?.driver_code || "VER";
+    const d2 = tick.drivers[1]?.driver_code || "NOR";
+    return generateMiniSectors(d1, d2, 24);
+  }, [tick]);
 
   // Countdown timer for next session (Las Vegas FP1) in Empty state
   const [countdown, setCountdown] = useState<string>("");
@@ -163,13 +196,12 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
   }
 
   // 4. ACTIVE LIVE STATE
-  const tick = latestTick;
   if (!tick) return null;
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-background">
       {/* Top Session Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3 shrink-0">
         <div className="flex flex-wrap items-center gap-3">
           {/* Freshness Badge */}
           {tick.stale ? (
@@ -224,107 +256,152 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
         )}
       </div>
 
-      {/* Live Position Ladder Table */}
-      <div className="flex-1 overflow-x-auto overflow-y-auto mc-scroll p-4">
-        <table className="w-full text-left border-collapse text-xs font-mono">
-          <thead>
-            <tr className="border-b border-border/80 text-[0.65rem] uppercase tracking-wider text-foreground-faint">
-              <th className="py-2 px-2 text-center w-10">Pos</th>
-              <th className="py-2 px-3">Driver</th>
-              <th className="py-2 px-3">Interval</th>
-              <th className="py-2 px-3">Leader Gap</th>
-              <th className="py-2 px-3">Last Lap</th>
-              <th className="py-2 px-3 text-center">Stint</th>
-              <th className="py-2 px-3 text-center">Tyre</th>
-              <th className="py-2 px-3 text-center">Pit</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/40">
-            {tick.drivers.map((d: LiveDriverSnapshot) => {
-              const tyreStyle = TYRE_STYLES[d.tyre_compound] || TYRE_STYLES.UNKNOWN;
-              const isLeader = d.position === 1;
+      {/* Broadcast Delay Sync Slider */}
+      <div className="border-b border-border/80 px-4 py-2.5 bg-surface/40 shrink-0">
+        <BroadcastDelaySlider
+          delaySeconds={delaySeconds}
+          onDelayChange={setDelaySeconds}
+        />
+      </div>
 
-              return (
-                <tr
-                  key={d.driver_number}
-                  className="hover:bg-surface/60 transition-colors group"
-                >
-                  {/* Position */}
-                  <td className="py-2 px-2 text-center font-bold text-foreground">
-                    <span
-                      className={`inline-flex items-center justify-center w-6 h-6 rounded-sm ${
-                        d.position === 1
-                          ? "bg-accent/20 text-accent font-bold"
-                          : d.position <= 3
-                          ? "bg-surface-elevated text-foreground font-semibold"
-                          : "text-foreground-dim"
-                      }`}
-                    >
-                      {d.position}
-                    </span>
-                  </td>
+      {/* Main Cockpit Split View: 2D Track Map (Left 48%) + Position Ladder (Right 52%) */}
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row overflow-y-auto lg:overflow-hidden mc-scroll">
+        {/* Left Column: Overtake Probability, Animated 2D Track Map, Mini-Sectors */}
+        <div className="flex w-full shrink-0 flex-col border-b lg:border-b-0 lg:border-r border-border lg:w-[48%] p-3.5 gap-3 lg:overflow-y-auto mc-scroll">
+          {/* Overtake Probability Forecast */}
+          <OvertakeProbabilityGauge data={overtakeData} />
 
-                  {/* Driver & Team */}
-                  <td className="py-2 px-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-foreground tracking-wide">
-                        {d.driver_code}
-                      </span>
-                      <span className="text-[0.65rem] text-foreground-dim truncate max-w-[120px] sm:max-w-none">
-                        {d.team_name}
-                      </span>
-                      {d.in_pit && (
-                        <span className="ml-1 px-1.5 py-0.5 rounded text-[0.55rem] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40">
-                          PIT
-                        </span>
-                      )}
-                    </div>
-                  </td>
+          {/* Animated 2D Circuit Track Map */}
+          <div className="flex flex-col rounded border border-border bg-surface p-3 min-h-[300px] h-[340px]">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="readout text-[0.65rem] font-bold uppercase tracking-wider text-accent">
+                2D Circuit Track Car Tracker
+              </span>
+              <span className="text-[0.6rem] font-mono text-foreground-faint">
+                {tick.drivers.length} Cars on Track
+              </span>
+            </div>
+            <div className="min-h-0 flex-1">
+              <TrackMapPanel
+                year={sessionMeta?.date_start ? new Date(sessionMeta.date_start).getFullYear() : 2024}
+                event={sessionMeta?.circuit_short_name || "Italian Grand Prix"}
+                session_type={sessionMeta?.session_type || "R"}
+                driver={tick.drivers[0]?.driver_code || "VER"}
+                liveDrivers={tick.drivers}
+              />
+            </div>
+          </div>
 
-                  {/* Interval to car ahead */}
-                  <td className="py-2 px-3 text-foreground-dim">
-                    {formatGap(d.interval_to_ahead, isLeader)}
-                  </td>
+          {/* Mini-Sector Dominance Ribbon */}
+          <MiniSectorBar
+            segments={miniSectors}
+            driver1Code={tick.drivers[0]?.driver_code || "VER"}
+            driver2Code={tick.drivers[1]?.driver_code || "NOR"}
+          />
+        </div>
 
-                  {/* Gap to leader */}
-                  <td className="py-2 px-3 text-foreground-dim">
-                    {formatGap(d.gap_to_leader, isLeader)}
-                  </td>
+        {/* Right Column: Live Position Ladder Table */}
+        <div className="flex w-full shrink-0 flex-col lg:w-[52%] min-h-0 flex-1 overflow-x-auto overflow-y-auto mc-scroll p-4">
+          <table className="w-full text-left border-collapse text-xs font-mono">
+            <thead>
+              <tr className="border-b border-border/80 text-[0.65rem] uppercase tracking-wider text-foreground-faint">
+                <th className="py-2 px-2 text-center w-10">Pos</th>
+                <th className="py-2 px-3">Driver</th>
+                <th className="py-2 px-3">Interval</th>
+                <th className="py-2 px-3">Leader Gap</th>
+                <th className="py-2 px-3">Last Lap</th>
+                <th className="py-2 px-3 text-center">Stint</th>
+                <th className="py-2 px-3 text-center">Tyre</th>
+                <th className="py-2 px-3 text-center">Pit</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/40">
+              {tick.drivers.map((d: LiveDriverSnapshot) => {
+                const tyreStyle = TYRE_STYLES[d.tyre_compound] || TYRE_STYLES.UNKNOWN;
+                const isLeader = d.position === 1;
 
-                  {/* Last Lap Time */}
-                  <td className="py-2 px-3 font-semibold text-foreground">
-                    {formatLapTime(d.last_lap_time)}
-                  </td>
-
-                  {/* Stint */}
-                  <td className="py-2 px-3 text-center text-foreground-dim">
-                    {d.current_stint}
-                  </td>
-
-                  {/* Tyre Compound & Age */}
-                  <td className="py-2 px-3 text-center">
-                    <div className="inline-flex items-center gap-1.5">
+                return (
+                  <tr
+                    key={d.driver_number}
+                    className="hover:bg-surface/60 transition-colors group"
+                  >
+                    {/* Position */}
+                    <td className="py-2 px-2 text-center font-bold text-foreground">
                       <span
-                        className={`inline-flex h-5 w-5 items-center justify-center rounded border font-bold text-[0.62rem] ${tyreStyle.bg} ${tyreStyle.text} ${tyreStyle.border}`}
-                        title={`${d.tyre_compound} (${d.tyre_age} laps)`}
+                        className={`inline-flex items-center justify-center w-6 h-6 rounded-sm ${
+                          d.position === 1
+                            ? "bg-accent/20 text-accent font-bold"
+                            : d.position <= 3
+                            ? "bg-surface-elevated text-foreground font-semibold"
+                            : "text-foreground-dim"
+                        }`}
                       >
-                        {tyreStyle.label}
+                        {d.position}
                       </span>
-                      <span className="text-[0.65rem] text-foreground-faint">
-                        {d.tyre_age}L
-                      </span>
-                    </div>
-                  </td>
+                    </td>
 
-                  {/* Pit stops */}
-                  <td className="py-2 px-3 text-center text-foreground-dim">
-                    {d.pit_stops}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    {/* Driver & Team */}
+                    <td className="py-2 px-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-foreground tracking-wide">
+                          {d.driver_code}
+                        </span>
+                        <span className="text-[0.65rem] text-foreground-dim truncate max-w-[120px] sm:max-w-none">
+                          {d.team_name}
+                        </span>
+                        {d.in_pit && (
+                          <span className="ml-1 px-1.5 py-0.5 rounded text-[0.55rem] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                            PIT
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Interval to car ahead */}
+                    <td className="py-2 px-3 text-foreground-dim">
+                      {formatGap(d.interval_to_ahead, isLeader)}
+                    </td>
+
+                    {/* Gap to leader */}
+                    <td className="py-2 px-3 text-foreground-dim">
+                      {formatGap(d.gap_to_leader, isLeader)}
+                    </td>
+
+                    {/* Last Lap Time */}
+                    <td className="py-2 px-3 font-semibold text-foreground">
+                      {formatLapTime(d.last_lap_time)}
+                    </td>
+
+                    {/* Stint */}
+                    <td className="py-2 px-3 text-center text-foreground-dim">
+                      {d.current_stint}
+                    </td>
+
+                    {/* Tyre Compound & Age */}
+                    <td className="py-2 px-3 text-center">
+                      <div className="inline-flex items-center gap-1.5">
+                        <span
+                          className={`inline-flex h-5 w-5 items-center justify-center rounded border font-bold text-[0.62rem] ${tyreStyle.bg} ${tyreStyle.text} ${tyreStyle.border}`}
+                          title={`${d.tyre_compound} (${d.tyre_age} laps)`}
+                        >
+                          {tyreStyle.label}
+                        </span>
+                        <span className="text-[0.65rem] text-foreground-faint">
+                          {d.tyre_age}L
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Pit stops */}
+                    <td className="py-2 px-3 text-center text-foreground-dim">
+                      {d.pit_stops}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Attribution Footer Bar */}

@@ -123,8 +123,9 @@ test.describe("Live Session Mode End-to-End Validation", () => {
       await expect(liveBadge).toBeVisible();
 
       // Assert Position ladder rendered with driver codes
-      await expect(page.getByText("VER", { exact: true })).toBeVisible();
-      await expect(page.getByText("NOR", { exact: true })).toBeVisible();
+      const table = page.getByRole("table");
+      await expect(table.getByText("VER", { exact: true })).toBeVisible();
+      await expect(table.getByText("NOR", { exact: true })).toBeVisible();
 
       // Assert Attribution in footer
       const attributionLink = page.getByRole("link", { name: /OpenF1/i });

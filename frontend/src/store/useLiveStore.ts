@@ -5,10 +5,14 @@ import type {
   LiveRaceTick,
   LiveSessionMeta,
 } from "../types/live";
+import type { BufferedSnapshot } from "../types/live-advanced";
 
 interface LiveState {
   sessionMeta: LiveSessionMeta | null;
   latestTick: LiveRaceTick | null;
+  displayedTick: LiveRaceTick | null;
+  ringBuffer: BufferedSnapshot[];
+  delaySeconds: number;
   status: LiveConnectionStatus;
   errorMessage: string | null;
 
@@ -17,13 +21,38 @@ interface LiveState {
   stopStreaming: () => void;
   retry: () => Promise<void>;
   setTick: (tick: LiveRaceTick) => void;
+  setDelaySeconds: (seconds: number) => void;
 }
 
 let activeUnsubscribe: (() => void) | null = null;
 
+function computeDisplayedTick(
+  buffer: BufferedSnapshot[],
+  latest: LiveRaceTick | null,
+  delaySeconds: number
+): LiveRaceTick | null {
+  if (!latest) return null;
+  if (delaySeconds <= 0 || buffer.length === 0) return latest;
+
+  const targetTimestamp = Date.now() - delaySeconds * 1000;
+  let closest: BufferedSnapshot | null = null;
+  for (let i = buffer.length - 1; i >= 0; i--) {
+    const snap = buffer[i];
+    if (snap.timestamp <= targetTimestamp) {
+      closest = snap;
+      break;
+    }
+  }
+
+  return closest ? closest.tick : buffer[0].tick;
+}
+
 export const useLiveStore = create<LiveState>((set, get) => ({
   sessionMeta: null,
   latestTick: null,
+  displayedTick: null,
+  ringBuffer: [],
+  delaySeconds: 0,
   status: "idle",
   errorMessage: null,
 
@@ -53,8 +82,18 @@ export const useLiveStore = create<LiveState>((set, get) => ({
 
     activeUnsubscribe = subscribeToLiveStream(
       (tick: LiveRaceTick) => {
+        const now = Date.now();
+        const prevBuffer = get().ringBuffer;
+        const newBuffer = [...prevBuffer, { timestamp: now, tick }].filter(
+          (s) => s.timestamp >= now - 75000
+        );
+        const delaySeconds = get().delaySeconds;
+        const displayedTick = computeDisplayedTick(newBuffer, tick, delaySeconds);
+
         set({
           latestTick: tick,
+          displayedTick,
+          ringBuffer: newBuffer,
           status: tick.stale ? "stale" : "connected",
           errorMessage: null,
         });
@@ -62,7 +101,6 @@ export const useLiveStore = create<LiveState>((set, get) => ({
       () => {
         const { latestTick } = get();
         if (latestTick) {
-          // Degrade gracefully to stale rather than blanking out the view
           set({ status: "stale" });
         } else {
           set({
@@ -87,9 +125,26 @@ export const useLiveStore = create<LiveState>((set, get) => ({
   },
 
   setTick: (tick: LiveRaceTick) => {
+    const now = Date.now();
+    const prevBuffer = get().ringBuffer;
+    const newBuffer = [...prevBuffer, { timestamp: now, tick }].filter(
+      (s) => s.timestamp >= now - 75000
+    );
+    const delaySeconds = get().delaySeconds;
+    const displayedTick = computeDisplayedTick(newBuffer, tick, delaySeconds);
+
     set({
       latestTick: tick,
+      displayedTick,
+      ringBuffer: newBuffer,
       status: tick.stale ? "stale" : "connected",
     });
+  },
+
+  setDelaySeconds: (seconds: number) => {
+    const { ringBuffer, latestTick } = get();
+    const clamped = Math.max(0, Math.min(seconds, 60));
+    const displayedTick = computeDisplayedTick(ringBuffer, latestTick, clamped);
+    set({ delaySeconds: clamped, displayedTick });
   },
 }));

@@ -192,4 +192,29 @@ Raw unicode emojis (⚡, 🏁, ⚠️, 🏎️, 🔥) look amateurish and clash 
 - **Problem**: Live telemetry streams rely on `new EventSource(url)` emitting custom `"tick"` events. Playwright's network routing (`page.route`) cannot cleanly simulate indefinite EventSource event streams without hanging or connection leaks.
 - **Solution**: Inject a mock `EventSource` class before navigation via `page.addInitScript()`. The mock captures `addEventListener("tick", ...)` and dispatches structured `LiveRaceTick` payloads with a small microtask/timeout delay, allowing full end-to-end testing of live stream UI states without external SSE servers.
 
+---
+
+## [2026-11-21] Real-time 2D Track Car Tracker, Broadcast Delay Ring Buffer & Multi-Widget Strict Locators (Issue #64)
+
+### 1. High-Performance 60fps SVG Spline Interpolation with `requestAnimationFrame`
+- **Problem**: Polling or streaming live ticks delivers coordinate updates intermittently (every 3s to 8s). Naively updating state via `setState` directly on every tick causes car dots to teleport abruptly across the circuit. Furthermore, running animation calculations inside `useEffect` calling synchronous `setState` triggers React 19 / Turbopack `react-hooks/set-state-in-effect` errors.
+- **Solution**: Decouple target calculation from render animation:
+  1. Compute discrete target coordinates along the track spline: `interpolateSplinePosition(progress, points)`.
+  2. Maintain animated car positions inside a mutable `useRef`.
+  3. Drive fluid interpolation via `requestAnimationFrame` with exponential lerp (`x += (targetX - x) * 0.15`), calling `setState` exclusively inside the RAF loop when displacement exceeds a perceptual threshold (`> 0.05px`).
+  4. Derive `carsToRender = animatedCars.length > 0 ? animatedCars : targetPositions` so initial SVG rendering occurs without flash-of-empty-content.
+
+### 2. Broadcast Delay Ring Buffer Synchronization
+- **Problem**: Viewers watching television broadcasts experience delays between 15s and 60s compared to raw timing feeds, causing live telemetry dashboards to act as unwanted spoilers.
+- **Solution**: Implemented an in-memory rolling FIFO ring buffer in Zustand (`useLiveStore`). Incoming ticks are appended with wall-clock timestamps and pruned beyond 75s. A dedicated `BroadcastDelaySlider` offsets the active displayed state to `targetTimestamp = Date.now() - delaySeconds * 1000`. If the buffer has not yet accumulated enough historical seconds, it gracefully serves the earliest available snapshot without crashing or stalling.
+
+### 3. Multi-Widget Strict Locator Resolution in Playwright
+- **Problem**: As telemetry cockpits grow in richness, driver codes (e.g. `"VER"`, `"NOR"`) appear in multiple concurrent widgets: the Overtake Forecast card, the 2D Track Map SVG car pills, the Mini-Sector Dominance ribbon, and the Position Ladder table. Unscoped locators like `page.getByText("VER", { exact: true })` trigger Playwright strict mode violations (`resolved to 5 elements`).
+- **Solution**: Scope locators to their respective semantic ARIA regions or container elements:
+  ```typescript
+  const table = page.getByRole("table");
+  await expect(table.getByText("VER", { exact: true })).toBeVisible();
+  ```
+
+
 
