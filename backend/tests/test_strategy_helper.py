@@ -496,6 +496,62 @@ class StrategyHelperTests(unittest.TestCase):
         # though we don't expose a value.
         self.assertIsNone(result["strategy"].get("expected_gain_seconds"))
 
+    @patch("tools.strategy_helper.extract_tyre_wear_features")
+    def test_predict_tyre_wear_applies_fuel_correction_in_race(self, mock_extract):
+        mock_extract.return_value = {
+            "driver": "LEC",
+            "year": 2024,
+            "event": "Italian Grand Prix",
+            "session_type": "R",
+            "fallback": False,
+            "fallback_reason": None,
+            "features": {
+                "lap_count": 53,
+                "stint_count": 1,
+                "lap_time_decay_seconds_per_lap": 0.05,
+                "stint_progress_ratio": 0.5,
+                "avg_track_temp_c": 33.0,
+                "track_temp_trend_c_per_lap": 0.1,
+                "temperature_missing": False,
+            },
+        }
+
+        result = predict_tyre_wear(2024, "Italian Grand Prix", "R", "LEC")
+
+        fuel_corr = result["prediction"]["fuel_correction"]
+        self.assertTrue(fuel_corr["applied"])
+        self.assertGreater(fuel_corr["fuel_delta_seconds_per_lap"], 0.05)
+        self.assertGreater(fuel_corr["nominal_burn_kg_per_lap"], 1.5)
+
+        # Degradation rate must reflect lap_decay + fuel_delta + (0.05 * stint_progress) + (0.02 * temp_trend)
+        expected_min = 0.05 + fuel_corr["fuel_delta_seconds_per_lap"]
+        self.assertGreater(result["prediction"]["degradation_rate_seconds_per_lap"], expected_min)
+
+    @patch("tools.strategy_helper.extract_tyre_wear_features")
+    def test_predict_tyre_wear_skips_fuel_correction_in_qualifying(self, mock_extract):
+        mock_extract.return_value = {
+            "driver": "LEC",
+            "year": 2024,
+            "event": "Italian Grand Prix",
+            "session_type": "Q",
+            "fallback": False,
+            "fallback_reason": None,
+            "features": {
+                "lap_count": 15,
+                "stint_count": 3,
+                "lap_time_decay_seconds_per_lap": 0.05,
+                "stint_progress_ratio": 0.3,
+                "avg_track_temp_c": 33.0,
+                "track_temp_trend_c_per_lap": 0.0,
+                "temperature_missing": False,
+            },
+        }
+
+        result = predict_tyre_wear(2024, "Italian Grand Prix", "Q", "LEC")
+        fuel_corr = result["prediction"]["fuel_correction"]
+        self.assertFalse(fuel_corr["applied"])
+        self.assertEqual(fuel_corr["fuel_delta_seconds_per_lap"], 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

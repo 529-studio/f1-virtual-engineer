@@ -195,4 +195,6 @@ docs/interview-prep/INTERVIEW_KIT_2026.md
 
 # Playwright MCP artifacts
 .playwright-mcp/
+test-results/
+playwright-report/
 

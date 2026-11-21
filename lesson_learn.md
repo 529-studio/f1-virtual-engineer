@@ -137,3 +137,34 @@ Raw unicode emojis (⚡, 🏁, ⚠️, 🏎️, 🔥) look amateurish and clash 
 1. **Formalized ADR 0001 (Redis L2 Option 1)**: Codified the decision in `docs/adr/0001-redis-l2-cache.md`. Retained Redis L2 to protect Gemini free-tier RPM limits across restarts, preserve idempotency deduplication, and support the rate-limiting budget required by the upcoming OpenF1 live adapter (#44).
 2. **Explicit Startup Cache Mode Logging**: Added explicit startup logging in FastAPI lifespan (`cache: L1+L2 (redis)` vs `cache: L1 only`) so that configuration drift or missing `REDIS_URL` immediately surfaces in deployment container logs instead of failing silently.
 3. **Honest Product Positioning**: Realigned `README.md` and project specs (`docs/PROJECT_SPEC.md`, `docs/PROJECT_SPEC_VN.md`) by defining the product as an on-demand *race-strategy analysis workbench* using deterministic Python models over historical FastF1 archives. Added a "What this is / What this isn't" section and a Data Freshness & Provenance table so users can answer "is this live?" in under 10 seconds.
+
+---
+
+## [2026-11-21] F1 Fuel Mass Correction Physics & Raw Parquet/CSV Export Streaming Engine (Issue #62)
+
+### 1. Physics Context: Fuel Mass Distortion on Tyre Degradation
+- **Problem**: In Formula 1, cars start races with up to 110 kg of fuel (nominal ~105 kg). Over a 50-70 lap Grand Prix, cars burn approximately 1.5 to 2.0 kg/lap, lightening continuously. Given circuit fuel sensitivities of 0.030 to 0.038 s/kg (e.g. 0.038 s/kg at Silverstone, 0.032 s/kg at Monza), this weight loss speeds up cars by ~0.055 to ~0.075 s per lap. Naive linear regression over raw lap times mistakenly perceives tyres as degrading much slower than they actually are (or even improving in pace), severely underestimating the pit window and degradation cliff.
+- **Solution**: Developed `backend/tools/fuel_helper.py` with circuit-specific fuel sensitivities (covering 25 Grand Prix venues + fallback). The model calculates nominal lap fuel burn $\Delta m = m_{\text{fuel}} / N_{\text{laps}}$ and the lap-time delta $\Delta t_{\text{fuel}} = \Delta m \times S_{\text{circuit}}$. When analyzing race sessions ("R"), the true tyre degradation rate is isolated by adding back the fuel burn-off bonus:
+  $$d_{\text{corrected}} = d_{\text{raw}} + \Delta t_{\text{fuel}}$$
+  This correction is surfaced transparently in `predict_tyre_wear()` under `fuel_correction: { applied, fuel_delta_seconds_per_lap, nominal_burn_kg_per_lap }` and explicitly skipped in non-race sessions (Qualifying/Practice) where cars do not start with full race fuel loads.
+
+### 2. High-Performance Telemetry Export & Multi-Route Aliasing
+- **Problem**: Race strategists and data scientists need raw telemetry in standard data-science formats (CSV and Apache Parquet) without crashing in-memory buffers or encountering 404s due to frontend proxy path mismatches (`/export` vs `/telemetry/export` vs `/api/telemetry/export`).
+- **Solution**:
+  1. Built `backend/tools/telemetry_export.py` utilizing `pyarrow` for lightning-fast, zero-copy Parquet byte serialization and standard CSV streaming with `Content-Disposition: attachment; filename="<driver>_<event>_<session>_lap<lap>.parquet"`.
+  2. Registered route aliases cleanly on `APIRouter`: `@router.get("/export")`, `@router.get("/telemetry/export")`, and `@router.get("/api/telemetry/export")`.
+  3. Added stint comparison logic (`/stint-compare`) that interpolates two laps of the same driver onto an equidistant 10m grid, providing speed, throttle, brake, and cumulative time deltas to assess tyre wear effects across stints.
+
+### 3. Defensive Handling of FastF1 Lap Objects vs. Pandas DataFrames
+- **Problem**: When slicing a pandas DataFrame containing mock FastF1 laps (`driver_laps[driver_laps["LapNumber"] == lap]`), accessing `.iloc[0]` produces a `pd.Series` rather than a full `fastf1.core.Lap` object, leading to `AttributeError: 'Series' object has no attribute 'get_telemetry'` during unit tests.
+- **Solution**: Implemented defensive fallback checking in `build_lap_telemetry_dataframe`:
+  ```python
+  if hasattr(chosen_lap, "get_telemetry") and callable(chosen_lap.get_telemetry):
+      telem = chosen_lap.get_telemetry()
+  elif isinstance(chosen_lap, pd.Series) and "_telemetry" in chosen_lap:
+      telem = chosen_lap["_telemetry"]
+  elif hasattr(chosen_lap, "get") and chosen_lap.get("_telemetry") is not None:
+      telem = chosen_lap.get("_telemetry")
+  ```
+  This guarantees robustness in both production FastF1 sessions and fast in-memory mock testing environments.
+

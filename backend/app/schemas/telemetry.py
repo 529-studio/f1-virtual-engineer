@@ -37,6 +37,10 @@ class TelemetrySummary(BaseModel):
     rpm: TelemetryChannelStats
     throttle: TelemetryChannelStats | None = None
     brake: TelemetryChannelStats | None = None
+    steering: TelemetryChannelStats | None = None
+    drs: TelemetryChannelStats | None = None
+    g_lat: TelemetryChannelStats | None = None
+    g_long: TelemetryChannelStats | None = None
     source: str = "fastf1"
     fallback: bool = False
     fallback_reason: str | None = None

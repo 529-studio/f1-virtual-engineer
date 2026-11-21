@@ -8,6 +8,7 @@ from functools import wraps
 from typing import Any, Callable
 
 import fastf1
+import numpy as np
 import pandas as pd
 from cachetools import TTLCache
 
@@ -391,6 +392,47 @@ def _normalize_telemetry(
         # Brake is boolean in FastF1; convert to 0/1 then express as %
         brake_series = telemetry["Brake"].astype(float) * 100
         result["brake"] = _stats(brake_series, "%")
+
+    # Advanced engineering telemetry channels (#62)
+    if "Steering" in telemetry.columns:
+        result["steering"] = _stats(telemetry["Steering"], "deg")
+
+    if "DRS" in telemetry.columns:
+        # FastF1 DRS values: 0/1 (or bitwise indicators >= 8)
+        drs_active = telemetry["DRS"].apply(
+            lambda v: 100.0 if v in (1, 8, 10, 12, 14) or str(v).lower() in ("true", "1") else 0.0
+        )
+        result["drs"] = _stats(drs_active, "%")
+
+    # Longitudinal acceleration (g_long) derived from Speed and Time
+    if "Speed" in telemetry.columns and "Time" in telemetry.columns and len(telemetry) > 2:
+        try:
+            t_sec = telemetry["Time"].dt.total_seconds().to_numpy(dtype=float)
+            v_ms = telemetry["Speed"].to_numpy(dtype=float) / 3.6
+            dt = np.gradient(t_sec)
+            dt = np.where(dt > 0.001, dt, 0.08)
+            dv = np.gradient(v_ms)
+            g_long = np.clip((dv / dt) / 9.81, -6.0, 3.5)
+            result["g_long"] = _stats(pd.Series(g_long, index=telemetry.index), "g")
+        except Exception as exc:
+            _logger.debug("Failed to calculate g_long: %s", exc)
+
+    # Lateral acceleration (g_lat) derived from 2D curvature and Speed
+    if "X" in telemetry.columns and "Y" in telemetry.columns and "Speed" in telemetry.columns and len(telemetry) > 3:
+        try:
+            x = telemetry["X"].to_numpy(dtype=float)
+            y = telemetry["Y"].to_numpy(dtype=float)
+            v_ms = telemetry["Speed"].to_numpy(dtype=float) / 3.6
+            dx = np.gradient(x)
+            dy = np.gradient(y)
+            ds = np.sqrt(dx**2 + dy**2)
+            headings = np.unwrap(np.arctan2(dy, dx))
+            dtheta = np.gradient(headings)
+            curvature = np.where(ds > 0.1, dtheta / ds, 0.0)
+            g_lat = np.clip((v_ms**2 * curvature) / 9.81, -5.5, 5.5)
+            result["g_lat"] = _stats(pd.Series(g_lat, index=telemetry.index), "g")
+        except Exception as exc:
+            _logger.debug("Failed to calculate g_lat: %s", exc)
 
     return result
 
