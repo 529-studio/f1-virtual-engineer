@@ -14,5 +14,9 @@ export { StrategyCanvas } from "./StrategyCanvas";
 export { CornerInspectorCard } from "./CornerInspectorCard";
 export { CatchUpPredictorCard } from "./CatchUpPredictorCard";
 export { LiveRacePanel } from "./LiveRacePanel";
+export { GGFrictionCanvas } from "./GGFrictionCanvas";
+export { SteeringTraceCard } from "./SteeringTraceCard";
+export { StintCompareModal } from "./StintCompareModal";
+export { ExportButton } from "./ExportButton";
 export { type MissionIntent } from "./IntentTabBar";
 

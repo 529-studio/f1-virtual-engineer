@@ -76,6 +76,10 @@ export interface AnalyzeResponse {
     rpm?: TelemetryChannel;
     throttle?: TelemetryChannel;
     brake?: TelemetryChannel;
+    steering?: TelemetryChannel;
+    drs?: TelemetryChannel;
+    g_lat?: TelemetryChannel;
+    g_long?: TelemetryChannel;
     fallback?: boolean;
     fallback_reason?: string | null;
     lap_number?: number | null;

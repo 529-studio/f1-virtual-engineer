@@ -16,12 +16,13 @@ import {
   CoachmarksModal,
   CornerInspectorCard,
   FALLBACK_DRIVERS, IntentTabBar, LiveRacePanel, MissionBoard, MissionFooter, MissionHeader, NavRail,
-  SelectorBar, StrategyHUD, TelemetryChartGrid, type MissionIntent, type SessionId,
+  SelectorBar, StintCompareModal, StrategyHUD, TelemetryChartGrid, type MissionIntent, type SessionId,
 } from "@/components/mission-control";
 import { StrategyCanvas } from "@/components/mission-control/StrategyCanvas";
 import { TrackMapPanel } from "@/components/mission-control/TrackMapPanel";
 import { useDriverRoster } from "@/hooks/useDriverRoster";
 import { useAnalyzeStream } from "@/hooks/useAnalyzeStream";
+import { useAdvancedTelemetry } from "@/hooks/useAdvancedTelemetry";
 import { useLiveStore } from "@/store/useLiveStore";
 
 export default function MissionControlPage() {
@@ -34,6 +35,16 @@ export default function MissionControlPage() {
   const [savedQueries, setSavedQueries] = useState<SavedQueryItem[]>([]);
 
   const { streamState, isLoading, runStream } = useAnalyzeStream();
+  const [stintModalOpen, setStintModalOpen] = useState(false);
+  const {
+    exportStatus,
+    exportError,
+    exportTelemetry,
+    stintData,
+    stintLoading,
+    stintError,
+    fetchStint,
+  } = useAdvancedTelemetry();
 
   // F4: DECIDED DEMO RACE: 2024 Italian Grand Prix (Monza) LEC
   const [year, setYear]       = useState<number>(2024);
@@ -635,6 +646,10 @@ export default function MissionControlPage() {
           intent={intent}
           result={result} isLoading={isLoading} canRun={canRun} onAnalyze={handleAnalyze}
           savedQueries={savedQueries} onSavedQueriesChange={setSavedQueries}
+          onOpenStintCompare={() => setStintModalOpen(true)}
+          onExport={exportTelemetry}
+          exportStatus={exportStatus}
+          exportError={exportError}
         />
 
         <IntentTabBar intent={intent} setIntent={setIntent} />
@@ -781,6 +796,21 @@ export default function MissionControlPage() {
         savedQueries={savedQueries}
         onSavedQueriesChange={setSavedQueries}
         onSelectSaved={handleSelectSaved}
+      />
+
+      <StintCompareModal
+        isOpen={stintModalOpen}
+        onClose={() => setStintModalOpen(false)}
+        year={year}
+        event={eventName}
+        session={session}
+        driver={driver}
+        currentLap={lap}
+        totalLaps={laps.length > 0 ? laps.length : 53}
+        onFetchStint={fetchStint}
+        isLoading={stintLoading}
+        error={stintError}
+        data={stintData}
       />
     </div>
   );

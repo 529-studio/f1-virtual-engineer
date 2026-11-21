@@ -168,3 +168,28 @@ Raw unicode emojis (⚡, 🏁, ⚠️, 🏎️, 🔥) look amateurish and clash 
   ```
   This guarantees robustness in both production FastF1 sessions and fast in-memory mock testing environments.
 
+---
+
+## [2026-11-21] Advanced Telemetry Cockpit UI, Playwright Standalone Serving & Strict Locators (Issue #63)
+
+### 1. Next.js Standalone Serving Trap in End-to-End Test Harnesses
+- **Problem**: When `next.config.ts` specifies `output: "standalone"`, running `next start` fails with `⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead`. However, launching `server.js` directly serves HTML but produces 404s on all CSS chunks (`/_next/static/css/...`) and public assets (`/ferrari.png`, `/google-icon.svg`), because the standalone output intentionally excludes static chunks to keep Docker layers minimal. In Playwright, this causes buttons to render unstyled with default browser metrics (e.g. 33px height instead of the mandated 44px min-height), failing visual and ergonomic assertions.
+- **Solution**: In `frontend/playwright.config.ts`, ensure `webServer.command` stages the static directories before launching `server.js`:
+  ```bash
+  cp -r public .next/standalone/ 2>/dev/null || true; cp -r .next/static .next/standalone/.next/ 2>/dev/null || true; PORT=3000 node .next/standalone/server.js
+  ```
+  This serves all CSS modules, font assets, and static SVGs cleanly without requiring a heavyweight dev server.
+
+### 2. Dual Responsive Toolbars in DOM & Playwright Locator Disambiguation
+- **Problem**: In `SelectorBar.tsx`, responsive design necessitates distinct layouts for mobile (`sm:hidden`) and desktop (`hidden sm:flex`). When E2E locators match buttons by name (e.g. `page.getByRole("button", { name: /Export/i })`), Playwright encounters multiple matching DOM nodes. Simply calling `.first()` on desktop resolves to the mobile hidden button, throwing strict visibility errors.
+- **Solution**: Always disambiguate responsive duplicates using locator chaining or filtering by visibility:
+  ```typescript
+  const exportBtn = page.getByRole("button", { name: /Export/i }).filter({ visible: true }).first();
+  ```
+  Additionally, avoid generic substring locators like `locator("text=VER")` which match substrings inside common words like `"Driver"` (`driVER`). Always use exact matching: `getByText("VER", { exact: true })`.
+
+### 3. Server-Sent Events (SSE) Mocking via `addInitScript`
+- **Problem**: Live telemetry streams rely on `new EventSource(url)` emitting custom `"tick"` events. Playwright's network routing (`page.route`) cannot cleanly simulate indefinite EventSource event streams without hanging or connection leaks.
+- **Solution**: Inject a mock `EventSource` class before navigation via `page.addInitScript()`. The mock captures `addEventListener("tick", ...)` and dispatches structured `LiveRaceTick` payloads with a small microtask/timeout delay, allowing full end-to-end testing of live stream UI states without external SSE servers.
+
+
