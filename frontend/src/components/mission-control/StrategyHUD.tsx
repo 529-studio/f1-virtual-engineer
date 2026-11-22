@@ -111,8 +111,9 @@ export function StrategyHUD({
         <div className="flex flex-1 flex-col items-center pt-4">
           <button
             onClick={() => setIsCollapsed(false)}
-            className="text-foreground-dim hover:text-foreground p-2 transition-colors"
+            className="text-foreground-dim hover:text-foreground p-2 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             title="Expand Strategy HUD"
+            aria-label="Expand Strategy HUD"
           >
             <PanelRightOpen size={18} />
           </button>
