@@ -216,5 +216,30 @@ Raw unicode emojis (⚡, 🏁, ⚠️, 🏎️, 🔥) look amateurish and clash 
   await expect(table.getByText("VER", { exact: true })).toBeVisible();
   ```
 
+---
+
+## [2026-11-22] AI Team Radio Cockpit, Web Audio Intercom EQ & Multi-Viewport Drawer Playwright Testing (Issue #69 / V2.1)
+
+### 1. Web Audio API Autoplay Policy & Pit-Wall Intercom BiquadFilter Cascade
+- **Problem**: Modern browser security policies suspend `AudioContext` automatically on page load until an explicit user interaction occurs. Attempting to route audio or read frequency data from a suspended context logs warnings or stalls playback. In headless CI runners or environments with strict CORS on external F1 CDN MP3 streams (`livetiming.formula1.com`), audio elements can fail to load.
+- **Solution**:
+  1. Lazy context initialization with explicit resume guard:
+     ```typescript
+     if (audioContextRef.current && audioContextRef.current.state === "suspended") {
+       await audioContextRef.current.resume();
+     }
+     ```
+  2. Authentic Pit-Wall Intercom Acoustic Filter:
+     Route audio through a cascaded dual BiquadFilter:
+     - Highpass at $300\,\text{Hz}$ ($Q = 1.0$) to eliminate engine low-frequency rumble.
+     - Lowpass at $3400\,\text{Hz}$ ($Q = 1.2$) to mimic military/racing walkie-talkie bandpass limitations.
+  3. Resilient Synthetic Oscillator Fallback:
+     Catch media load errors on `<audio>` and activate an internal Web Audio oscillator synthesizing simulated telemetry beeps and frequency harmonics, ensuring 100% test reliability in headless CI.
+
+### 2. Hydration Race Conditions in Responsive Drawer Testing
+- **Problem**: Dispatching synthetic custom window events (`window.dispatchEvent(new CustomEvent("apex:open-hud"))`) immediately after `await page.goto(...)` can be dropped if the React component has not completed hydration and attached its `useEffect` listeners.
+- **Solution**: Interact with the actual responsive trigger buttons (`page.getByRole("button", { name: /Strategy HUD/i })`). Playwright's auto-waiting mechanism ensures React is fully hydrated and interactive before clicking, avoiding race conditions on Tablet and Mobile viewports.
+
+
 
 

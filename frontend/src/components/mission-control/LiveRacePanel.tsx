@@ -17,6 +17,8 @@ import { BroadcastDelaySlider } from "./BroadcastDelaySlider";
 import { OvertakeProbabilityGauge } from "./OvertakeProbabilityGauge";
 import { MiniSectorBar } from "./MiniSectorBar";
 import { TrackMapPanel } from "./TrackMapPanel";
+import { RadioLivePopup } from "./RadioLivePopup";
+import type { RadioMessage } from "@/types/radio";
 
 const TYRE_STYLES: Record<
   LiveTyreCompound,
@@ -62,6 +64,9 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
     fetchSession,
     retry,
   } = useLiveStore();
+
+  const [liveRadio] = useState<RadioMessage | null>(null);
+  const [isLiveRadioOpen, setIsLiveRadioOpen] = useState(false);
 
   useEffect(() => {
     fetchSession();
@@ -423,6 +428,14 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
           <span>Polling tick 8s</span>
         </div>
       </div>
+
+      {/* Live Radio Broadcast Alert Toast */}
+      <RadioLivePopup
+        message={liveRadio}
+        isVisible={isLiveRadioOpen}
+        onPlay={() => {}}
+        onDismiss={() => setIsLiveRadioOpen(false)}
+      />
     </div>
   );
 }

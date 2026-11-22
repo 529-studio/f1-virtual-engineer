@@ -45,17 +45,39 @@ _SYSTEM_PROMPT = (
 )
 
 
+def _derive_urgency(severity: str, transcript: str) -> int:
+    t_lower = transcript.lower()
+    if any(k in t_lower for k in ["wall", "crash", "puncture", "fire", "box box", "emergency"]):
+        return 5
+    if severity == "high":
+        return 4
+    if severity == "medium":
+        return 3
+    if any(k in t_lower for k in ["traffic", "yellow", "gap"]):
+        return 2
+    return 1
+
+
+def _derive_speaker(transcript: str) -> str:
+    t_lower = transcript.lower()
+    if any(k in t_lower for k in ["box box", "copy", "confirm", "radio check", "gap to", "plan b", "plan c"]):
+        return "race_engineer"
+    return "driver"
+
+
 def _fallback(reason: str) -> dict[str, Any]:
     return {
         "classification": "none",
         "severity": "low",
         "trigger_phrase": "",
+        "urgency": 1,
+        "speaker": "driver",
         "fallback": True,
         "fallback_reason": reason,
     }
 
 
-def _validate(parsed: dict[str, Any]) -> dict[str, Any] | None:
+def _validate(parsed: dict[str, Any], transcript: str = "") -> dict[str, Any] | None:
     """Return a normalised dict, or None if the LLM output failed validation."""
     classification = parsed.get("classification")
     severity = parsed.get("severity")
@@ -71,10 +93,20 @@ def _validate(parsed: dict[str, Any]) -> dict[str, Any] | None:
     if classification != "none" and not trigger_phrase.strip():
         return None
 
+    urgency = parsed.get("urgency")
+    if not isinstance(urgency, int) or not (1 <= urgency <= 5):
+        urgency = _derive_urgency(severity, transcript)
+
+    speaker = parsed.get("speaker")
+    if speaker not in ("driver", "race_engineer"):
+        speaker = _derive_speaker(transcript)
+
     return {
         "classification": classification,
         "severity": severity,
         "trigger_phrase": trigger_phrase.strip(),
+        "urgency": urgency,
+        "speaker": speaker,
         "fallback": False,
         "fallback_reason": None,
     }
@@ -91,7 +123,7 @@ def interpret_radio(transcript: str, driver: str | None = None) -> dict[str, Any
     if raw is None:
         return _fallback("LLM unavailable or returned no output")
 
-    validated = _validate(raw)
+    validated = _validate(raw, transcript=transcript)
     if validated is None:
         _logger.warning("Radio classifier returned malformed payload: %r", raw)
         return _fallback("LLM response failed schema validation")
