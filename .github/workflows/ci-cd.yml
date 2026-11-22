@@ -2,7 +2,7 @@
 # F1 Virtual Engineer — GitHub Actions CI/CD
 # Replaces: .circleci/config.yml
 # Registry: ghcr.io/529-studio/f1-virtual-engineer (GitHub Container Registry)
-# Deploy:   Dokploy webhook on develop push after both images are pushed
+# Deploy:   Portainer stack update on develop push after both images are pushed
 # ──────────────────────────────────────────────────────────────────────────────
 
 name: CI/CD
@@ -172,7 +172,8 @@ jobs:
           # - BACKEND_INTERNAL_URL: frozen into routes-manifest.json via next.config.ts rewrites(),
           #   but Dockerfile already has ARG BACKEND_INTERNAL_URL=http://backend:8000 (correct default)
           # - NEXT_PUBLIC_API_BASE_URL: has || "/api" fallback in code; Dockerfile ARG default = /api
-          # - NEXT_PUBLIC_SITE_URL: server-side Route Handler only, pure runtime via Dokploy env
+          # - NEXT_PUBLIC_SITE_URL: server-side Route Handler only, so the compose runtime default
+          #   https://f1.529studio.site is authoritative; it pins the auth callback origin
           # - NEXT_PUBLIC_ADMIN_USER_ID: dead code, not referenced in src/
           build-args: |
             NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
