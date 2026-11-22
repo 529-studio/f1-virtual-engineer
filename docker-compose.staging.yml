@@ -1,5 +1,5 @@
-# Deployed to desk-srv-02 (Portainer environment 6). This stack MUST NOT rely on
-# services running on desk-srv-01 (`redis`, `shared-postgres`, Traefik): all
+# Deployed to desk-srv-01 (Portainer environment 3). This stack MUST NOT rely on
+# legacy shared host dependencies (`redis` main, `shared-postgres`, Traefik): all
 # dependencies are either containerised here or reachable over the internet.
 services:
   f1-redis:
