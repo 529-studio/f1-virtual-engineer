@@ -8,6 +8,7 @@ import { TeamIcon } from "@/components/icons/TeamIcons";
 import { RecentAnalyses } from "./RecentAnalyses";
 import { RecentTelemetry } from "./RecentTelemetry";
 import { RadioLog } from "./RadioLog";
+import { TeamRadioCockpit } from "./TeamRadioCockpit";
 import { ReferencesPanel } from "./ReferencesPanel";
 import { SavedQueriesPanel } from "./SavedQueriesPanel";
 // ScenarioComparison and TyreCard are promoted to StrategyCanvas (main canvas).
@@ -404,7 +405,8 @@ export function StrategyHUD({
 
       {/* ── RADIO Tab ───────────────────────────────────────────────── */}
       {hudTab === "radio" && (
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2 space-y-4">
+          <TeamRadioCockpit />
           <RadioLog refreshSignal={radioHistoryRefreshSignal} />
         </div>
       )}
