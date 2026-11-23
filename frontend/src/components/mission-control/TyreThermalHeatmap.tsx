@@ -111,7 +111,10 @@ export function TyreThermalHeatmap({
   const wheelsList: WheelPosition[] = ["FL", "FR", "RL", "RR"];
 
   return (
-    <div className="w-full flex flex-col gap-4 rounded-xl border border-neutral-800/80 bg-neutral-950/80 p-3 sm:p-5 shadow-2xl backdrop-blur-md overflow-hidden">
+    <div
+      data-testid="tyre-thermal-heatmap"
+      className="w-full flex flex-col gap-4 rounded-xl border border-neutral-800/80 bg-neutral-950/80 p-3 sm:p-5 shadow-2xl backdrop-blur-md overflow-hidden"
+    >
       {/* Top Controls Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-800">
         <div>
@@ -130,7 +133,7 @@ export function TyreThermalHeatmap({
         <div className="flex items-center gap-1.5 self-start sm:self-auto bg-neutral-900/90 p-1 rounded-lg border border-neutral-800">
           <button
             onClick={() => setViewMode("surface")}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded text-xs font-mono min-h-[44px] min-w-[44px] transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded text-xs font-mono min-h-[46px] min-w-[46px] transition-colors ${
               viewMode === "surface"
                 ? "bg-sky-950 text-sky-200 border border-sky-600 font-semibold"
                 : "text-neutral-400 hover:text-neutral-200"
@@ -142,7 +145,7 @@ export function TyreThermalHeatmap({
           </button>
           <button
             onClick={() => setViewMode("cutaway")}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded text-xs font-mono min-h-[44px] min-w-[44px] transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded text-xs font-mono min-h-[46px] min-w-[46px] transition-colors ${
               viewMode === "cutaway"
                 ? "bg-purple-950 text-purple-200 border border-purple-600 font-semibold"
                 : "text-neutral-400 hover:text-neutral-200"
@@ -166,7 +169,7 @@ export function TyreThermalHeatmap({
               <button
                 key={pos}
                 onClick={() => setSelectedWheel(pos)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono min-h-[44px] min-w-[44px] border transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono min-h-[46px] min-w-[46px] border transition-all ${
                   isSel
                     ? "bg-neutral-800 text-cyan-300 border-cyan-500 font-bold shadow-md shadow-cyan-950/40"
                     : "bg-neutral-900/60 text-neutral-400 border-neutral-800 hover:bg-neutral-850 hover:text-neutral-200"
