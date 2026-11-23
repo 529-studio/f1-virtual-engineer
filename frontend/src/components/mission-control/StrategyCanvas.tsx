@@ -6,6 +6,7 @@ import { PitWindowTimeline } from "./PitWindowTimeline";
 import { GapGauge } from "./GapGauge";
 import { ScenarioComparison } from "./ScenarioComparison";
 import { TyreCard } from "./TyreCard";
+import { TyreThermalHeatmap } from "./TyreThermalHeatmap";
 import { PitExitCard } from "./PitExitCard";
 import { CatchUpPredictorCard } from "./CatchUpPredictorCard";
 import type { SessionId } from "./constants";
@@ -141,6 +142,21 @@ export function StrategyCanvas({
             />
           </div>
         )}
+      </motion.div>
+
+      {/* Row 3.5 — Tyre Thermal 3D Heatmap & Carcass Cutaway */}
+      <motion.div
+        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.25 }}
+      >
+        <TyreThermalHeatmap
+          year={year}
+          event={eventName}
+          session={session}
+          driver={driver}
+          lap={selectedLap}
+        />
       </motion.div>
 
       {/* Row 4 — Catch-Up & Overtake Predictor */}

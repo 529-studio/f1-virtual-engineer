@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { AlertTriangle, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { AlertTriangle, Flame, PanelRightClose, PanelRightOpen } from "lucide-react";
 import type { AnalyzeHistoryItem, AnalyzeResponse, SavedQueryItem, StrategyData, TelemetryHistoryItem } from "@/services/api";
 import { TeamIcon } from "@/components/icons/TeamIcons";
 import { RecentAnalyses } from "./RecentAnalyses";
@@ -150,6 +150,12 @@ export function StrategyHUD({
               {strat.confidence_band.toUpperCase()}
             </span>
           )}
+        </div>
+        <div className="mt-2 flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-elevated/70 border border-border text-[10px] font-mono text-foreground-dim">
+            <Flame size={11} className="text-orange-400" />
+            3D TYRE THERMAL
+          </span>
         </div>
       </div>
 

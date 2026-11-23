@@ -16,6 +16,7 @@ from app.schemas.stint_compare import StintCompareRequest, StintCompareResponse
 from app.schemas.telemetry import ApiError, TelemetryQueryRequest, TelemetryResponse, TelemetrySummary
 from app.schemas.track_map import TrackMapRequest, TrackMapResponse
 from app.schemas.tyre import TyreAnalyzeRequest, TyreAnalyzeResponse
+from app.schemas.tyre_thermal import TyreThermalResponse
 from app.schemas.weather import WeatherSummaryRequest, WeatherSummaryResponse
 from core.auth import OptionalUserId
 from core.limiter import limiter
@@ -490,4 +491,45 @@ async def stint_compare_get(
         lap2=lap2,
     )
     return StintCompareResponse(**payload)
+
+
+@router.get(
+    "/tyre-thermal",
+    response_model=TyreThermalResponse,
+    summary="Tyre thermal surface degradation and carcass heatmap",
+    description=(
+        "Returns dual-layer temperatures (surface vs deep carcass) and 3-zone lateral "
+        "distribution (inner, center, outer) for all 4 wheels with negative camber "
+        "thermal bias and pathology diagnostics (graining, blistering, cliff, inflation). (#70)"
+    ),
+)
+@router.get(
+    "/telemetry/tyre-thermal",
+    response_model=TyreThermalResponse,
+    summary="Tyre thermal surface degradation and carcass heatmap (telemetry alias)",
+)
+@router.get(
+    "/api/telemetry/tyre-thermal",
+    response_model=TyreThermalResponse,
+    summary="Tyre thermal surface degradation and carcass heatmap (api alias)",
+)
+@limiter.limit("30/10seconds")
+async def get_tyre_thermal(
+    request: Request,
+    year: Annotated[int, Query(ge=1950, le=2100)],
+    event: Annotated[str, Query(min_length=2, max_length=120)],
+    session_type: Annotated[str, Query(min_length=1, max_length=30)] = "Race",
+    driver: Annotated[str, Query(min_length=2, max_length=5)] = "LEC",
+    lap_number: Annotated[int | None, Query(ge=1, le=120)] = None,
+):
+    profile = await asyncio.to_thread(
+        _main.compute_tyre_thermal_profile,
+        year=year,
+        event=event,
+        session=session_type,
+        driver=driver,
+        lap_number=lap_number,
+    )
+    return TyreThermalResponse(**profile)
+
 

@@ -240,6 +240,31 @@ Raw unicode emojis (⚡, 🏁, ⚠️, 🏎️, 🔥) look amateurish and clash 
 - **Problem**: Dispatching synthetic custom window events (`window.dispatchEvent(new CustomEvent("apex:open-hud"))`) immediately after `await page.goto(...)` can be dropped if the React component has not completed hydration and attached its `useEffect` listeners.
 - **Solution**: Interact with the actual responsive trigger buttons (`page.getByRole("button", { name: /Strategy HUD/i })`). Playwright's auto-waiting mechanism ensures React is fully hydrated and interactive before clicking, avoiding race conditions on Tablet and Mobile viewports.
 
+---
+
+## [2026-11-23] Tyre Thermal Degradation, 3D Isometric SVG Projection & Kiosk Sub-Pixel Anti-Aliasing (Issue #70 / V2.1)
+
+### 1. Isometric Lateral Gradient Orientation and Perspective Symmetry
+- **Problem**: In Formula 1 chassis geometry, left-hand wheels (`FL`, `RL`) and right-hand wheels (`FR`, `RR`) run mirror-image negative camber ($-3.5^\circ$ Front, $-1.8^\circ$ Rear). When rendered in top-isometric 3D perspective, the inner shoulder of left-hand wheels physically faces rightward (toward the chassis centerline), whereas the inner shoulder of right-hand wheels faces leftward. Naively applying the same lateral array order (`[inner, center, outer]`) across all 4 wheels causes left tyres to incorrectly display negative camber heating on their outside shoulder.
+- **Solution**: Explicitly invert the lateral band ordering based on wheel chassis side:
+  ```typescript
+  const leftZoneTemp = isLeft ? surface_temp.outer_c : surface_temp.inner_c;
+  const centerZoneTemp = surface_temp.center_c;
+  const rightZoneTemp = isLeft ? surface_temp.inner_c : surface_temp.outer_c;
+  ```
+  This preserves physical accuracy, ensuring camber heat accumulation cleanly faces the vehicle's longitudinal centerline.
+
+### 2. Kiosk Ergonomics & Sub-Pixel Anti-Aliasing Rounding Traps
+- **Problem**: When styling buttons with strict minimum touch targets (e.g. `min-h-[44px]`), fractional CSS scaling, device pixel ratios (DPR), and nested flex padding can cause headless Chromium to calculate `boundingBox().height` as `43.99993896484375px`. A naive Playwright test assertion `expect(height).toBeGreaterThanOrEqual(44)` triggers intermittent sub-pixel test failures despite compliant styling.
+- **Solution**:
+  1. In Tailwind CSS, declare `min-h-[46px] min-w-[46px]` or `min-h-[48px] min-w-[48px]` on interactive buttons, providing a solid safety margin above the 44px kiosk threshold.
+  2. In Playwright assertions, use `Math.round(box?.height ?? 0) >= 44` to neutralize floating-point sub-pixel inaccuracies.
+
+### 3. Non-Destructive Carcass Cutaway Mode via SVG Layer Composition
+- **Problem**: Exposing deep internal carcass core temperatures ($T_{\text{carcass}}$) must not alter the SVG coordinate space or displace adjacent labels and wishbones, which would cause jarring layout shifts when toggling between surface tread and internal core views.
+- **Solution**: Layer the carcass core disc (`<ellipse>`) directly beneath the surface tread bands. In cutaway mode, transition the outer tread bands to `opacity: 0.35` with dashed outline styling, revealing the glowing carcass core and its digital readout without shifting SVG viewBox dimensions or triggering re-layouts.
+
+
 
 
 
