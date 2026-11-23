@@ -144,6 +144,7 @@ from tools.fastf1_helper import (
     get_track_map_data,
 )
 from tools.tyre_helper import compute_tyre_decay
+from tools.tyre_thermal import compute_tyre_thermal_profile
 from tools.weather_helper import get_weather_summary
 from tools.lap_delta import compute_lap_delta
 from tools.lap_delta_cross_year import compute_cross_year_lap_delta
