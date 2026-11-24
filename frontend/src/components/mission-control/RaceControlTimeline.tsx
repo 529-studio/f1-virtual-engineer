@@ -60,6 +60,7 @@ export function RaceControlTimeline({
           return (
             <button
               key={f.key}
+              data-testid={`category-filter-${f.key}`}
               onClick={() => onFilterChange(f.key)}
               className={`px-3 py-2 rounded-lg text-xs font-mono min-h-[44px] min-w-[44px] border shrink-0 transition-all ${
                 isActive
@@ -90,6 +91,7 @@ export function RaceControlTimeline({
             return (
               <div
                 key={item.id}
+                data-testid={`incident-item-${item.id}`}
                 onClick={() => onSelectIncident(item.id)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -137,16 +139,16 @@ export function RaceControlTimeline({
                 </div>
 
                 {/* Official Message Banner */}
-                <p className="text-xs font-mono font-bold text-neutral-200 line-clamp-2">
+                <p className="text-xs font-mono font-bold text-neutral-200 break-words leading-snug">
                   {item.message}
                 </p>
 
                 {/* Subtext description & Drivers Involved */}
                 <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-neutral-800/60 text-[11px] font-mono text-neutral-400">
                   <span className="truncate max-w-[260px] text-neutral-400">{item.description}</span>
-                  {item.drivers_involved.length > 0 && (
+                  {(item.drivers_involved || []).length > 0 && (
                     <div className="flex items-center gap-1 shrink-0">
-                      {item.drivers_involved.map((d) => (
+                      {(item.drivers_involved || []).map((d) => (
                         <span
                           key={d}
                           className="px-1.5 py-0.2 rounded bg-neutral-800 border border-neutral-700 text-neutral-200 font-bold text-[10px]"

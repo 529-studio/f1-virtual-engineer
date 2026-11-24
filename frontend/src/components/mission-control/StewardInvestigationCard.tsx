@@ -101,7 +101,10 @@ export function StewardInvestigationCard({
   const verdictStyle = investigation ? getVerdictColor(investigation.predicted_verdict) : { bg: "", text: "", border: "" };
 
   return (
-    <div className="w-full flex flex-col bg-neutral-950/80 rounded-xl border border-neutral-800/80 p-3 sm:p-5 shadow-2xl backdrop-blur-md">
+    <div
+      data-testid="steward-investigation-card"
+      className="w-full flex flex-col bg-neutral-950/80 rounded-xl border border-neutral-800/80 p-3 sm:p-5 shadow-2xl backdrop-blur-md"
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-neutral-800">
         <div className="flex items-center gap-2 flex-wrap">
