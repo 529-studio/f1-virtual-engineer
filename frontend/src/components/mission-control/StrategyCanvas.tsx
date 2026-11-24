@@ -12,6 +12,7 @@ import { RaceControlPanel } from "./RaceControlPanel";
 import { WeatherRadarPanel } from "./WeatherRadarPanel";
 import { PaceDeltaMatrix } from "./PaceDeltaMatrix";
 import { StintCliffAdvisor } from "./StintCliffAdvisor";
+import { VoicePitWallAudio } from "./VoicePitWallAudio";
 import { PitExitCard } from "./PitExitCard";
 import { CatchUpPredictorCard } from "./CatchUpPredictorCard";
 import type { SessionId } from "./constants";
@@ -231,6 +232,20 @@ export function StrategyCanvas({
           driver={driver || "LEC"}
           initialCompound={initialTyreData?.compound || "HARD"}
           currentStintLaps={initialTyreData?.stint_laps ?? 18}
+        />
+      </motion.div>
+
+      {/* Row 3.10 — Hands-Free Pit-Wall Voice Synthesizer */}
+      <motion.div
+        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.49 }}
+      >
+        <VoicePitWallAudio
+          driver={driver || "LEC"}
+          pitWindowLap={34}
+          cliffLap={38}
+          lastTacticalMessage={Array.isArray(strat?.rationale) ? strat.rationale[0] : (typeof strat?.rationale === "string" ? strat.rationale : undefined)}
         />
       </motion.div>
 
