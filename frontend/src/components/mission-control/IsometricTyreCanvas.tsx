@@ -6,6 +6,7 @@ import type {
   TyreWheelThermalData,
   WheelPosition,
 } from "@/types/tyre-thermal";
+import { F1ChassisBlueprint } from "./F1ChassisBlueprint";
 
 export function getThermalColor(tempC: number): string {
   if (tempC < 85) return "#38BDF8"; // Cold Sky Blue
@@ -98,111 +99,12 @@ export function IsometricTyreCanvas({
             </radialGradient>
           </defs>
 
-          {/* Isometric Chassis Silhouette */}
-          <g className="opacity-80">
-            {/* Grid ground guides */}
-            <path
-              d="M 60 210 L 300 370 L 540 210 L 300 50 Z"
-              fill="none"
-              stroke="#262626"
-              strokeWidth="1"
-              strokeDasharray="4 4"
-            />
-            {/* Centerline */}
-            <line
-              x1="300"
-              y1="50"
-              x2="300"
-              y2="370"
-              stroke="#334155"
-              strokeWidth="1.2"
-              strokeDasharray="3 3"
-            />
-
-            {/* F1 Chassis Monocoque silhouette */}
-            {/* Nose cone */}
-            <polygon
-              points="300,55 285,110 315,110"
-              fill="#0F172A"
-              stroke="#334155"
-              strokeWidth="1.5"
-            />
-            {/* Front Wing Assembly */}
-            <path
-              d="M 210 85 L 390 85 L 370 100 L 230 100 Z"
-              fill="#1E293B"
-              stroke="#475569"
-              strokeWidth="1.2"
-            />
-            {/* Cockpit & Halo Frame */}
-            <polygon
-              points="280,120 320,120 335,210 265,210"
-              fill="#090D16"
-              stroke="#1E293B"
-              strokeWidth="1.5"
-            />
-            {/* Halo ring */}
-            <ellipse
-              cx="300"
-              cy="165"
-              rx="18"
-              ry="26"
-              fill="none"
-              stroke="#475569"
-              strokeWidth="2.5"
-            />
-            {/* Sidepods */}
-            <polygon
-              points="255,180 230,240 250,260 270,230"
-              fill="#1E293B"
-              stroke="#334155"
-              strokeWidth="1.2"
-            />
-            <polygon
-              points="345,180 370,240 350,260 330,230"
-              fill="#1E293B"
-              stroke="#334155"
-              strokeWidth="1.2"
-            />
-            {/* Engine Cover & Rear Wing Spine */}
-            <polygon
-              points="285,210 315,210 325,320 275,320"
-              fill="#0F172A"
-              stroke="#1E293B"
-              strokeWidth="1.5"
-            />
-            {/* Rear Wing Assembly */}
-            <path
-              d="M 190 320 L 410 320 L 395 340 L 205 340 Z"
-              fill="#1E293B"
-              stroke="#475569"
-              strokeWidth="1.5"
-            />
-            {/* Diffuser hint */}
-            <rect
-              x="270"
-              y="335"
-              width="60"
-              height="15"
-              fill="#020617"
-              stroke="#334155"
-              strokeWidth="1"
-            />
-
-            {/* Suspension Wishbones connecting chassis to wheels */}
-            {/* Front Left Wishbones */}
-            <line x1="285" y1="100" x2="172" y2="75" stroke="#475569" strokeWidth="1.5" />
-            <line x1="280" y1="125" x2="172" y2="85" stroke="#475569" strokeWidth="1.5" />
-            {/* Front Right Wishbones */}
-            <line x1="315" y1="100" x2="428" y2="75" stroke="#475569" strokeWidth="1.5" />
-            <line x1="320" y1="125" x2="428" y2="85" stroke="#475569" strokeWidth="1.5" />
-            {/* Rear Left Wishbones */}
-            <line x1="275" y1="280" x2="157" y2="250" stroke="#475569" strokeWidth="2" />
-            <line x1="275" y1="310" x2="157" y2="265" stroke="#475569" strokeWidth="2" />
-            {/* Rear Right Wishbones */}
-            <line x1="325" y1="280" x2="443" y2="250" stroke="#475569" strokeWidth="2" />
-            <line x1="325" y1="310" x2="443" y2="265" stroke="#475569" strokeWidth="2" />
-          </g>
+          {/* Next-Gen 2026 F1 Chassis CAD Engineering Blueprint */}
+          <F1ChassisBlueprint
+            showStreamlines={true}
+            showLabels={true}
+            opacity={0.92}
+          />
 
           {/* 4 Wheels Rendering */}
           {(Object.keys(WHEEL_LAYOUTS) as WheelPosition[]).map((pos) => {

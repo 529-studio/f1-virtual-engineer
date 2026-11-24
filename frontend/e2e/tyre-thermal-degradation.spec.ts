@@ -115,6 +115,12 @@ test.describe("Tyre Thermal Surface Degradation & Carcass 3D Heatmap E2E Validat
       const isometricCanvas = page.locator("svg[aria-label*='3D Isometric Tyre Thermal Degradation Canvas']");
       await expect(isometricCanvas).toBeVisible();
 
+      // 2b. Verify Next-Gen 2026 F1 Chassis CAD Blueprint is rendered
+      const chassisBlueprint = isometricCanvas.locator("[id*='f1-chassis-blueprint']");
+      await expect(chassisBlueprint).toBeVisible();
+      await expect(isometricCanvas.getByText(/CHASSIS DATUM 0.0/i)).toBeVisible();
+      await expect(isometricCanvas.getByText(/HALO TITANIUM/i)).toBeVisible();
+
       // 3. Verify 4 wheels exist in the canvas
       for (const pos of ["FL", "FR", "RL", "RR"]) {
         const wheelGroup = page.locator(`#wheel-group-${pos}`);
@@ -182,6 +188,13 @@ test.describe("Tyre Thermal Surface Degradation & Carcass 3D Heatmap E2E Validat
         () => document.body.scrollWidth > document.body.clientWidth
       );
       expect(hasOverflow).toBeFalsy();
+
+      // 10b. Verify custom dark-glass scrollbar applied (thin scrollbar-width)
+      const scrollbarWidth = await page.evaluate(() => {
+        return window.getComputedStyle(document.body).scrollbarWidth ||
+               window.getComputedStyle(document.documentElement).scrollbarWidth;
+      });
+      expect(scrollbarWidth).toBe("thin");
 
       // 11. Assert no fatal console errors
       const fatalErrors = consoleErrors.filter(
