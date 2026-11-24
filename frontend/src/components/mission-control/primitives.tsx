@@ -96,7 +96,7 @@ export function Select<T extends string>({
             return next;
           });
         }}
-        className={`readout flex w-full cursor-pointer items-center justify-between border border-border bg-surface-elevated pl-3 pr-2 py-1.5 text-[length:var(--text-label)] uppercase tracking-[var(--track-wide)] outline-none transition-colors focus-visible:border-accent disabled:cursor-not-allowed disabled:opacity-40 ${
+        className={`readout flex w-full min-h-[44px] cursor-pointer items-center justify-between border border-border bg-surface-elevated pl-3 pr-2 py-1.5 text-[length:var(--text-label)] uppercase tracking-[var(--track-wide)] outline-none transition-colors focus-visible:border-accent disabled:cursor-not-allowed disabled:opacity-40 ${
           minWidth ? "" : "sm:min-w-[8.5rem]"
         } ${buttonClassName}`}
         style={{

@@ -266,6 +266,27 @@ Raw unicode emojis (⚡, 🏁, ⚠️, 🏎️, 🔥) look amateurish and clash 
 
 ---
 
+## [2026-11-24] Mobile Kiosk Touch Targets, Landing Capability Grid Visibility & Strategy Canvas Scroll Ergonomics (Issue #74)
+
+### 1. Kiosk Touch Target Deficits on Inline Utility & Glossary Buttons
+- **Problem**: Micro-elements and inline text buttons (`HintTooltip`, `JargonTooltip`, `TeamSwitcher`, `StarButton`, `ReferencesPanel` citation chips) rendered with default inline padding, producing hitboxes as small as $13\text{px}$ to $30\text{px}$ height. On touchscreens and kiosk terminals, this caused mis-taps and failed WCAG 2.5.5 / 2.5.8 touch target requirements.
+- **Solution**:
+  - Enforced `min-h-[44px] min-w-[44px] inline-flex items-center justify-center` across all interactive buttons.
+  - Added click handler support (`onClick={() => setOpen((prev) => !prev)}`) to `JargonTooltip` so mobile touch users without hover cursors can easily inspect glossary definitions.
+  - Retained clean typography by using `flex items-center justify-center` so that text font size remains compact while the interactive touch footprint satisfies $\ge 44\text{px} \times 44\text{px}$.
+
+### 2. Framer Motion `whileInView` IntersectionObserver Margin Trap on Landing Pages
+- **Problem**: In `CapabilityGrid.tsx`, cards used `viewport={{ once: true, margin: "-60px" }}` with `initial={{ opacity: 0, y: 28 }}`. On rapid page scrolls, automated audit captures, or shorter viewports, the negative margin prevented the IntersectionObserver from triggering the entrance transition, resulting in an $800\text{px}$ empty black void.
+- **Solution**: Replaced negative margin with `viewport={{ once: true, amount: 0.05 }}` and set initial visibility to a subtle preview `initial={{ opacity: 0.15, y: 16 }}`. Cards immediately trigger smoothly upon 5% entering the viewport, ensuring zero blank voids.
+
+### 3. Strategy Canvas Scroll Ergonomics & Active Pill Telemetry Contrast
+- **Problem**: With deep telemetry stacks (Pit Window Timeline $\to$ Pit Exit Call $\to$ Tyre Degradation $\to$ 3D Tyre Thermal $\to$ AI Race Control $\to$ Catch-Up Predictor $\to$ Scenarios), users lacked clear visual affordance that rich modules existed below the fold. In addition, Race Control category filter pills had subtle active styling that blended into the dark background.
+- **Solution**:
+  - Added a dedicated scroll affordance header banner (`Extended Telemetry: Tyre Thermal · Race Control · Catch-Up · Scenarios`) with an animated indicator chevron, plus an end-of-deck marker at the canvas base.
+  - Enhanced active category filter pills with high-contrast cyan glow (`bg-cyan-950/80 text-cyan-200 border-cyan-400 font-bold shadow-lg shadow-cyan-950/60 ring-1 ring-cyan-500/50`) and an active indicator dot (`bg-cyan-400`).
+
+---
+
 ## [2026-11-24] AI Race Control & Steward Investigation Engine, Tailwind Line-Clamp Display Collapse & Route Interception Dynamics (Issue #73 / V2.1)
 
 ### 1. Next.js Turbopack & Tailwind CSS `line-clamp` Display Collapse Trap

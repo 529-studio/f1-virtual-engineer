@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import type { ControversyFinding, PitExitResponse, TyreAnalyzeResponse } from "@/services/api";
 import { PitExitCard } from "./PitExitCard";
 import { TyreCard } from "./TyreCard";
@@ -143,7 +144,7 @@ export function MissionBoard({
               setIsCollapsed(false);
               setExpandedCard("pit_exit");
             }}
-            className="flex shrink-0 items-center gap-1.5 hover:text-foreground text-left cursor-pointer"
+            className="flex shrink-0 min-h-[44px] items-center gap-1.5 px-2 py-1 hover:text-foreground text-left cursor-pointer"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             <span className="text-foreground-faint text-[0.62rem] uppercase tracking-wider">Pit Exit:</span>
@@ -159,7 +160,7 @@ export function MissionBoard({
               setIsCollapsed(false);
               setExpandedCard("tyre");
             }}
-            className="flex shrink-0 items-center gap-1.5 hover:text-foreground text-left cursor-pointer"
+            className="flex shrink-0 min-h-[44px] items-center gap-1.5 px-2 py-1 hover:text-foreground text-left cursor-pointer"
           >
             <span
               className="h-1.5 w-1.5 rounded-full"
@@ -177,7 +178,7 @@ export function MissionBoard({
               setIsCollapsed(false);
               setExpandedCard("stewards");
             }}
-            className="flex shrink-0 items-center gap-1.5 hover:text-foreground text-left cursor-pointer"
+            className="flex shrink-0 min-h-[44px] items-center gap-1.5 px-2 py-1 hover:text-foreground text-left cursor-pointer"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
             <span className="text-foreground-faint text-[0.62rem] uppercase tracking-wider">Steward:</span>
@@ -195,10 +196,10 @@ export function MissionBoard({
           onClick={handleToggleCollapse}
           title="Expand Mission Board"
           aria-label="Expand Mission Board"
-          className="readout shrink-0 flex items-center gap-1 text-[0.62rem] font-bold uppercase tracking-wider text-accent border border-accent/40 bg-accent/10 px-2.5 py-1 rounded hover:bg-accent/20 cursor-pointer"
+          className="readout shrink-0 flex min-h-[44px] items-center gap-1.5 text-[0.62rem] font-bold uppercase tracking-wider text-accent border border-accent/40 bg-accent/10 px-3 py-2 rounded hover:bg-accent/20 cursor-pointer"
         >
           <span>Expand</span>
-          <span className="text-xs leading-none">↓</span>
+          <ChevronDown className="h-3 w-3" />
         </button>
       </section>
     );
@@ -217,10 +218,10 @@ export function MissionBoard({
           onClick={handleToggleCollapse}
           title="Collapse to compact ribbon to maximize chart height"
           aria-label="Collapse Mission Board"
-          className="readout flex items-center gap-1 text-[0.6rem] uppercase tracking-wider text-foreground-faint hover:text-foreground px-2 py-0.5 rounded hover:bg-surface-elevated cursor-pointer transition-colors"
+          className="readout flex min-h-[44px] items-center gap-1.5 text-[0.62rem] uppercase tracking-wider text-foreground-faint hover:text-foreground px-2.5 py-1 rounded hover:bg-surface-elevated cursor-pointer transition-colors"
         >
           <span>Collapse</span>
-          <span className="text-xs leading-none">↑</span>
+          <ChevronUp className="h-3 w-3" />
         </button>
       </div>
 

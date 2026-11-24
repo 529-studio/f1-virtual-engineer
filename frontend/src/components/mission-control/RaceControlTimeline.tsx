@@ -62,13 +62,16 @@ export function RaceControlTimeline({
               key={f.key}
               data-testid={`category-filter-${f.key}`}
               onClick={() => onFilterChange(f.key)}
-              className={`px-3 py-2 rounded-lg text-xs font-mono min-h-[44px] min-w-[44px] border shrink-0 transition-all ${
+              className={`px-3 py-2 rounded-lg text-xs font-mono min-h-[44px] min-w-[44px] border shrink-0 inline-flex items-center justify-center transition-all ${
                 isActive
-                  ? "bg-neutral-800 text-cyan-300 border-cyan-500 font-bold shadow-md shadow-cyan-950/40"
+                  ? "bg-cyan-950/80 text-cyan-200 border-cyan-400 font-bold shadow-lg shadow-cyan-950/60 ring-1 ring-cyan-500/50"
                   : "bg-neutral-900/60 text-neutral-400 border-neutral-800 hover:bg-neutral-850 hover:text-neutral-200"
               }`}
               aria-pressed={isActive}
             >
+              {isActive && (
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-cyan-400 mr-1.5 shadow-sm shadow-cyan-400" />
+              )}
               {f.label}
             </button>
           );

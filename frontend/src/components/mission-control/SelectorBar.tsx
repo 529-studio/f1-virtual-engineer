@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Layers } from "lucide-react";
+import { Layers, X } from "lucide-react";
 import type { AnalyzeResponse, EventInfo, LapInfo, SavedQueryItem } from "@/services/api";
 import type { ExportParams } from "@/types/telemetry-advanced";
 import type { ExportStatus } from "@/hooks/useAdvancedTelemetry";
@@ -250,7 +250,7 @@ export function SelectorBar({
               type="button"
               onClick={onOpenStintCompare}
               disabled={!driver}
-              className="flex h-11 min-h-[44px] items-center justify-center rounded border border-border bg-surface-elevated px-2.5 py-1 text-xs font-semibold uppercase text-foreground hover:border-accent hover:text-accent disabled:opacity-40 cursor-pointer"
+              className="flex h-11 min-h-[44px] min-w-[44px] items-center justify-center rounded border border-border bg-surface-elevated px-2.5 py-1 text-xs font-semibold uppercase text-foreground hover:border-accent hover:text-accent disabled:opacity-40 cursor-pointer"
               title="Compare laps"
               aria-label="Open Stint Comparison"
             >
@@ -276,7 +276,7 @@ export function SelectorBar({
             onClick={() => setHelpOpen(true)}
             aria-label="Open help"
             title="Help — selectors, HUD panels, F1 glossary"
-            className="readout flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-border text-[0.65rem] text-foreground-faint transition-colors hover:border-foreground-dim hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+            className="readout flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded border border-border text-xs text-foreground-faint transition-colors hover:border-foreground-dim hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent cursor-pointer"
           >
             ?
           </button>
@@ -300,9 +300,9 @@ export function SelectorBar({
             type="button"
             onClick={onAnalyze}
             disabled={!canRun}
-            className="btn btn--accent shrink-0 px-4 py-2 text-xs font-bold uppercase tracking-wider disabled:cursor-not-allowed disabled:opacity-30 active:scale-95 transition-all shadow-md"
+            className="btn btn--accent shrink-0 px-4 py-2 min-h-[44px] text-xs font-bold uppercase tracking-wider disabled:cursor-not-allowed disabled:opacity-30 active:scale-95 transition-all shadow-md"
           >
-            {isLoading ? "Computing…" : "Analyze"}
+            {isLoading ? "Computing…" : (!driver || driversLoading || eventsLoading) ? "Syncing…" : "Analyze"}
           </button>
         </div>
 
@@ -342,7 +342,7 @@ export function SelectorBar({
             <button
               type="button"
               onClick={() => setShowCompareMobile(true)}
-              className="readout text-[0.58rem] text-accent/80 hover:text-accent flex items-center gap-1 font-bold uppercase tracking-wider py-0.5 cursor-pointer"
+              className="readout min-h-[44px] text-[0.62rem] text-accent/90 hover:text-accent flex items-center gap-1 font-bold uppercase tracking-wider px-2 cursor-pointer"
             >
               <span>+ Compare Driver / Cross-Year</span>
             </button>
@@ -376,9 +376,10 @@ export function SelectorBar({
                 setShowCompareMobile(false);
               }}
               title="Clear comparison"
-              className="readout h-7 w-7 flex shrink-0 items-center justify-center rounded border border-border/60 text-foreground-faint hover:text-foreground text-xs"
+              aria-label="Clear comparison"
+              className="readout h-11 w-11 min-h-[44px] min-w-[44px] flex shrink-0 items-center justify-center rounded border border-border/60 text-foreground-faint hover:text-foreground text-xs"
             >
-              ✕
+              <X className="h-4 w-4" />
             </button>
           </div>
         )}
@@ -521,7 +522,7 @@ export function SelectorBar({
             onClick={() => setHelpOpen(true)}
             aria-label="Open help"
             title="Help — selectors, HUD panels, F1 glossary"
-            className="readout flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border text-[0.6rem] text-foreground-faint transition-colors hover:border-foreground-dim hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+            className="readout flex h-7 w-7 min-h-[28px] min-w-[28px] shrink-0 items-center justify-center rounded-full border border-border text-[0.65rem] text-foreground-faint transition-colors hover:border-foreground-dim hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
           >
             ?
           </button>
@@ -546,7 +547,7 @@ export function SelectorBar({
             disabled={!canRun}
             className="btn btn--accent shrink-0 disabled:cursor-not-allowed disabled:opacity-30"
           >
-            {isLoading ? "Computing…" : "Analyze"}
+            {isLoading ? "Computing…" : (!driver || driversLoading || eventsLoading) ? "Syncing…" : "Analyze"}
           </button>
         </div>
       </div>

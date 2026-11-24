@@ -30,19 +30,21 @@ export function HintTooltip({ label, children }: HintTooltipProps) {
   }
 
   return (
-    <span className="relative inline-block">
+    <span className="relative inline-flex items-center">
       <button
         ref={btnRef}
         type="button"
         aria-label={`What is ${label}?`}
         aria-describedby={pos ? id : undefined}
-        className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-foreground-dim text-[0.5rem] text-foreground-dim transition-colors hover:border-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+        className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center p-2 text-foreground-dim transition-colors hover:text-foreground focus-visible:outline-none cursor-pointer"
         onMouseEnter={open}
         onMouseLeave={close}
         onFocus={open}
         onBlur={close}
       >
-        ?
+        <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-foreground-dim text-[0.5rem] font-bold">
+          ?
+        </span>
       </button>
       {pos && (
         <span

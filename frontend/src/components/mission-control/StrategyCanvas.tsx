@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 import type { AnalyzeResponse, PitExitResponse, StrategyData, TyreAnalyzeResponse } from "@/services/api";
 import { PitWindowTimeline } from "./PitWindowTimeline";
 import { GapGauge } from "./GapGauge";
@@ -78,6 +79,18 @@ export function StrategyCanvas({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-4">
+      {/* Scroll Affordance Banner */}
+      <div className="flex items-center justify-between border-b border-border/40 pb-2 text-[0.62rem] text-foreground-faint font-mono">
+        <span className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+          <span className="font-semibold uppercase tracking-wider text-foreground-dim">Strategy Deck Active</span>
+        </span>
+        <span className="flex items-center gap-1.5 text-foreground-faint">
+          <span>Extended Telemetry: Tyre Thermal · Race Control · Catch-Up · Scenarios</span>
+          <ChevronDown className="h-3 w-3 text-accent animate-bounce" />
+        </span>
+      </div>
+
       {/* Row 1 — Pit Window Timeline */}
       <motion.div
         initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
@@ -214,6 +227,10 @@ export function StrategyCanvas({
           />
         </motion.div>
       )}
+      {/* Bottom end-of-deck marker */}
+      <div className="flex items-center justify-center py-4 border-t border-border/30 text-[0.58rem] font-mono text-foreground-faint uppercase tracking-widest">
+        <span>FIA Pit-Wall Telemetry Stream End — All Strategy Modules Synchronized</span>
+      </div>
     </div>
   );
 }

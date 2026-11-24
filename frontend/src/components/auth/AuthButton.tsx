@@ -81,7 +81,7 @@ export function AuthButton() {
       type="button"
       aria-label="Sign in with Google"
       title="Sign in with Google"
-      className="shrink-0 rounded-sm p-1 opacity-80 transition-opacity duration-[var(--dur-fast)] hover:opacity-100 disabled:opacity-40 disabled:cursor-not-allowed"
+      className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center shrink-0 rounded-sm p-1 opacity-80 transition-opacity duration-[var(--dur-fast)] hover:opacity-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
       disabled={busy}
       onClick={async () => {
         setBusy(true);
