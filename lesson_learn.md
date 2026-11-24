@@ -287,7 +287,26 @@ Raw unicode emojis (⚡, 🏁, ⚠️, 🏎️, 🔥) look amateurish and clash 
 
 ---
 
-## [2026-11-24] AI Race Control & Steward Investigation Engine, Tailwind Line-Clamp Display Collapse & Route Interception Dynamics (Issue #73 / V2.1)
+## [2026-11-24] Live Track Weather Radar, Doppler Cloud Grid & Compound Cross-Over Dynamics (Issue #76 / V2.2)
+
+### 1. FastF1 `session.weather_data` Lazy Property & `DataNotLoadedError`
+- **Problem**: In FastF1, `session.weather_data` and `session.laps` are implemented as Python property getters that raise `fastf1.exceptions.DataNotLoadedError` if called on historical sessions where API support was unavailable (e.g. vintage 1950s races) or before `load()` completes. A naive `getattr(session, "weather_data", None)` triggers an uncaught exception rather than returning `None`.
+- **Solution**: Wrap property accesses in explicit `try ... except Exception:` blocks. When the data is not available, immediately fall back to the fail-closed envelope (`fallback: true`), guaranteeing 200 OK responses with deterministic default radar frames rather than 500 crashes.
+
+### 2. Surface Water Film Dynamics vs. Hot Asphalt Evaporation
+- **Problem**: When calculating track grip degradation, if asphalt evaporation $E(T_{\text{track}}, v_{\text{wind}})$ and drainage $D_{\text{drain}}$ are parameterized too aggressively (e.g. $> 0.10\text{mm/min}$), initial rainfall in warm conditions (such as $T_{\text{track}} = 32^\circ\text{C}$) is completely evaporated within the model timestep, keeping calculated water film at $0\text{mm}$ and falsely reporting $100\%$ grip during active rain.
+- **Solution**:
+  - Scale baseline drainage to $0.015\text{mm/min}$ and temperature-driven evaporation to $(T_{\text{track}} - 15) \times 0.001\text{mm/min}$.
+  - Calibrate precipitation input rate between $2.5 - 14.0\text{mm/h}$ based on humidity.
+  - This models realistic rubber greasiness within 2 minutes of rain onset, triggering the Intermediate compound cross-over window ($\mu_{\text{track}} < 88\%$) accurately.
+
+### 3. Doppler Radar Projection & Responsive Scrubber Ergonomics
+- **Problem**: A rotating SVG radar sweep and animated Doppler storm cells can cause layout shifts on mobile devices if canvas dimensions are not strictly constrained. Furthermore, forecast scrubber buttons (`NOW`, `+5m`, `+10m`, `+15m`, `+20m`) must maintain minimum $\ge 44\text{px} \times 44\text{px}$ touch hitboxes.
+- **Solution**:
+  - Bound the circular radar display with fixed viewBox `0 0 280 280` and `aspect-square`.
+  - Enforce `min-h-[44px] min-w-[44px]` on all scrubber step pills and play/pause controls.
+  - Apply clean Doppler radar color bands ($<20\text{dBZ}$ blue, $20-35$ emerald, $35-45$ amber, $\ge 45$ red) with SVG Gaussian blur for authentic pit-wall satellite aesthetics.
+
 
 ### 1. Next.js Turbopack & Tailwind CSS `line-clamp` Display Collapse Trap
 - **Problem**: Applying utility class `line-clamp-2` on `<p>` elements inside responsive flex/grid layouts in Next.js Turbopack caused Chromium to resolve `display: flow-root` with `rect.height = 0` (`offsetHeight: 0`). Playwright flagged the element as `hidden`, failing `toBeVisible()` assertions despite the text node being present in the DOM tree.

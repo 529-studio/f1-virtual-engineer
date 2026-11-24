@@ -9,6 +9,7 @@ import { ScenarioComparison } from "./ScenarioComparison";
 import { TyreCard } from "./TyreCard";
 import { TyreThermalHeatmap } from "./TyreThermalHeatmap";
 import { RaceControlPanel } from "./RaceControlPanel";
+import { WeatherRadarPanel } from "./WeatherRadarPanel";
 import { PitExitCard } from "./PitExitCard";
 import { CatchUpPredictorCard } from "./CatchUpPredictorCard";
 import type { SessionId } from "./constants";
@@ -86,7 +87,7 @@ export function StrategyCanvas({
           <span className="font-semibold uppercase tracking-wider text-foreground-dim">Strategy Deck Active</span>
         </span>
         <span className="flex items-center gap-1.5 text-foreground-faint">
-          <span>Extended Telemetry: Tyre Thermal · Race Control · Catch-Up · Scenarios</span>
+          <span>Extended Telemetry: Tyre Thermal · Race Control · Weather Radar · Catch-Up · Scenarios</span>
           <ChevronDown className="h-3 w-3 text-accent animate-bounce" />
         </span>
       </div>
@@ -180,6 +181,20 @@ export function StrategyCanvas({
         transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.35 }}
       >
         <RaceControlPanel
+          year={year}
+          event={eventName}
+          session={session}
+          selectedLap={selectedLap}
+        />
+      </motion.div>
+
+      {/* Row 3.7 — Track Weather Radar & Compound Cross-Over Predictor */}
+      <motion.div
+        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.42 }}
+      >
+        <WeatherRadarPanel
           year={year}
           event={eventName}
           session={session}
