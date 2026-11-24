@@ -264,6 +264,23 @@ Raw unicode emojis (⚡, 🏁, ⚠️, 🏎️, 🔥) look amateurish and clash 
 - **Problem**: Exposing deep internal carcass core temperatures ($T_{\text{carcass}}$) must not alter the SVG coordinate space or displace adjacent labels and wishbones, which would cause jarring layout shifts when toggling between surface tread and internal core views.
 - **Solution**: Layer the carcass core disc (`<ellipse>`) directly beneath the surface tread bands. In cutaway mode, transition the outer tread bands to `opacity: 0.35` with dashed outline styling, revealing the glowing carcass core and its digital readout without shifting SVG viewBox dimensions or triggering re-layouts.
 
+---
+
+## [2026-11-24] AI Race Control & Steward Investigation Engine, Tailwind Line-Clamp Display Collapse & Route Interception Dynamics (Issue #73 / V2.1)
+
+### 1. Next.js Turbopack & Tailwind CSS `line-clamp` Display Collapse Trap
+- **Problem**: Applying utility class `line-clamp-2` on `<p>` elements inside responsive flex/grid layouts in Next.js Turbopack caused Chromium to resolve `display: flow-root` with `rect.height = 0` (`offsetHeight: 0`). Playwright flagged the element as `hidden`, failing `toBeVisible()` assertions despite the text node being present in the DOM tree.
+- **Solution**: Prefer explicit `break-words leading-snug` with container boundary constraints for text wrapping rather than `line-clamp` on critical telemetry cards, preventing browser layout engines from collapsing block heights to 0.
+
+### 2. API URL Prefix Alignment in Playwright Route Mocks
+- **Problem**: Frontend services configure `apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api"`. In environments where `NEXT_PUBLIC_API_BASE_URL=http://localhost:8001`, endpoints resolve to `http://localhost:8001/race-control/feed` (without `/api`). A Playwright route mock pattern `page.route("**/api/race-control/feed*")` failed to match, allowing un-intercepted network requests to escape and fail with `Failed to fetch`.
+- **Solution**: Use resilient route wildcard patterns: `page.route("**/race-control/feed*")` and `page.route("**/race-control/investigate*")` to reliably intercept requests regardless of whether the base URL contains `/api`.
+
+### 3. Scroll Container Visibility & Defensive Array Handling
+- **Problem**: In high-density pit-wall dashboards with nested scroll containers (`div.overflow-y-auto`), components placed below the fold (e.g. below 3D Tyre Thermal) require explicit scroll targeting. Furthermore, if telemetry messages contain optional or undefined driver arrays, calling `.length` crashes React into the error boundary.
+- **Solution**: Explicitly invoke `scrollIntoViewIfNeeded()` on both parent panels and target incident cards before asserting `toBeVisible()`. Ensure all dynamic arrays have safe fallback defaults (`(item.drivers_involved || [])`) to guarantee fail-safe UI rendering.
+
+
 
 
 
