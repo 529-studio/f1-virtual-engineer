@@ -13,6 +13,7 @@ import { WeatherRadarPanel } from "./WeatherRadarPanel";
 import { PaceDeltaMatrix } from "./PaceDeltaMatrix";
 import { StintCliffAdvisor } from "./StintCliffAdvisor";
 import { VoicePitWallAudio } from "./VoicePitWallAudio";
+import { GhostLapOverlay } from "./GhostLapOverlay";
 import { PitExitCard } from "./PitExitCard";
 import { CatchUpPredictorCard } from "./CatchUpPredictorCard";
 import type { SessionId } from "./constants";
@@ -246,6 +247,22 @@ export function StrategyCanvas({
           pitWindowLap={34}
           cliffLap={38}
           lastTacticalMessage={Array.isArray(strat?.rationale) ? strat.rationale[0] : (typeof strat?.rationale === "string" ? strat.rationale : undefined)}
+        />
+      </motion.div>
+
+      {/* Row 3.11 — Head-to-Head Ghost Lap Telemetry Trace Overlay */}
+      <motion.div
+        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.495 }}
+      >
+        <GhostLapOverlay
+          year={year}
+          event={eventName}
+          session={session}
+          initialDriver1={driver || "LEC"}
+          initialDriver2={targetDriver || strat?.competitor_ahead || "PIA"}
+          lap={selectedLap ?? 15}
         />
       </motion.div>
 
