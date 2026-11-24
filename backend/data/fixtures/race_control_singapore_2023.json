@@ -1,0 +1,76 @@
+{
+  "year": 2023,
+  "event": "Singapore Grand Prix",
+  "session": "Race",
+  "session_key": 9165,
+  "circuit_name": "Marina Bay Street Circuit",
+  "total_laps": 62,
+  "items": [
+    {
+      "id": "SGP_2023_R_INC_01",
+      "lap": 1,
+      "timestamp_str": "12:04:15",
+      "category": "COLLISION",
+      "status": "NOTED",
+      "drivers_involved": ["TSU", "PER"],
+      "flag": "YELLOW",
+      "message": "INCIDENT INVOLVING CARS 22 (TSU) AND 11 (PER) NOTED - TURN 14 CONTACT",
+      "description": "Tsunoda suffered sidepod radiator puncture and rear suspension failure after wheel-to-wheel contact with Perez entering Turn 14 on opening lap."
+    },
+    {
+      "id": "SGP_2023_R_INC_02",
+      "lap": 2,
+      "timestamp_str": "12:05:48",
+      "category": "TECHNICAL_FLAG",
+      "status": "NO_FURTHER_ACTION",
+      "drivers_involved": ["TSU"],
+      "flag": "YELLOW",
+      "message": "CAR 22 (TSU) RETIRED AT TURN 14 - TRACK CLEARANCE COMPLETE",
+      "description": "Car 22 safely recovered by marshals behind barrier. Sector 3 all-clear signal resumed."
+    },
+    {
+      "id": "SGP_2023_R_INC_03",
+      "lap": 19,
+      "timestamp_str": "12:35:10",
+      "category": "COLLISION",
+      "status": "DECISION_REACHED",
+      "drivers_involved": ["SAR"],
+      "flag": "SAFETY_CAR",
+      "message": "INCIDENT AT TURN 8 - CAR 2 (SAR) IMPACT WITH TECPRO BARRIER",
+      "description": "Sargeant suffered front-wing dislodgement after locking brakes into Turn 8. Debris dragged along track necessitating full Safety Car deployment."
+    },
+    {
+      "id": "SGP_2023_R_INC_04",
+      "lap": 20,
+      "timestamp_str": "12:36:25",
+      "category": "SAFETY_CAR_INFECT",
+      "status": "UNDER_INVESTIGATION",
+      "drivers_involved": ["HAM", "NOR", "RUS"],
+      "flag": "SAFETY_CAR",
+      "message": "SAFETY CAR DELTA & RUNOFF ADVANTAGE - CAR 44 (HAM) UNDER REVIEW",
+      "description": "Hamilton observed exceeding track boundary at Turn 1 runoff under SC approach. Ceded track position back to Russell and Norris to mitigate penalty."
+    },
+    {
+      "id": "SGP_2023_R_INC_05",
+      "lap": 58,
+      "timestamp_str": "13:38:52",
+      "category": "COLLISION",
+      "status": "DECISION_REACHED",
+      "drivers_involved": ["PER", "ALB"],
+      "flag": "YELLOW",
+      "message": "CAR 11 (PER) UNDER INVESTIGATION - CAUSING A COLLISION WITH CAR 23 (ALB) AT TURN 13",
+      "description": "Perez attempted a late inside overtake on Albon at Turn 13 hairpin. Contact made with Albon's right front wheel forcing Williams into the runoff."
+    },
+    {
+      "id": "SGP_2023_R_INC_06",
+      "lap": 62,
+      "timestamp_str": "13:45:18",
+      "category": "COLLISION",
+      "status": "DECISION_REACHED",
+      "drivers_involved": ["RUS"],
+      "flag": "DOUBLE_YELLOW",
+      "message": "INCIDENT AT TURN 10 - CAR 63 (RUS) OUT OF RACE INTO BARRIER",
+      "description": "Russell chasing Norris for P2 clipped the inside barrier wall on Turn 10 entry, snapping right-front track rod and spearing head-on into Tecpro on final lap."
+    }
+  ]
+}
