@@ -41,9 +41,10 @@ export function TeamSwitcher() {
       <button
         onClick={() => setOpen((v) => !v)}
         title="Switch team theme"
+        aria-label="Switch team theme"
         aria-haspopup="true"
         aria-expanded={open}
-        className="flex items-center gap-1.5 rounded-sm px-1.5 py-1 transition-colors hover:bg-surface"
+        className="flex items-center justify-center min-h-[44px] min-w-[44px] gap-1.5 rounded-sm px-2 py-1.5 transition-colors hover:bg-surface"
         style={{ outline: open ? `1.5px solid ${activeTeam.color}` : "none", outlineOffset: "2px" }}
       >
         <TeamIcon id={activeTeam.id} size={22} />

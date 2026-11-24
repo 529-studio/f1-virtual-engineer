@@ -30,7 +30,7 @@ export function MissionFooter({
   const traceSummary = formatTrace(execution);
   const year = new Date().getFullYear();
   return (
-    <footer className="flex h-9 shrink-0 items-center gap-5 overflow-hidden border-t border-border bg-surface px-6">
+    <footer className="flex h-11 shrink-0 items-center gap-5 overflow-hidden border-t border-border bg-surface px-6">
       {[
         { label: "RPM",  term: "rpm",  value: tel?.rpm    ? `${tel.rpm.avg.toFixed(0)} avg`  : "—" },
         { label: "Gear", term: "gear", value: tel?.gear   ? `${tel.gear.avg.toFixed(1)} avg` : "—" },

@@ -181,9 +181,9 @@ export function ScenarioComparison({
                     role="tab"
                     aria-selected={active}
                     onClick={() => setPresetId(preset.id)}
-                    className={`readout flex-1 px-2 py-1 text-[0.6rem] uppercase tracking-wide transition-colors ${
+                    className={`readout flex-1 min-h-[44px] px-3 py-2 text-[0.62rem] uppercase tracking-wide transition-colors flex items-center justify-center ${
                       active
-                        ? "bg-accent-dim text-foreground"
+                        ? "bg-accent-dim text-foreground font-semibold"
                         : "text-foreground-dim hover:text-foreground"
                     }`}
                   >

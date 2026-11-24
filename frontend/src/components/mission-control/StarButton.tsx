@@ -83,7 +83,7 @@ export function StarButton({ kind, payload, canSave, savedQueries, onChange }: P
       aria-label={label}
       aria-pressed={filled}
       title={label}
-      className={`shrink-0 border px-2 py-1 transition-colors duration-[var(--dur-fast)] disabled:cursor-not-allowed disabled:opacity-30 ${
+      className={`shrink-0 border px-2.5 py-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded transition-colors duration-[var(--dur-fast)] disabled:cursor-not-allowed disabled:opacity-30 ${
         filled
           ? "border-accent bg-accent-dim text-accent"
           : "border-border text-foreground-dim hover:border-accent hover:text-accent"

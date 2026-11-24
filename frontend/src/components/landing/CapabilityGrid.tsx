@@ -76,10 +76,10 @@ export function CapabilityGrid() {
       {capabilityItems.map((item, i) => (
         <motion.div
           key={item.id}
-          initial={prefersReduced ? { opacity: 1 } : { opacity: 0, y: 28 }}
+          initial={prefersReduced ? { opacity: 1 } : { opacity: 0.15, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           whileHover={prefersReduced ? {} : { y: CARD_HOVER_Y }}
-          viewport={{ once: true, margin: "-60px" }}
+          viewport={{ once: true, amount: 0.05 }}
           transition={{
             default: { duration: CARD_ANIM_DUR, delay: i * CARD_STAGGER, ease: CARD_ANIM_EASE },
             // Hover transition is snappier than the scroll entry

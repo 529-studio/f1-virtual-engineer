@@ -85,7 +85,7 @@ export function ReferencesPanel({ items }: { items?: KnowledgeCitation[] }) {
               onClick={() => handleSelect(c.id)}
               aria-expanded={isActive}
               aria-controls={isActive ? `citation-body-${c.id}` : undefined}
-              className={`readout flex items-center gap-1.5 border px-2 py-1 text-[0.6rem] uppercase tracking-wide transition-colors ${
+              className={`readout flex items-center gap-1.5 border min-h-[44px] px-3 py-2 text-[0.62rem] uppercase tracking-wide transition-colors ${
                 isActive
                   ? "border-accent bg-accent-dim/60 text-foreground"
                   : "border-border bg-surface-elevated text-foreground-dim hover:border-accent/60 hover:text-foreground"
