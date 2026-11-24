@@ -287,6 +287,43 @@ Raw unicode emojis (⚡, 🏁, ⚠️, 🏎️, 🔥) look amateurish and clash 
 
 ---
 
+## [2026-11-24] AI Race Control & Steward Investigation Engine (Issue #73 / V2.1)
+
+### 1. Next.js Turbopack & Tailwind CSS `line-clamp` Display Collapse Trap
+- **Problem**: Applying utility class `line-clamp-2` on `<p>` elements inside responsive flex/grid layouts in Next.js Turbopack caused Chromium to resolve `display: flow-root` with `rect.height = 0` (`offsetHeight: 0`). Playwright flagged the element as `hidden`, failing `toBeVisible()` assertions despite the text node being present in the DOM tree.
+- **Solution**: Prefer explicit `break-words leading-snug` with container boundary constraints for text wrapping rather than `line-clamp` on critical telemetry cards, preventing browser layout engines from collapsing block heights to 0.
+
+### 2. API URL Prefix Alignment in Playwright Route Mocks
+- **Problem**: Frontend services configure `apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api"`. In environments where `NEXT_PUBLIC_API_BASE_URL=http://localhost:8001`, endpoints resolve to `http://localhost:8001/race-control/feed` (without `/api`). A Playwright route mock pattern `page.route("**/api/race-control/feed*")` failed to match, allowing un-intercepted network requests to escape and fail with `Failed to fetch`.
+- **Solution**: Use resilient route wildcard patterns: `page.route("**/race-control/feed*")` and `page.route("**/race-control/investigate*")` to reliably intercept requests regardless of whether the base URL contains `/api`.
+
+### 3. Scroll Container Visibility & Defensive Array Handling
+- **Problem**: In high-density pit-wall dashboards with nested scroll containers (`div.overflow-y-auto`), components placed below the fold (e.g. below 3D Tyre Thermal) require explicit scroll targeting. Furthermore, if telemetry messages contain optional or undefined driver arrays, calling `.length` crashes React into the error boundary.
+- **Solution**: Explicitly invoke `scrollIntoViewIfNeeded()` on both parent panels and target incident cards before asserting `toBeVisible()`. Ensure all dynamic arrays have safe fallback defaults (`(item.drivers_involved || [])`) to guarantee fail-safe UI rendering.
+
+---
+
+## [2026-11-24] Mobile Kiosk Touch Targets, Landing Capability Grid Visibility & Strategy Canvas Scroll Ergonomics (Issue #74)
+
+### 1. Kiosk Touch Target Deficits on Inline Utility & Glossary Buttons
+- **Problem**: Micro-elements and inline text buttons (`HintTooltip`, `JargonTooltip`, `TeamSwitcher`, `StarButton`, `ReferencesPanel` citation chips) rendered with default inline padding, producing hitboxes as small as $13\text{px}$ to $30\text{px}$ height. On touchscreens and kiosk terminals, this caused mis-taps and failed WCAG 2.5.5 / 2.5.8 touch target requirements.
+- **Solution**:
+  - Enforced `min-h-[44px] min-w-[44px] inline-flex items-center justify-center` across all interactive buttons.
+  - Added click handler support (`onClick={() => setOpen((prev) => !prev)}`) to `JargonTooltip` so mobile touch users without hover cursors can easily inspect glossary definitions.
+  - Retained clean typography by using `flex items-center justify-center` so that text font size remains compact while the interactive touch footprint satisfies $\ge 44\text{px} \times 44\text{px}$.
+
+### 2. Framer Motion `whileInView` IntersectionObserver Margin Trap on Landing Pages
+- **Problem**: In `CapabilityGrid.tsx`, cards used `viewport={{ once: true, margin: "-60px" }}` with `initial={{ opacity: 0, y: 28 }}`. On rapid page scrolls, automated audit captures, or shorter viewports, the negative margin prevented the IntersectionObserver from triggering the entrance transition, resulting in an $800\text{px}$ empty black void.
+- **Solution**: Replaced negative margin with `viewport={{ once: true, amount: 0.05 }}` and set initial visibility to a subtle preview `initial={{ opacity: 0.15, y: 16 }}`. Cards immediately trigger smoothly upon 5% entering the viewport, ensuring zero blank voids.
+
+### 3. Strategy Canvas Scroll Ergonomics & Active Pill Telemetry Contrast
+- **Problem**: With deep telemetry stacks (Pit Window Timeline $\to$ Pit Exit Call $\to$ Tyre Degradation $\to$ 3D Tyre Thermal $\to$ AI Race Control $\to$ Catch-Up Predictor $\to$ Scenarios), users lacked clear visual affordance that rich modules existed below the fold. In addition, Race Control category filter pills had subtle active styling that blended into the dark background.
+- **Solution**:
+  - Added a dedicated scroll affordance header banner (`Extended Telemetry: Tyre Thermal · Race Control · Catch-Up · Scenarios`) with an animated indicator chevron, plus an end-of-deck marker at the canvas base.
+  - Enhanced active category filter pills with high-contrast cyan glow (`bg-cyan-950/80 text-cyan-200 border-cyan-400 font-bold shadow-lg shadow-cyan-950/60 ring-1 ring-cyan-500/50`) and an active indicator dot (`bg-cyan-400`).
+
+---
+
 ## [2026-11-24] Live Track Weather Radar, Doppler Cloud Grid & Compound Cross-Over Dynamics (Issue #76 / V2.2)
 
 ### 1. FastF1 `session.weather_data` Lazy Property & `DataNotLoadedError`
@@ -307,18 +344,24 @@ Raw unicode emojis (⚡, 🏁, ⚠️, 🏎️, 🔥) look amateurish and clash 
   - Enforce `min-h-[44px] min-w-[44px]` on all scrubber step pills and play/pause controls.
   - Apply clean Doppler radar color bands ($<20\text{dBZ}$ blue, $20-35$ emerald, $35-45$ amber, $\ge 45$ red) with SVG Gaussian blur for authentic pit-wall satellite aesthetics.
 
+### 4. React 19 Linting & Asynchronous Initialization Deferral (`queueMicrotask`)
+- **Problem**: Calling asynchronous data loaders (`loadData()`) directly inside `useEffect` on component mount triggers ESLint `react-hooks/set-state-in-effect` because state transitions occur synchronously within the initial render pass in React 19.
+- **Solution**: Wrap asynchronous effect invocations in `queueMicrotask`:
+  ```typescript
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(async () => {
+      if (!cancelled) await loadData();
+    });
+    return () => { cancelled = true; };
+  }, [sessionKey]);
+  ```
+  This defers state synchronization out of the synchronous render stack without delaying lifecycle execution.
 
-### 1. Next.js Turbopack & Tailwind CSS `line-clamp` Display Collapse Trap
-- **Problem**: Applying utility class `line-clamp-2` on `<p>` elements inside responsive flex/grid layouts in Next.js Turbopack caused Chromium to resolve `display: flow-root` with `rect.height = 0` (`offsetHeight: 0`). Playwright flagged the element as `hidden`, failing `toBeVisible()` assertions despite the text node being present in the DOM tree.
-- **Solution**: Prefer explicit `break-words leading-snug` with container boundary constraints for text wrapping rather than `line-clamp` on critical telemetry cards, preventing browser layout engines from collapsing block heights to 0.
+### 5. Local Parallel Playwright Testing & Rate-Limit Shielding
+- **Problem**: Running multi-worker Playwright suites concurrently against a local FastAPI dev server can trigger the application's slowapi rate limiter (`30 requests / 10 seconds`), returning HTTP 429 and dumping red network error traces into headless test runs.
+- **Solution**: In Playwright test harnesses, either route mock high-frequency endpoints via `page.route` or filter out expected `429 (Too Many Requests)` status lines in console error assertions during high-concurrency local test passes.
 
-### 2. API URL Prefix Alignment in Playwright Route Mocks
-- **Problem**: Frontend services configure `apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/api"`. In environments where `NEXT_PUBLIC_API_BASE_URL=http://localhost:8001`, endpoints resolve to `http://localhost:8001/race-control/feed` (without `/api`). A Playwright route mock pattern `page.route("**/api/race-control/feed*")` failed to match, allowing un-intercepted network requests to escape and fail with `Failed to fetch`.
-- **Solution**: Use resilient route wildcard patterns: `page.route("**/race-control/feed*")` and `page.route("**/race-control/investigate*")` to reliably intercept requests regardless of whether the base URL contains `/api`.
-
-### 3. Scroll Container Visibility & Defensive Array Handling
-- **Problem**: In high-density pit-wall dashboards with nested scroll containers (`div.overflow-y-auto`), components placed below the fold (e.g. below 3D Tyre Thermal) require explicit scroll targeting. Furthermore, if telemetry messages contain optional or undefined driver arrays, calling `.length` crashes React into the error boundary.
-- **Solution**: Explicitly invoke `scrollIntoViewIfNeeded()` on both parent panels and target incident cards before asserting `toBeVisible()`. Ensure all dynamic arrays have safe fallback defaults (`(item.drivers_involved || [])`) to guarantee fail-safe UI rendering.
 
 
 
