@@ -10,6 +10,7 @@ import { TyreCard } from "./TyreCard";
 import { TyreThermalHeatmap } from "./TyreThermalHeatmap";
 import { RaceControlPanel } from "./RaceControlPanel";
 import { WeatherRadarPanel } from "./WeatherRadarPanel";
+import { PaceDeltaMatrix } from "./PaceDeltaMatrix";
 import { PitExitCard } from "./PitExitCard";
 import { CatchUpPredictorCard } from "./CatchUpPredictorCard";
 import type { SessionId } from "./constants";
@@ -199,6 +200,21 @@ export function StrategyCanvas({
           event={eventName}
           session={session}
           selectedLap={selectedLap}
+        />
+      </motion.div>
+
+      {/* Row 3.8 — Multi-Driver Pace Delta Matrix & Sector Splits */}
+      <motion.div
+        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.46 }}
+      >
+        <PaceDeltaMatrix
+          year={year}
+          event={eventName}
+          session={session}
+          initialReferenceDriver={driver || "LEC"}
+          lap={selectedLap}
         />
       </motion.div>
 
