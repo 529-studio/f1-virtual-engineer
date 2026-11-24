@@ -7,6 +7,7 @@ import { GapGauge } from "./GapGauge";
 import { ScenarioComparison } from "./ScenarioComparison";
 import { TyreCard } from "./TyreCard";
 import { TyreThermalHeatmap } from "./TyreThermalHeatmap";
+import { RaceControlPanel } from "./RaceControlPanel";
 import { PitExitCard } from "./PitExitCard";
 import { CatchUpPredictorCard } from "./CatchUpPredictorCard";
 import type { SessionId } from "./constants";
@@ -156,6 +157,20 @@ export function StrategyCanvas({
           session={session}
           driver={driver}
           lap={selectedLap}
+        />
+      </motion.div>
+
+      {/* Row 3.6 — Race Control Incident Feed & Steward Deliberation Engine */}
+      <motion.div
+        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.35 }}
+      >
+        <RaceControlPanel
+          year={year}
+          event={eventName}
+          session={session}
+          selectedLap={selectedLap}
         />
       </motion.div>
 

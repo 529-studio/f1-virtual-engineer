@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Scale } from "lucide-react";
 import type { ControversyFinding } from "@/services/api";
 import { JargonTooltip } from "@/components/ui/JargonTooltip";
 import { HintTooltip } from "@/components/ui/HintTooltip";
@@ -148,6 +149,10 @@ export function StewardsViewPanel({ findings }: { findings: ControversyFinding[]
       <p className="readout mb-3 text-[0.55rem] uppercase tracking-[var(--track-wide)] text-foreground-faint">
         RAG · FIA Sporting Regs · Dual perspective
       </p>
+      <div className="mb-3 flex items-center gap-1.5 rounded border border-border/50 bg-surface-elevated/40 px-2 py-1.5 text-[10px] font-mono text-foreground-dim">
+        <Scale size={12} className="text-amber-400 shrink-0" />
+        <span>Live FIA Race Control feed and Steward Deliberation Engine active on Strategy Canvas</span>
+      </div>
       <div className="space-y-px">
         {findings.map((f, i) => (
           <FindingCard key={`${f.event_type}-${f.lap}`} finding={f} index={i} />

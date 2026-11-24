@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import {
   AlertTriangle,
   RotateCcw,
@@ -15,12 +15,16 @@ export interface RaceControlPanelProps {
   year?: number;
   event?: string;
   session?: string;
+  selectedLap?: number | null;
+  className?: string;
 }
 
 export function RaceControlPanel({
   year = 2023,
   event = "Singapore Grand Prix",
   session = "Race",
+  selectedLap,
+  className = "",
 }: RaceControlPanelProps) {
   const {
     feed,
@@ -40,11 +44,21 @@ export function RaceControlPanel({
     session,
   });
 
+  // Sync selected lap when user scrubs timeline on canvas
+  useEffect(() => {
+    if (selectedLap && filteredItems.length > 0) {
+      const match = filteredItems.find((i) => i.lap === selectedLap);
+      if (match) {
+        selectIncident(match.id);
+      }
+    }
+  }, [selectedLap, filteredItems, selectIncident]);
+
   // 1. Loading Skeleton State
   if (status === "loading" && !feed) {
     return (
       <div
-        className="w-full flex flex-col gap-4 p-4 rounded-xl border border-neutral-800 bg-neutral-950/70 backdrop-blur-md animate-pulse"
+        className={`w-full flex flex-col gap-4 p-4 rounded-xl border border-neutral-800 bg-neutral-950/70 backdrop-blur-md animate-pulse ${className}`}
         role="status"
         aria-label="Loading race control feed"
       >
@@ -64,7 +78,7 @@ export function RaceControlPanel({
   if (status === "error" && !feed) {
     return (
       <div
-        className="w-full p-5 rounded-xl border border-red-900/60 bg-red-950/20 backdrop-blur-md text-neutral-200"
+        className={`w-full p-5 rounded-xl border border-red-900/60 bg-red-950/20 backdrop-blur-md text-neutral-200 ${className}`}
         role="alert"
       >
         <div className="flex items-start gap-3">
@@ -92,7 +106,7 @@ export function RaceControlPanel({
   // 3. Empty State
   if (!feed || feed.items.length === 0) {
     return (
-      <div className="w-full p-6 rounded-xl border border-dashed border-neutral-800 bg-neutral-950/40 text-center">
+      <div className={`w-full p-6 rounded-xl border border-dashed border-neutral-800 bg-neutral-950/40 text-center ${className}`}>
         <Info className="w-6 h-6 text-neutral-500 mx-auto mb-2" strokeWidth={1.5} />
         <p className="text-xs font-mono text-neutral-400">
           No race control incidents recorded for {event} {year}.
@@ -104,7 +118,7 @@ export function RaceControlPanel({
   return (
     <div
       data-testid="race-control-panel"
-      className="w-full flex flex-col gap-4 rounded-xl border border-neutral-800/80 bg-neutral-950/80 p-3 sm:p-5 shadow-2xl backdrop-blur-md overflow-hidden"
+      className={`w-full flex flex-col gap-4 rounded-xl border border-neutral-800/80 bg-neutral-950/80 p-3 sm:p-5 shadow-2xl backdrop-blur-md overflow-hidden ${className}`}
     >
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-800">
