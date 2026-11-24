@@ -11,6 +11,7 @@ import { TyreThermalHeatmap } from "./TyreThermalHeatmap";
 import { RaceControlPanel } from "./RaceControlPanel";
 import { WeatherRadarPanel } from "./WeatherRadarPanel";
 import { PaceDeltaMatrix } from "./PaceDeltaMatrix";
+import { StintCliffAdvisor } from "./StintCliffAdvisor";
 import { PitExitCard } from "./PitExitCard";
 import { CatchUpPredictorCard } from "./CatchUpPredictorCard";
 import type { SessionId } from "./constants";
@@ -215,6 +216,21 @@ export function StrategyCanvas({
           session={session}
           initialReferenceDriver={driver || "LEC"}
           lap={selectedLap}
+        />
+      </motion.div>
+
+      {/* Row 3.9 — Pirelli Tyre Degradation & Stint Cliff Advisor */}
+      <motion.div
+        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.48 }}
+      >
+        <StintCliffAdvisor
+          year={year}
+          event={eventName}
+          driver={driver || "LEC"}
+          initialCompound={initialTyreData?.compound || "HARD"}
+          currentStintLaps={initialTyreData?.stint_laps ?? 18}
         />
       </motion.div>
 
