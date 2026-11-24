@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 
-from app.routers import analysis, history, knowledge, live, radio, system, telemetry
+from app.routers import analysis, history, knowledge, live, race_control, radio, system, telemetry
 from core.limiter import (
     _rate_limit_handler,
     _real_client_ip,
@@ -132,6 +132,7 @@ app.include_router(history.router)
 app.include_router(knowledge.router)
 app.include_router(live.router)
 app.include_router(radio.router)
+app.include_router(race_control.router)
 
 # Re-exports for backwards compatibility and test mocking targets
 from agents.race_engineer import analyze_query, set_emit_fn
@@ -142,6 +143,10 @@ from tools.fastf1_helper import (
     get_session_telemetry_summary,
     get_year_schedule,
     get_track_map_data,
+)
+from tools.race_control_helper import (
+    get_race_control_feed,
+    deliberate_steward_investigation,
 )
 from tools.tyre_helper import compute_tyre_decay
 from tools.tyre_thermal import compute_tyre_thermal_profile
