@@ -39,25 +39,52 @@ const DRIVER_COLORS: Record<string, string> = {
   SAI: "#E80020",
 };
 
-// Generates high-fidelity Monza 5793m telemetry fixture between 2 drivers
-function generateGhostLapFixture(d1: string, d2: string): TelemetryPoint[] {
+// Circuit data lookup — keyed by event name substring for adaptability
+const CIRCUIT_DATABASE: Record<string, { length: number; corners: Record<number, string> }> = {
+  "Italian": {
+    length: 5793,
+    corners: {
+      8: "T1 Rettifilo", 12: "T2 Rettifilo", 20: "T3 Curva Grande",
+      28: "T4 Roggia", 32: "T5 Roggia", 38: "T6 Lesmo 1",
+      43: "T7 Lesmo 2", 48: "T8 Ascari", 51: "T10 Ascari", 57: "T11 Parabolica",
+    },
+  },
+  "British": {
+    length: 5891,
+    corners: {
+      5: "T1 Abbey", 10: "T3 Village", 18: "T6 Brooklands",
+      25: "T9 Copse", 32: "T11 Stowe", 40: "T13 Vale",
+      48: "T15 Luffield", 55: "T16 Woodcote",
+    },
+  },
+  "Singapore": {
+    length: 4940,
+    corners: {
+      5: "T1", 10: "T3", 15: "T5", 22: "T7 Anderson",
+      30: "T10", 38: "T14 Esplanade", 48: "T17", 55: "T19",
+    },
+  },
+};
+
+function getCircuitData(event: string): { length: number; corners: Record<number, string> } {
+  for (const [key, data] of Object.entries(CIRCUIT_DATABASE)) {
+    if (event.includes(key)) return data;
+  }
+  // Default fallback: generic 5.5km circuit
+  return {
+    length: 5500,
+    corners: { 8: "T1", 20: "T3", 32: "T5", 43: "T7", 55: "T9" },
+  };
+}
+
+// Generates high-fidelity telemetry fixture between 2 drivers for given circuit
+function generateGhostLapFixture(d1: string, d2: string, event: string): TelemetryPoint[] {
   const points: TelemetryPoint[] = [];
-  const trackLength = 5793;
+  const circuitData = getCircuitData(event);
+  const trackLength = circuitData.length;
   const numSamples = 60;
 
-  // Major corners at Monza
-  const corners: Record<number, string> = {
-    8: "T1 Rettifilo",
-    12: "T2 Rettifilo",
-    20: "T3 Curva Grande",
-    28: "T4 Roggia",
-    32: "T5 Roggia",
-    38: "T6 Lesmo 1",
-    43: "T7 Lesmo 2",
-    48: "T8 Ascari",
-    51: "T10 Ascari",
-    57: "T11 Parabolica",
-  };
+  const corners = circuitData.corners;
 
   let cumulativeDelta = 0.0;
   const d1Seed = (d1.charCodeAt(0) % 3) * 0.5;
@@ -146,9 +173,11 @@ export function GhostLapOverlay({
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   const telemetry = useMemo(
-    () => generateGhostLapFixture(driver1, driver2),
-    [driver1, driver2]
+    () => generateGhostLapFixture(driver1, driver2, event),
+    [driver1, driver2, event]
   );
+
+  const trackLength = useMemo(() => getCircuitData(event).length, [event]);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -210,7 +239,7 @@ export function GhostLapOverlay({
             </h2>
           </div>
           <p className="text-xs font-mono text-neutral-400 mt-0.5">
-            {year} {event} • {session} • Lap {lap} • Synchronized Speed &amp; Time Delta Curves
+            {`${year} ${event} · ${session} · Lap ${lap ?? "—"} · Synchronized Speed & Time Delta Curves`}
           </p>
         </div>
 
@@ -450,10 +479,10 @@ export function GhostLapOverlay({
             />
 
             {/* Bottom Distance Axis Labels */}
-            {[0, 1500, 3000, 4500, 5793].map((m) => (
+            {[0, Math.round(trackLength * 0.25), Math.round(trackLength * 0.5), Math.round(trackLength * 0.75), trackLength].map((m) => (
               <text
                 key={m}
-                x={padLeft + (m / 5793) * trackW}
+                x={padLeft + (m / trackLength) * trackW}
                 y={chartHeight - 6}
                 textAnchor="middle"
                 fill="#737373"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { X } from "lucide-react";
 
 interface HelpModalProps {
   onClose: () => void;
@@ -83,9 +84,9 @@ export function HelpModal({ onClose }: HelpModalProps) {
             type="button"
             onClick={onClose}
             aria-label="Close help"
-            className="readout flex h-6 w-6 items-center justify-center border border-border text-[0.65rem] text-foreground-faint transition-colors hover:border-foreground-dim hover:text-foreground"
+            className="readout flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center border border-border text-foreground-faint transition-colors hover:border-foreground-dim hover:text-foreground cursor-pointer"
           >
-            ✕
+            <X className="h-4 w-4" strokeWidth={1.75} />
           </button>
         </div>
 

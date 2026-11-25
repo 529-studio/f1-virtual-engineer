@@ -50,12 +50,13 @@ export function TrackMapPanel({
   const [data, setData] = useState<TrackMapResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryToken, setRetryToken] = useState(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeData = initialData ?? data;
 
   // Serialise params to detect actual changes
-  const paramsKey = `${year}|${event}|${session_type}|${driver}|${lap_number ?? "fastest"}|${compare_driver ?? ""}`;
+  const paramsKey = `${year}|${event}|${session_type}|${driver}|${lap_number ?? "fastest"}|${compare_driver ?? ""}|${retryToken}`;
 
   useEffect(() => {
     // If initialData is already provided, skip network fetch entirely
@@ -70,6 +71,7 @@ export function TrackMapPanel({
     // Debounce rapid selector changes
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
+    let cancelled = false;
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       setError(null);
@@ -82,16 +84,19 @@ export function TrackMapPanel({
           lap_number: lap_number ?? null,
           compare_driver: compare_driver ?? null,
         });
+        if (cancelled) return;
         setData(result);
         onDataLoaded?.(result);
       } catch (err) {
+        if (cancelled) return;
         setError(err instanceof Error ? err.message : "Failed to load track map");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }, FETCH_DEBOUNCE_MS);
 
     return () => {
+      cancelled = true;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -123,11 +128,18 @@ export function TrackMapPanel({
 
   if (error) {
     return (
-      <div className="flex min-h-[140px] flex-1 flex-col items-center justify-center gap-2 text-center">
+      <div className="flex min-h-[140px] flex-1 flex-col items-center justify-center gap-2 text-center p-4">
         <p className="readout text-[0.6rem] uppercase tracking-widest text-amber-400">
           Track map unavailable
         </p>
         <p className="text-[length:var(--text-readout)] text-foreground-faint">{error}</p>
+        <button
+          type="button"
+          onClick={() => setRetryToken((n) => n + 1)}
+          className="mt-1 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded border border-border bg-surface-elevated px-3 py-1.5 text-xs font-mono text-foreground hover:border-accent hover:text-accent cursor-pointer transition-colors"
+        >
+          Retry Track Map
+        </button>
       </div>
     );
   }

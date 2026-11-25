@@ -159,7 +159,7 @@ test.describe("Real-time 2D Track Car Tracker & Broadcast Sync End-to-End Valida
       });
 
       await page.setViewportSize({ width: vp.width, height: vp.height });
-      await page.goto("http://localhost:3000/mission-control");
+      await page.goto("/mission-control");
 
       // 1. Switch to Live Mode tab
       const liveTab = page.getByRole("tab", { name: "live" });

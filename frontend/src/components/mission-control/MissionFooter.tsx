@@ -32,10 +32,10 @@ export function MissionFooter({
   return (
     <footer className="flex h-11 shrink-0 items-center gap-5 overflow-hidden border-t border-border bg-surface px-6">
       {[
-        { label: "RPM",  term: "rpm",  value: tel?.rpm    ? `${tel.rpm.avg.toFixed(0)} avg`  : "—" },
-        { label: "Gear", term: "gear", value: tel?.gear   ? `${tel.gear.avg.toFixed(1)} avg` : "—" },
-        { label: "Pts",  term: null,   value: tel?.sample_points ? `${tel.sample_points} samples` : "—" },
-      ].map(({ label, term, value }, i) => (
+        { label: "RPM",  term: "rpm",  value: hasData && tel?.rpm    ? `${tel.rpm.avg.toFixed(0)} avg`  : null },
+        { label: "Gear", term: "gear", value: hasData && tel?.gear   ? `${tel.gear.avg.toFixed(1)} avg` : null },
+        { label: "Pts",  term: null,   value: hasData && tel?.sample_points ? `${tel.sample_points} samples` : null },
+      ].filter(({ value }) => value !== null).map(({ label, term, value }, i) => (
         <div key={label} className="flex items-center gap-2">
           {i > 0 && <div className="h-3 w-px bg-border" />}
           <span className="label">

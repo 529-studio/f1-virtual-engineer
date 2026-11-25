@@ -24,7 +24,7 @@ export function AuthButton() {
         disabled
         title={`Build-time env missing — URL: ${urlOk ? "ok" : "MISSING"}, KEY: ${keyOk ? "ok" : "MISSING"}. NEXT_PUBLIC_* must be set at \`next build\` time, not just at runtime.`}
       >
-        Sign in unavailable · URL {urlOk ? "✓" : "✗"} KEY {keyOk ? "✓" : "✗"}
+        Sign in unavailable · URL {urlOk ? "OK" : "MISSING"} KEY {keyOk ? "OK" : "MISSING"}
       </button>
     );
   }

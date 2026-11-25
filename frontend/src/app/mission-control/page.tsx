@@ -350,10 +350,15 @@ export default function MissionControlPage() {
   // Patch only `telemetry_data` on the existing analysis when a non-fastest lap is picked.
   // Agent narrative intentionally stays untouched — that requires a fresh /analyze run.
   useEffect(() => {
-    if (isDemoSession || !result || !eventName || !driver || lap === "") return;
+    if (isDemoSession || !result || !eventName || !driver || lap === "") {
+      queueMicrotask(() => setLapOverlayLoading(false));
+      return;
+    }
     const lapNumber = Number(lap);
-    if (!Number.isFinite(lapNumber)) return;
-    if (result.telemetry_data?.lap_number === lapNumber) return;
+    if (!Number.isFinite(lapNumber) || result.telemetry_data?.lap_number === lapNumber) {
+      queueMicrotask(() => setLapOverlayLoading(false));
+      return;
+    }
 
     let cancelled = false;
     getTelemetry(

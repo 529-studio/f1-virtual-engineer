@@ -100,7 +100,7 @@ test.describe("Live Session Mode End-to-End Validation", () => {
         });
       });
       await page.setViewportSize({ width: vp.width, height: vp.height });
-      await page.goto("http://localhost:3000/mission-control");
+      await page.goto("/mission-control");
 
       // Verify no critical console errors
       const errors: string[] = [];
