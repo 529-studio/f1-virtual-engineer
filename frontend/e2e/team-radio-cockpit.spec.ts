@@ -67,8 +67,8 @@ test.describe("AI Team Radio Cockpit End-to-End Validation (V2.1)", () => {
         await hudTrigger.click();
       }
 
-      // 1. Locate and switch to the RADIO tab
-      const radioTabBtn = page.getByRole("button", { name: /RADIO/i }).first();
+      // 1. Locate and switch to the RADIO tab inside Strategy HUD
+      const radioTabBtn = page.locator("aside").getByRole("button", { name: /^RADIO$/i }).first();
       await expect(radioTabBtn).toBeVisible({ timeout: 10000 });
       await radioTabBtn.click();
 

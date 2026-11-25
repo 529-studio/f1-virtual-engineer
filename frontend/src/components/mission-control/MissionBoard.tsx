@@ -135,8 +135,8 @@ export function MissionBoard({
   // ─── Collapsed 1-Line Telemetry Ribbon Mode ─────────────────────────────
   if (isCollapsed) {
     return (
-      <section className="border-b border-border bg-surface/90 px-4 py-2 flex items-center justify-between text-xs font-mono transition-all">
-        <div className="flex items-center gap-3 md:gap-5 overflow-x-auto min-w-0 pr-2">
+      <section className="border-b border-border bg-surface/90 px-3 sm:px-4 py-1.5 flex items-center justify-between gap-2 text-xs font-mono transition-all overflow-hidden">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 overflow-hidden">
           {/* Pit Exit pill */}
           <button
             type="button"
@@ -144,14 +144,14 @@ export function MissionBoard({
               setIsCollapsed(false);
               setExpandedCard("pit_exit");
             }}
-            className="flex shrink-0 min-h-[44px] items-center gap-1.5 px-2 py-1 hover:text-foreground text-left cursor-pointer"
+            className="flex min-w-0 shrink sm:shrink-0 min-h-[44px] items-center gap-1.5 px-1.5 sm:px-2 py-1 hover:text-foreground text-left cursor-pointer"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            <span className="text-foreground-faint text-[0.62rem] uppercase tracking-wider">Pit Exit:</span>
-            <span className="font-bold text-foreground text-[0.68rem]">{pitHeadline}</span>
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+            <span className="text-foreground-faint text-[0.62rem] uppercase tracking-wider shrink-0">Pit:</span>
+            <span className="font-bold text-foreground text-[0.68rem] truncate">{pitHeadline}</span>
           </button>
 
-          <span className="text-border shrink-0">|</span>
+          <span className="text-border shrink-0 hidden sm:inline">|</span>
 
           {/* Tyre pill */}
           <button
@@ -160,28 +160,28 @@ export function MissionBoard({
               setIsCollapsed(false);
               setExpandedCard("tyre");
             }}
-            className="flex shrink-0 min-h-[44px] items-center gap-1.5 px-2 py-1 hover:text-foreground text-left cursor-pointer"
+            className="hidden sm:flex min-w-0 min-h-[44px] items-center gap-1.5 px-2 py-1 hover:text-foreground text-left cursor-pointer"
           >
             <span
-              className="h-1.5 w-1.5 rounded-full"
+              className="h-1.5 w-1.5 shrink-0 rounded-full"
               style={{ background: COMPOUND_COLORS[compound] ?? "var(--status-warn)" }}
             />
-            <span className="text-foreground-faint text-[0.62rem] uppercase tracking-wider">Tyre:</span>
-            <span className="text-foreground text-[0.68rem]">{tyreHeadline}</span>
+            <span className="text-foreground-faint text-[0.62rem] uppercase tracking-wider shrink-0">Tyre:</span>
+            <span className="text-foreground text-[0.68rem] truncate">{tyreHeadline}</span>
           </button>
 
           {/* Stewards pill */}
-          <span className="text-border shrink-0">|</span>
+          <span className="text-border shrink-0 hidden lg:inline">|</span>
           <button
             type="button"
             onClick={() => {
               setIsCollapsed(false);
               setExpandedCard("stewards");
             }}
-            className="flex shrink-0 min-h-[44px] items-center gap-1.5 px-2 py-1 hover:text-foreground text-left cursor-pointer"
+            className="hidden lg:flex min-w-0 min-h-[44px] items-center gap-1.5 px-2 py-1 hover:text-foreground text-left cursor-pointer"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-            <span className="text-foreground-faint text-[0.62rem] uppercase tracking-wider">Steward:</span>
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400" />
+            <span className="text-foreground-faint text-[0.62rem] uppercase tracking-wider shrink-0">Steward:</span>
             <span className="text-foreground text-[0.68rem] truncate max-w-[200px]">
               {hasIncidentNearLap && relevantIncident
                 ? `L${relevantIncident.lap} ${relevantIncident.event_type.replace(/_/g, " ")}`

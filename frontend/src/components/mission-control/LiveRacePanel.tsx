@@ -48,6 +48,32 @@ function formatGap(gap: number | null, isLeader: boolean): string {
   return `+${gap.toFixed(3)}s`;
 }
 
+const CIRCUIT_TO_EVENT_NAME: Record<string, string> = {
+  Interlagos: "São Paulo Grand Prix",
+  Sakhir: "Bahrain Grand Prix",
+  Monza: "Italian Grand Prix",
+  Silverstone: "British Grand Prix",
+  "Marina Bay": "Singapore Grand Prix",
+  Spa: "Belgian Grand Prix",
+  "Monte Carlo": "Monaco Grand Prix",
+  Suzuka: "Japanese Grand Prix",
+  "Las Vegas": "Las Vegas Grand Prix",
+  Lusail: "Qatar Grand Prix",
+  Yasalam: "Abu Dhabi Grand Prix",
+  "Yas Marina": "Abu Dhabi Grand Prix",
+};
+
+function resolveLiveTrackParams(sessionMeta: ReturnType<typeof useLiveStore.getState>["sessionMeta"]) {
+  const rawYear = sessionMeta?.date_start ? new Date(sessionMeta.date_start).getFullYear() : 2024;
+  // Replay fixtures may carry future dates (e.g. 2026) where FastF1 telemetry isn't published yet
+  const year = sessionMeta?.source === "replay" && rawYear > 2024 ? 2024 : rawYear;
+  const rawCircuit = sessionMeta?.circuit_short_name || "Italian Grand Prix";
+  const event = CIRCUIT_TO_EVENT_NAME[rawCircuit] ?? rawCircuit;
+  const rawType = (sessionMeta?.session_type || "R").toUpperCase();
+  const session_type = rawType.startsWith("RACE") ? "R" : rawType.startsWith("QUAL") ? "Q" : rawType.startsWith("SPR") ? "S" : rawType;
+  return { year, event, session_type };
+}
+
 interface LiveRacePanelProps {
   onSwitchHistorical?: () => void;
 }
@@ -287,13 +313,18 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
               </span>
             </div>
             <div className="min-h-0 flex-1">
-              <TrackMapPanel
-                year={sessionMeta?.date_start ? new Date(sessionMeta.date_start).getFullYear() : 2024}
-                event={sessionMeta?.circuit_short_name || "Italian Grand Prix"}
-                session_type={sessionMeta?.session_type || "R"}
-                driver={tick.drivers[0]?.driver_code || "VER"}
-                liveDrivers={tick.drivers}
-              />
+              {(() => {
+                const { year, event, session_type } = resolveLiveTrackParams(sessionMeta);
+                return (
+                  <TrackMapPanel
+                    year={year}
+                    event={event}
+                    session_type={session_type}
+                    driver={tick.drivers[0]?.driver_code || "VER"}
+                    liveDrivers={tick.drivers}
+                  />
+                );
+              })()}
             </div>
           </div>
 
@@ -307,7 +338,7 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
 
         {/* Right Column: Live Position Ladder Table */}
         <div className="flex w-full shrink-0 flex-col lg:w-[52%] min-h-0 flex-1 overflow-x-auto overflow-y-auto mc-scroll p-4">
-          <table className="w-full text-left border-collapse text-xs font-mono">
+          <table className="w-full text-left border-collapse text-xs font-mono min-w-[640px]">
             <thead>
               <tr className="border-b border-border/80 text-[0.65rem] uppercase tracking-wider text-foreground-faint">
                 <th className="py-2 px-2 text-center w-10">Pos</th>

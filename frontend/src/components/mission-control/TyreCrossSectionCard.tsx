@@ -154,7 +154,7 @@ export function TyreCrossSectionCard({
                 : "text-neutral-200"
             }`}
           >
-            +{Number((carcass_temp_c - surfAvg).toFixed(1))}°C
+            {carcass_temp_c - surfAvg >= 0 ? "+" : ""}{Number((carcass_temp_c - surfAvg).toFixed(1))}°C
           </span>
         </div>
       </div>

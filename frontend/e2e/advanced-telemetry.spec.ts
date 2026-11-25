@@ -23,7 +23,7 @@ test.describe("Advanced Telemetry Cockpit End-to-End Validation (#63)", () => {
         if (msg.type() === "error") consoleErrors.push(msg.text());
       });
 
-      await page.goto("http://localhost:3000/mission-control");
+      await page.goto("/mission-control");
 
       // 1. Verify Export Button is visible and touch target >= 44px
       const exportBtn = page.locator("button:visible", { hasText: /Export/i }).first();

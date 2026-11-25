@@ -205,7 +205,7 @@ export function StintCliffAdvisor({
       {/* Degradation Trajectory SVG Chart */}
       <div className="w-full relative bg-neutral-900/30 rounded-xl border border-neutral-800/80 p-3">
         <div className="flex items-center justify-between text-[11px] font-mono text-neutral-400 mb-2">
-          <span>Stint Pace Decay Curve ($\Delta t$)</span>
+          <span>Stint Pace Decay Curve (Delta Time)</span>
           <div className="flex items-center gap-3 text-[10px]">
             <span className="inline-flex items-center gap-1">
               <span className="w-2.5 h-0.5 bg-emerald-400 inline-block" /> Pace Loss

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { AlertTriangle, Flame, PanelRightClose, PanelRightOpen, Scale } from "lucide-react";
+import { AlertTriangle, Flame, PanelRightClose, PanelRightOpen, RotateCw, Scale } from "lucide-react";
 import type { AnalyzeHistoryItem, AnalyzeResponse, SavedQueryItem, StrategyData, TelemetryHistoryItem } from "@/services/api";
 import { TeamIcon } from "@/components/icons/TeamIcons";
 import { RecentAnalyses } from "./RecentAnalyses";
@@ -81,7 +81,7 @@ export function StrategyHUD({
   const HUD_TABS = [
     { key: "ai"    as const, label: "AI" },
     { key: "hist"  as const, label: "HIST" },
-    { key: "radio" as const, label: "◉ RADIO" },
+    { key: "radio" as const, label: "RADIO" },
   ] as const;
 
   // Priority: streaming tokens (mid-flight) > final result > fallback
@@ -233,11 +233,11 @@ export function StrategyHUD({
                 aria-live="polite"
               >
                 <motion.span
-                  className="inline-block"
+                  className="inline-flex items-center justify-center"
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 1.4, ease: "linear" }}
                 >
-                  ↻
+                  <RotateCw className="h-3 w-3" strokeWidth={1.75} />
                 </motion.span>
                 Network blip — retrying…
               </p>
@@ -416,8 +416,8 @@ export function StrategyHUD({
 
       {/* ── RADIO Tab ───────────────────────────────────────────────── */}
       {hudTab === "radio" && (
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2 space-y-4">
-          <TeamRadioCockpit />
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 pt-2 space-y-4">
+          <TeamRadioCockpit compact eventLabel={`${_year} ${eventName}`} />
           <RadioLog refreshSignal={radioHistoryRefreshSignal} />
         </div>
       )}

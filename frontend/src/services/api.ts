@@ -320,7 +320,7 @@ export async function getEventDrivers(year: number, event: string): Promise<Rost
   const response = await fetchWithRetry(
     `${apiBaseUrl}/events/${year}/${encodeURIComponent(event)}/drivers`,
     {},
-    { timeoutMs: TIMEOUT_LONG_MS },
+    { timeoutMs: 25_000, retries: 1 },
   );
   if (!response.ok) {
     throw new Error(`Failed to fetch drivers for ${event} ${year}`);

@@ -205,7 +205,7 @@ def main() -> int:
         DEMO_RACE["driver"],
         lap_number=fastest_lap_number,
     )
-    telemetry_data = tel_res.get("data")
+    telemetry_data = tel_res.get("data") if isinstance(tel_res, dict) and "data" in tel_res else tel_res
 
     # 10. Track map trace
     print("8. Extracting track map trace...")
@@ -253,8 +253,9 @@ def main() -> int:
             DEMO_RACE["session"],
             DEMO_RACE["rival"],
         )
+        rival_tel = rival_tel_res.get("data") if isinstance(rival_tel_res, dict) and "data" in rival_tel_res else rival_tel_res
         compare_speed_series = (
-            rival_tel_res.get("data", {}).get("speed", {}).get("series") or []
+            (rival_tel or {}).get("speed", {}).get("series") or []
         )
     except Exception:
         compare_speed_series = []
