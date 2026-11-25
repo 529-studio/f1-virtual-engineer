@@ -17,6 +17,7 @@ import { GhostLapOverlay } from "./GhostLapOverlay";
 import { PitExitCard } from "./PitExitCard";
 import { CatchUpPredictorCard } from "./CatchUpPredictorCard";
 import { DriverRadarChart } from "./DriverRadarChart";
+import { DrsOptimizerCard } from "./DrsOptimizerCard";
 import type { SessionId } from "./constants";
 import {
   CANVAS_ANIM_DURATION,
@@ -274,6 +275,21 @@ export function StrategyCanvas({
         transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.498 }}
       >
         <DriverRadarChart
+          year={year}
+          event={eventName}
+          session={session}
+          driver={driver || "LEC"}
+          compareDriver={targetDriver || strat?.competitor_ahead || "PIA"}
+        />
+      </motion.div>
+
+      {/* Row 3.13 — DRS Zone Efficiency & Top Speed Trap Optimizer */}
+      <motion.div
+        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.499 }}
+      >
+        <DrsOptimizerCard
           year={year}
           event={eventName}
           session={session}

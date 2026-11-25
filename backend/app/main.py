@@ -155,6 +155,7 @@ from tools.race_control_helper import (
 from tools.tyre_helper import compute_tyre_decay
 from tools.tyre_thermal import compute_tyre_thermal_profile
 from tools.driver_performance import compute_driver_performance
+from tools.drs_optimizer import compute_drs_efficiency
 from tools.weather_helper import get_weather_summary
 from tools.weather_radar import get_weather_radar_data
 from tools.lap_delta import compute_lap_delta
