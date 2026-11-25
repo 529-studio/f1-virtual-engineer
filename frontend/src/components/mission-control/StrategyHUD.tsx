@@ -127,7 +127,7 @@ export function StrategyHUD({
           <div className="shrink-0 border-b border-border px-5 pt-5 pb-4 relative">
             <button
               onClick={() => setIsCollapsed(true)}
-              className="absolute right-3 top-3.5 flex h-9 w-9 items-center justify-center rounded-sm text-foreground-dim hover:text-foreground hover:bg-surface-elevated transition-colors cursor-pointer"
+              className="absolute right-2 top-2.5 flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-sm text-foreground-dim hover:text-foreground hover:bg-surface-elevated transition-colors cursor-pointer"
               title="Close Strategy HUD"
               aria-label="Close Strategy HUD"
             >
@@ -169,7 +169,7 @@ export function StrategyHUD({
           <button
             key={tab.key}
             onClick={() => setHudTab(tab.key)}
-            className="readout flex-1 py-2 text-[0.55rem] uppercase tracking-widest transition-colors"
+            className="readout flex-1 min-h-[44px] py-2 text-[0.55rem] uppercase tracking-widest transition-colors cursor-pointer"
             style={{
               color: hudTab === tab.key ? "var(--accent)" : "var(--foreground-dim)",
               borderBottom: hudTab === tab.key ? "2px solid var(--accent)" : "2px solid transparent",

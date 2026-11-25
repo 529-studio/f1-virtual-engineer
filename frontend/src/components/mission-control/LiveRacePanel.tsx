@@ -337,18 +337,21 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
         </div>
 
         {/* Right Column: Live Position Ladder Table */}
-        <div className="flex w-full shrink-0 flex-col lg:w-[52%] min-h-0 flex-1 overflow-x-auto overflow-y-auto mc-scroll p-4">
-          <table className="w-full text-left border-collapse text-xs font-mono min-w-[640px]">
+        <div
+          data-testid="live-timing-scroll"
+          className="flex w-full shrink-0 flex-col lg:w-[52%] min-h-0 flex-1 overflow-x-auto overflow-y-auto mc-scroll p-3"
+        >
+          <table className="w-full text-left border-collapse text-xs font-mono min-w-[480px] lg:min-w-0">
             <thead>
-              <tr className="border-b border-border/80 text-[0.65rem] uppercase tracking-wider text-foreground-faint">
-                <th className="py-2 px-2 text-center w-10">Pos</th>
-                <th className="py-2 px-3">Driver</th>
-                <th className="py-2 px-3">Interval</th>
-                <th className="py-2 px-3">Leader Gap</th>
-                <th className="py-2 px-3">Last Lap</th>
-                <th className="py-2 px-3 text-center">Stint</th>
-                <th className="py-2 px-3 text-center">Tyre</th>
-                <th className="py-2 px-3 text-center">Pit</th>
+              <tr className="border-b border-border/80 text-[0.62rem] uppercase tracking-wider text-foreground-faint">
+                <th className="py-2 px-1.5 text-center w-8">Pos</th>
+                <th className="py-2 px-1.5">Driver</th>
+                <th className="py-2 px-1.5">Int</th>
+                <th className="py-2 px-1.5">Gap</th>
+                <th className="py-2 px-1.5">Last Lap</th>
+                <th className="py-2 px-1.5 text-center">Stint</th>
+                <th className="py-2 px-1.5 text-center">Tyre</th>
+                <th className="py-2 px-1.5 text-center">Pit</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
@@ -362,7 +365,7 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
                     className="hover:bg-surface/60 transition-colors group"
                   >
                     {/* Position */}
-                    <td className="py-2 px-2 text-center font-bold text-foreground">
+                    <td className="py-2 px-1.5 text-center font-bold text-foreground">
                       <span
                         className={`inline-flex items-center justify-center w-6 h-6 rounded-sm ${
                           d.position === 1
@@ -377,16 +380,16 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
                     </td>
 
                     {/* Driver & Team */}
-                    <td className="py-2 px-3">
-                      <div className="flex items-center gap-2">
+                    <td className="py-2 px-1.5">
+                      <div className="flex items-center gap-1.5">
                         <span className="font-bold text-foreground tracking-wide">
                           {d.driver_code}
                         </span>
-                        <span className="text-[0.65rem] text-foreground-dim truncate max-w-[120px] sm:max-w-none">
+                        <span className="hidden xl:inline text-[0.62rem] text-foreground-dim truncate max-w-[80px]">
                           {d.team_name}
                         </span>
                         {d.in_pit && (
-                          <span className="ml-1 px-1.5 py-0.5 rounded text-[0.55rem] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                          <span className="ml-0.5 px-1 py-0.5 rounded text-[0.55rem] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40">
                             PIT
                           </span>
                         )}
@@ -394,28 +397,28 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
                     </td>
 
                     {/* Interval to car ahead */}
-                    <td className="py-2 px-3 text-foreground-dim">
+                    <td className="py-2 px-1.5 text-foreground-dim whitespace-nowrap">
                       {formatGap(d.interval_to_ahead, isLeader)}
                     </td>
 
                     {/* Gap to leader */}
-                    <td className="py-2 px-3 text-foreground-dim">
+                    <td className="py-2 px-1.5 text-foreground-dim whitespace-nowrap">
                       {formatGap(d.gap_to_leader, isLeader)}
                     </td>
 
                     {/* Last Lap Time */}
-                    <td className="py-2 px-3 font-semibold text-foreground">
+                    <td className="py-2 px-1.5 font-semibold text-foreground whitespace-nowrap">
                       {formatLapTime(d.last_lap_time)}
                     </td>
 
                     {/* Stint */}
-                    <td className="py-2 px-3 text-center text-foreground-dim">
+                    <td className="py-2 px-1.5 text-center text-foreground-dim">
                       {d.current_stint}
                     </td>
 
                     {/* Tyre Compound & Age */}
-                    <td className="py-2 px-3 text-center">
-                      <div className="inline-flex items-center gap-1.5">
+                    <td className="py-2 px-1.5 text-center whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1">
                         <span
                           className={`inline-flex h-5 w-5 items-center justify-center rounded border font-bold text-[0.62rem] ${tyreStyle.bg} ${tyreStyle.text} ${tyreStyle.border}`}
                           title={`${d.tyre_compound} (${d.tyre_age} laps)`}
@@ -429,7 +432,7 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
                     </td>
 
                     {/* Pit stops */}
-                    <td className="py-2 px-3 text-center text-foreground-dim">
+                    <td className="py-2 px-1.5 text-center text-foreground-dim">
                       {d.pit_stops}
                     </td>
                   </tr>

@@ -325,7 +325,15 @@ test.describe("Issue #94 — Demo Telemetry & Prod UI Regressions", () => {
         session_type: "R",
       });
       await expect(page.getByRole("columnheader", { name: "Tyre" })).toBeVisible();
-      await expect(page.getByRole("columnheader", { name: "Pit" })).toBeVisible();
+      const pitHeader = page.getByRole("columnheader", { name: "Pit" });
+      await expect(pitHeader).toBeVisible();
+      if (vp.width >= 1024) {
+        const scrollInfo = await page.getByTestId("live-timing-scroll").evaluate((el) => ({
+          scrollWidth: el.scrollWidth,
+          clientWidth: el.clientWidth,
+        }));
+        expect(scrollInfo.scrollWidth).toBeLessThanOrEqual(scrollInfo.clientWidth + 1);
+      }
 
       // 7. Zero horizontal overflow at document root
       const overflow = await page.evaluate(

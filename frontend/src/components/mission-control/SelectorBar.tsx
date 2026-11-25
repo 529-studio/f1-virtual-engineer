@@ -543,7 +543,7 @@ export function SelectorBar({
             onClick={() => setHelpOpen(true)}
             aria-label="Open help"
             title="Help — selectors, HUD panels, F1 glossary"
-            className="readout flex h-7 w-7 min-h-[28px] min-w-[28px] shrink-0 items-center justify-center rounded-full border border-border text-[0.65rem] text-foreground-faint transition-colors hover:border-foreground-dim hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+            className="readout flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-border text-[0.65rem] text-foreground-faint transition-colors hover:border-foreground-dim hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent cursor-pointer"
           >
             ?
           </button>
