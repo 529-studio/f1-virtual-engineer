@@ -26,6 +26,10 @@ revert: [maintainers]
 
 # The agent contract, CI and the deployment recipe are written by a maintainer, not by an
 # ingested claim.
+links:
+  self-infras:
+    repo_id: "aff2d3a0-7c33-4270-8ea3-6cacc22bad4b"
+
 protected:
   "file:AGENTS.md": [maintainers]
   "file:CLAUDE.md": [maintainers]
