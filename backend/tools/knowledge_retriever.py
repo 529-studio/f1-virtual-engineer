@@ -277,18 +277,44 @@ def _to_citation(entry: IndexEntry, score: float) -> dict[str, Any]:
     return citation
 
 
+def _matches_category(entry: IndexEntry, category: str) -> bool:
+    slug = category.strip().lower().replace("_", "-").replace(" ", "-")
+    if not slug or slug == "all":
+        return True
+    haystack = " ".join(
+        [entry.id, entry.title, entry.section, *entry.topics]
+    ).lower().replace("_", "-")
+    return slug in haystack or slug.replace("-", " ") in haystack
+
+
+def _matches_article(entry: IndexEntry, article: str) -> bool:
+    target = article.strip().lower()
+    if not target:
+        return True
+    candidates = [
+        (entry.article or "").lower(),
+        (entry.clause or "").lower(),
+        entry.title.lower(),
+        entry.section.lower(),
+    ]
+    return any(target in c for c in candidates)
+
+
 def lookup(
     query: str,
     k: int = 3,
     *,
     season: int | None = None,
+    category: str | None = None,
+    article: str | None = None,
 ) -> list[dict[str, Any]]:
     """Return the top-`k` citations for a natural-language query.
 
     ``season`` prefers regulation chunks from that championship year (e.g.
     the year of the race being analysed); other seasons are only mildly
     penalised so retrieval degrades gracefully when the preferred season
-    has no coverage.
+    has no coverage. Optional ``category`` and ``article`` filters narrow
+    the search space when supplied.
     """
     k = max(1, min(k, 10))
     bm25, entries = _index()
@@ -309,6 +335,10 @@ def lookup(
 
     ranked: list[tuple[float, IndexEntry]] = []
     for score, entry in zip(scores, entries):
+        if category and not _matches_category(entry, category):
+            continue
+        if article and not _matches_article(entry, article):
+            continue
         adjusted = float(score)
         if entry.kind == "regulation" and entry.clause and entry.clause in clause_refs:
             adjusted += CLAUSE_EXACT_BOOST
@@ -324,7 +354,25 @@ def lookup(
             ranked.append((adjusted, entry))
 
     ranked.sort(key=lambda pair: pair[0], reverse=True)
-    return [_to_citation(entry, score) for score, entry in ranked[:k]]
+    results = [_to_citation(entry, score) for score, entry in ranked[:k]]
+
+    # Hybrid fallback: if BM25 returns fewer than k hits and no strict article filter
+    # is set, blend in ChromaDB semantic hits (fail-closed if unavailable).
+    if len(results) < k and not article:
+        try:
+            from tools.vector_store import semantic_lookup
+
+            seen_ids = {r["id"] for r in results}
+            for hit in semantic_lookup(query, k=k):
+                if hit["id"] not in seen_ids:
+                    results.append(hit)
+                    seen_ids.add(hit["id"])
+                if len(results) >= k:
+                    break
+        except Exception:  # noqa: BLE001 — fail-closed
+            pass
+
+    return results[:k]
 
 
 def reset_index_cache() -> None:

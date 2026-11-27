@@ -6,6 +6,9 @@ from pydantic import BaseModel, Field
 class KnowledgeLookupRequest(BaseModel):
     query: str = Field(..., min_length=2, max_length=400, description="Natural-language question about FIA regulations")
     k: int = Field(3, ge=1, le=10, description="Maximum number of citations to return")
+    category: str | None = Field(None, max_length=60, description="Optional topic/category filter")
+    article: str | None = Field(None, max_length=30, description="Optional article number filter (e.g. '33.4', '55')")
+    season: int | None = Field(None, ge=1950, le=2100, description="Optional championship season preference")
 
 
 class KnowledgeCitation(BaseModel):

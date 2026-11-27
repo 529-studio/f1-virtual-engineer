@@ -9,6 +9,7 @@ import { RecentAnalyses } from "./RecentAnalyses";
 import { RecentTelemetry } from "./RecentTelemetry";
 import { RadioLog } from "./RadioLog";
 import { TeamRadioCockpit } from "./TeamRadioCockpit";
+import { FiaRegulationAssistant } from "./FiaRegulationAssistant";
 import { ReferencesPanel } from "./ReferencesPanel";
 import { SavedQueriesPanel } from "./SavedQueriesPanel";
 // ScenarioComparison and TyreCard are promoted to StrategyCanvas (main canvas).
@@ -55,7 +56,7 @@ export function StrategyHUD({
   onSelectSaved?: (item: SavedQueryItem) => void;
 }) {
   const activeTeam = TEAMS.find((t) => t.id === theme) ?? TEAMS[0];
-  const [hudTab, setHudTab] = useState<"ai" | "hist" | "radio">("ai");
+  const [hudTab, setHudTab] = useState<"ai" | "hist" | "radio" | "regs">("ai");
   const [isCollapsed, setIsCollapsed] = useState(true);
 
   // Default to expanded on desktop screens (>= 1280px), collapsed on tablets/mobile
@@ -82,6 +83,7 @@ export function StrategyHUD({
     { key: "ai"    as const, label: "AI" },
     { key: "hist"  as const, label: "HIST" },
     { key: "radio" as const, label: "RADIO" },
+    { key: "regs"  as const, label: "REGS" },
   ] as const;
 
   // Priority: streaming tokens (mid-flight) > final result > fallback
@@ -419,6 +421,13 @@ export function StrategyHUD({
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pt-2 space-y-4">
           <TeamRadioCockpit compact eventLabel={`${_year} ${eventName}`} />
           <RadioLog refreshSignal={radioHistoryRefreshSignal} />
+        </div>
+      )}
+
+      {/* ── REGS Tab ────────────────────────────────────────────────── */}
+      {hudTab === "regs" && (
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 pt-2 mc-scroll">
+          <FiaRegulationAssistant season={_year} />
         </div>
       )}
         </>
