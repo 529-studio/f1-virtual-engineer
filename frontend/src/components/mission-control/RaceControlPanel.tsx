@@ -10,6 +10,7 @@ import {
 import { useRaceControl } from "@/hooks/useRaceControl";
 import { RaceControlTimeline } from "./RaceControlTimeline";
 import { StewardInvestigationCard } from "./StewardInvestigationCard";
+import { StewardReportExporter } from "./StewardReportExporter";
 
 export interface RaceControlPanelProps {
   year?: number;
@@ -145,6 +146,16 @@ export function RaceControlPanel({
           </button>
         </div>
       </div>
+
+      {/* Post-Race Steward Dossier Exporter */}
+      <StewardReportExporter
+        year={year}
+        event={event}
+        session={session}
+        incidents={feed.items}
+        selectedIncident={selectedIncident}
+        investigation={investigation}
+      />
 
       {/* 2-Column Responsive Cockpit Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
