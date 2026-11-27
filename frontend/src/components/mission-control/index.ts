@@ -15,6 +15,7 @@ export { CornerInspectorCard } from "./CornerInspectorCard";
 export { CatchUpPredictorCard } from "./CatchUpPredictorCard";
 export { LiveRacePanel } from "./LiveRacePanel";
 export { LiveTrackGpsSpline } from "./LiveTrackGpsSpline";
+export { StewardReportExporter } from "./StewardReportExporter";
 export { DriverRadarChart } from "./DriverRadarChart";
 export { DrsOptimizerCard } from "./DrsOptimizerCard";
 export { GGFrictionCanvas } from "./GGFrictionCanvas";
