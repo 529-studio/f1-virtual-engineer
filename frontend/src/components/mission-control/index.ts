@@ -14,6 +14,7 @@ export { StrategyCanvas } from "./StrategyCanvas";
 export { CornerInspectorCard } from "./CornerInspectorCard";
 export { CatchUpPredictorCard } from "./CatchUpPredictorCard";
 export { LiveRacePanel } from "./LiveRacePanel";
+export { LiveTrackGpsSpline } from "./LiveTrackGpsSpline";
 export { DriverRadarChart } from "./DriverRadarChart";
 export { DrsOptimizerCard } from "./DrsOptimizerCard";
 export { GGFrictionCanvas } from "./GGFrictionCanvas";

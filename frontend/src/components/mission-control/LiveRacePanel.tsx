@@ -16,7 +16,7 @@ import { calculateOvertakeProbability, generateMiniSectors } from "@/lib/live-te
 import { BroadcastDelaySlider } from "./BroadcastDelaySlider";
 import { OvertakeProbabilityGauge } from "./OvertakeProbabilityGauge";
 import { MiniSectorBar } from "./MiniSectorBar";
-import { TrackMapPanel } from "./TrackMapPanel";
+import { LiveTrackGpsSpline } from "./LiveTrackGpsSpline";
 import { RadioLivePopup } from "./RadioLivePopup";
 import type { RadioMessage } from "@/types/radio";
 
@@ -46,32 +46,6 @@ function formatGap(gap: number | null, isLeader: boolean): string {
   if (isLeader) return "LEADER";
   if (gap === null) return "--";
   return `+${gap.toFixed(3)}s`;
-}
-
-const CIRCUIT_TO_EVENT_NAME: Record<string, string> = {
-  Interlagos: "São Paulo Grand Prix",
-  Sakhir: "Bahrain Grand Prix",
-  Monza: "Italian Grand Prix",
-  Silverstone: "British Grand Prix",
-  "Marina Bay": "Singapore Grand Prix",
-  Spa: "Belgian Grand Prix",
-  "Monte Carlo": "Monaco Grand Prix",
-  Suzuka: "Japanese Grand Prix",
-  "Las Vegas": "Las Vegas Grand Prix",
-  Lusail: "Qatar Grand Prix",
-  Yasalam: "Abu Dhabi Grand Prix",
-  "Yas Marina": "Abu Dhabi Grand Prix",
-};
-
-function resolveLiveTrackParams(sessionMeta: ReturnType<typeof useLiveStore.getState>["sessionMeta"]) {
-  const rawYear = sessionMeta?.date_start ? new Date(sessionMeta.date_start).getFullYear() : 2024;
-  // Replay fixtures may carry future dates (e.g. 2026) where FastF1 telemetry isn't published yet
-  const year = sessionMeta?.source === "replay" && rawYear > 2024 ? 2024 : rawYear;
-  const rawCircuit = sessionMeta?.circuit_short_name || "Italian Grand Prix";
-  const event = CIRCUIT_TO_EVENT_NAME[rawCircuit] ?? rawCircuit;
-  const rawType = (sessionMeta?.session_type || "R").toUpperCase();
-  const session_type = rawType.startsWith("RACE") ? "R" : rawType.startsWith("QUAL") ? "Q" : rawType.startsWith("SPR") ? "S" : rawType;
-  return { year, event, session_type };
 }
 
 interface LiveRacePanelProps {
@@ -302,8 +276,8 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
           {/* Overtake Probability Forecast */}
           <OvertakeProbabilityGauge data={overtakeData} />
 
-          {/* Animated 2D Circuit Track Map */}
-          <div className="flex flex-col rounded border border-border bg-surface p-3 min-h-[300px] h-[340px]">
+          {/* Animated 2D Circuit Track Map (60fps GPS Spline) */}
+          <div className="flex flex-col rounded border border-border bg-surface p-3 min-h-[320px] h-[360px]">
             <div className="mb-2 flex items-center justify-between">
               <span className="readout text-[0.65rem] font-bold uppercase tracking-wider text-accent">
                 2D Circuit Track Car Tracker
@@ -313,18 +287,11 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
               </span>
             </div>
             <div className="min-h-0 flex-1">
-              {(() => {
-                const { year, event, session_type } = resolveLiveTrackParams(sessionMeta);
-                return (
-                  <TrackMapPanel
-                    year={year}
-                    event={event}
-                    session_type={session_type}
-                    driver={tick.drivers[0]?.driver_code || "VER"}
-                    liveDrivers={tick.drivers}
-                  />
-                );
-              })()}
+              <LiveTrackGpsSpline
+                circuitName={sessionMeta?.circuit_short_name}
+                drivers={tick.drivers}
+                safetyCarStatus={tick.safety_car_status}
+              />
             </div>
           </div>
 
