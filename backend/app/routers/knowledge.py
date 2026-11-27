@@ -35,7 +35,14 @@ async def knowledge_lookup_endpoint(
     request: Request,
     body: KnowledgeLookupRequest,
 ):
-    citations = await asyncio.to_thread(_main.knowledge_lookup, body.query, body.k)
+    citations = await asyncio.to_thread(
+        _main.knowledge_lookup,
+        body.query,
+        body.k,
+        season=body.season,
+        category=body.category,
+        article=body.article,
+    )
     return {
         "status": "success",
         "query": body.query,

@@ -16,6 +16,7 @@ export { CatchUpPredictorCard } from "./CatchUpPredictorCard";
 export { LiveRacePanel } from "./LiveRacePanel";
 export { LiveTrackGpsSpline } from "./LiveTrackGpsSpline";
 export { StewardReportExporter } from "./StewardReportExporter";
+export { FiaRegulationAssistant } from "./FiaRegulationAssistant";
 export { DriverRadarChart } from "./DriverRadarChart";
 export { DrsOptimizerCard } from "./DrsOptimizerCard";
 export { GGFrictionCanvas } from "./GGFrictionCanvas";

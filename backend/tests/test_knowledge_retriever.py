@@ -233,5 +233,31 @@ class KnowledgeNoteEndpointTests(unittest.TestCase):
         self.assertIn("knowledge", operation["tags"])
 
 
+class KnowledgeFilterTests(unittest.TestCase):
+    def setUp(self):
+        reset_rate_limiter()
+        reset_index_cache()
+        self.client = TestClient(app)
+
+    def test_category_filter_narrows_results(self):
+        hits = lookup("speed limit", k=5, category="pit")
+        self.assertTrue(hits)
+        for h in hits:
+            haystack = " ".join([h["id"], h["title"], h["section"], *h["topics"]]).lower()
+            self.assertIn("pit", haystack)
+
+    def test_article_filter_endpoint(self):
+        res = self.client.post(
+            "/knowledge/lookup",
+            json={"query": "safety car unlapping", "k": 3, "article": "55.14"},
+        )
+        self.assertEqual(res.status_code, 200)
+        body = res.json()
+        self.assertEqual(body["status"], "success")
+        for c in body["citations"]:
+            combined = f"{c.get('article') or ''} {c.get('clause') or ''} {c['title']} {c['section']}".lower()
+            self.assertIn("55.14", combined)
+
+
 if __name__ == "__main__":
     unittest.main()
