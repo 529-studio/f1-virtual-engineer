@@ -15,7 +15,7 @@ import { useSupabase } from "@/components/auth/SupabaseProvider";
 import {
   CoachmarksModal,
   CornerInspectorCard,
-  FALLBACK_DRIVERS, IntentTabBar, LiveRacePanel, MissionBoard, MissionFooter, MissionHeader, NavRail,
+  FALLBACK_DRIVERS, IntentTabBar, LiveRacePanel, MissionFooter, MissionHeader, NavRail,
   SelectorBar, StintCompareModal, StrategyHUD, TelemetryChartGrid, type MissionIntent, type SessionId,
 } from "@/components/mission-control";
 import { StrategyCanvas } from "@/components/mission-control/StrategyCanvas";
@@ -175,11 +175,6 @@ export default function MissionControlPage() {
   const currentTyreStatus: TyreAnalyzeResponse | null = isDemoRace
     ? demoRaceData?.tyre_status_by_lap?.[lap || "15"] ?? null
     : null;
-
-  const stewardsFindings: ControversyFinding[] =
-    result?.controversy_analysis && result.controversy_analysis.length > 0
-      ? result.controversy_analysis
-      : demoRaceData?.stewards_findings ?? [];
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -658,25 +653,6 @@ export default function MissionControlPage() {
         />
 
         <IntentTabBar intent={intent} setIntent={setIntent} />
-
-        {/* F4: Mission Board (3 story cards: Pit Exit, Tyre Status, Steward's View).
-            Issue #34: sits BELOW SelectorBar + IntentTabBar so the page reads
-            inputs -> outputs, and only in strategy mode — it summarizes the
-            strategy call, which has no bearing on telemetry charts. */}
-        {intent === "strategy" && (
-          <MissionBoard
-            lap={Number(lap) || 15}
-            totalLaps={laps.length || demoRaceData?.total_laps || 53}
-            pitExit={currentPitExit}
-            tyreStatus={currentTyreStatus}
-            stewardsFindings={stewardsFindings}
-            isLoading={isLoading && !demoRaceData}
-            year={year}
-            eventName={eventName}
-            session={session}
-            driver={driver}
-          />
-        )}
 
         {/* Task 1 (plan: strategy-canvas-layout): gate canvas on mode.
             Strategy mode renders StrategyCanvas with pit window timeline,

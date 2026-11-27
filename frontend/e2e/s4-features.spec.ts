@@ -261,7 +261,11 @@ test.describe("Sprint 4 Consolidated Multi-Viewport E2E Suite (#100)", () => {
 
       await page.goto("/mission-control");
 
-      // 1. DriverRadarChart (#95) & DrsOptimizerCard (#96)
+      // 1. DriverRadarChart (#95) & DrsOptimizerCard (#96) under Pace & Aero sub-tab
+      const paceTab = page.getByRole("tab", { name: /Pace & Aero/i });
+      await expect(paceTab).toBeVisible({ timeout: 10000 });
+      await paceTab.click();
+
       const radar = page.getByTestId("driver-radar-chart");
       await expect(radar).toBeAttached({ timeout: 10000 });
       await radar.scrollIntoViewIfNeeded();
@@ -281,7 +285,11 @@ test.describe("Sprint 4 Consolidated Multi-Viewport E2E Suite (#100)", () => {
       expect(bodyText).not.toContain("+-");
       expect(bodyText).not.toContain("$\\Delta t$");
 
-      // 3. StewardReportExporter (#98)
+      // 3. StewardReportExporter (#98) under Track & Stewards sub-tab
+      const trackTab = page.getByRole("tab", { name: /Track & Stewards/i });
+      await expect(trackTab).toBeVisible();
+      await trackTab.click();
+
       const exporter = page.getByTestId("steward-report-exporter");
       await expect(exporter).toBeAttached({ timeout: 10000 });
       await exporter.scrollIntoViewIfNeeded();

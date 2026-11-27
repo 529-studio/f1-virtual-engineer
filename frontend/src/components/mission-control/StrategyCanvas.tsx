@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { CloudRain, Gauge, Timer } from "lucide-react";
 import type { AnalyzeResponse, PitExitResponse, StrategyData, TyreAnalyzeResponse } from "@/services/api";
 import { PitWindowTimeline } from "./PitWindowTimeline";
 import { GapGauge } from "./GapGauge";
@@ -12,7 +13,6 @@ import { RaceControlPanel } from "./RaceControlPanel";
 import { WeatherRadarPanel } from "./WeatherRadarPanel";
 import { PaceDeltaMatrix } from "./PaceDeltaMatrix";
 import { StintCliffAdvisor } from "./StintCliffAdvisor";
-import { VoicePitWallAudio } from "./VoicePitWallAudio";
 import { GhostLapOverlay } from "./GhostLapOverlay";
 import { PitExitCard } from "./PitExitCard";
 import { CatchUpPredictorCard } from "./CatchUpPredictorCard";
@@ -24,6 +24,18 @@ import {
   CANVAS_ANIM_STAGGER,
   CANVAS_ANIM_Y_OFFSET,
 } from "./strategy-canvas.constants";
+
+type StrategyDeckTab = "pit" | "pace" | "track";
+
+const STRATEGY_DECK_TABS: readonly {
+  id: StrategyDeckTab;
+  label: string;
+  Icon: typeof Timer;
+}[] = [
+  { id: "pit", label: "Pit & Tyre", Icon: Timer },
+  { id: "pace", label: "Pace & Aero", Icon: Gauge },
+  { id: "track", label: "Track & Stewards", Icon: CloudRain },
+];
 
 // StrategyCanvas — the main-canvas companion for Strategy mode.
 // Replaces the empty TelemetryChartGrid so the ~900px canvas is never wasted.
@@ -72,6 +84,8 @@ export function StrategyCanvas({
   initialTyreData,
   totalLaps,
 }: StrategyCanvasProps) {
+  const [deckTab, setDeckTab] = useState<StrategyDeckTab>("pit");
+
   if (!hasData || !strat) {
     return (
       <StrategyCanvasEmpty isLoading={isLoading} driver={driver} eventName={eventName} />
@@ -85,262 +99,220 @@ export function StrategyCanvas({
     result?.intent?.intent_type === "strategy" && Boolean(driver) && Boolean(eventName);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-4">
-      {/* Scroll Affordance Banner */}
-      <div className="flex items-center justify-between border-b border-border/40 pb-2 text-[0.62rem] text-foreground-faint font-mono">
-        <span className="flex items-center gap-1.5">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 sm:px-6 py-4">
+      {/* Sub-tab Deck Switcher — lazy-mounts heavy modules to avoid cold-load stampede */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-2">
+        <div
+          role="tablist"
+          aria-label="Strategy deck sections"
+          className="flex flex-wrap items-center gap-1.5"
+        >
+          {STRATEGY_DECK_TABS.map(({ id, label, Icon }) => {
+            const active = deckTab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setDeckTab(id)}
+                className={`readout inline-flex min-h-[44px] items-center gap-1.5 rounded border px-3 py-1.5 text-[0.65rem] font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                  active
+                    ? "border-accent bg-accent/15 text-accent"
+                    : "border-border bg-surface text-foreground-dim hover:border-foreground-dim hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <span className="hidden xl:inline-flex items-center gap-1.5 text-[0.6rem] font-mono uppercase tracking-wider text-foreground-faint">
           <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-          <span className="font-semibold uppercase tracking-wider text-foreground-dim">Strategy Deck Active</span>
-        </span>
-        <span className="flex items-center gap-1.5 text-foreground-faint">
-          <span>Extended Telemetry: Tyre Thermal · Race Control · Weather Radar · Catch-Up · Scenarios</span>
-          <ChevronDown className="h-3 w-3 text-accent animate-bounce" />
+          <span>Strategy Deck Active</span>
         </span>
       </div>
 
-      {/* Row 1 — Pit Window Timeline */}
-      <motion.div
-        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: CANVAS_ANIM_DURATION }}
-      >
-        <PitWindowTimeline
-          pitWindow={pitWindow}
-          targetLap={strat.target_lap}
-          fallback={strat.fallback}
-        />
-      </motion.div>
+      {deckTab === "pit" && (
+        <>
+          {/* Row 1 — Pit Window Timeline */}
+          <motion.div
+            initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: CANVAS_ANIM_DURATION }}
+          >
+            <PitWindowTimeline
+              pitWindow={pitWindow}
+              targetLap={strat.target_lap}
+              fallback={strat.fallback}
+            />
+          </motion.div>
 
-      {/* Row 2 — Pit Exit Card (Headline deterministic call) */}
-      {(pitExit || pitExitLoading) && (
-        <motion.div
-          initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 0.5 }}
-        >
-          <PitExitCard
-            projection={pitExit}
-            isLoading={pitExitLoading}
-            event={eventName}
-            driver={driver}
-            lap={selectedLap ?? undefined}
-          />
-        </motion.div>
+          {/* Row 2 — Pit Exit Card (Headline deterministic call) */}
+          {(pitExit || pitExitLoading) && (
+            <motion.div
+              initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 0.5 }}
+            >
+              <PitExitCard
+                projection={pitExit}
+                isLoading={pitExitLoading}
+                event={eventName}
+                driver={driver}
+                lap={selectedLap ?? undefined}
+              />
+            </motion.div>
+          )}
+
+          {/* Row 3 — Tyre Card + Gap Gauge */}
+          <motion.div
+            className="flex flex-col sm:flex-row gap-4"
+            initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER }}
+          >
+            <div className="flex-1 w-full">
+              <TyreCard
+                year={year}
+                event={eventName}
+                session={session}
+                driver={driver}
+                lap={selectedLap}
+                initialData={initialTyreData}
+              />
+            </div>
+
+            {showGapGauge && (
+              <div className="shrink-0 w-full sm:w-auto">
+                <GapGauge
+                  currentGap={strat.current_gap_seconds!}
+                  pitLoss={strat.pit_loss_seconds!}
+                  undercutRisk={strat.undercut_risk}
+                  competitor={strat.competitor_ahead}
+                  trackName={eventName}
+                />
+              </div>
+            )}
+          </motion.div>
+
+          {/* Pirelli Tyre Degradation & Stint Cliff Advisor */}
+          <motion.div
+            initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.15 }}
+          >
+            <StintCliffAdvisor
+              year={year}
+              event={eventName}
+              driver={driver || "LEC"}
+              initialCompound={initialTyreData?.compound || "HARD"}
+              currentStintLaps={initialTyreData?.stint_laps ?? 18}
+            />
+          </motion.div>
+
+          {/* Catch-Up & Overtake Predictor */}
+          <motion.div
+            initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.25 }}
+          >
+            <CatchUpPredictorCard
+              currentLap={selectedLap ?? strat.gap_sampled_at_lap ?? 38}
+              totalLaps={totalLaps ?? 53}
+              initialGapSeconds={strat.current_gap_seconds ?? 5.4}
+              driver={driver || "PIA"}
+              targetDriver={targetDriver || strat.competitor_ahead || "LEC"}
+              driverCompound={initialTyreData?.compound || "HARD"}
+              targetCompound="HARD"
+              driverStintLaps={initialTyreData?.stint_laps ?? 10}
+              targetStintLaps={23}
+              isLoading={isLoading}
+            />
+          </motion.div>
+
+          {/* Scenario comparison cards */}
+          {showScenario && (
+            <motion.div
+              className="isolate"
+              initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.35 }}
+            >
+              <ScenarioComparison
+                year={year}
+                event={eventName}
+                sessionType={session}
+                driver={driver}
+                targetDriver={targetDriver ?? null}
+              />
+            </motion.div>
+          )}
+        </>
       )}
 
-      {/* Row 3 — Tyre Card + Gap Gauge
-          On mobile (< sm), stack vertically so TyreCard has full 100% width.
-          NOTE: do NOT add min-h-0 here — it causes TyreCard to collapse
-          to zero height when the canvas flex parent doesn't have explicit
-          height, which makes ScenarioComparison visually overlap TyreCard. */}
-      <motion.div
-        className="flex flex-col sm:flex-row gap-4"
-        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER }}
-      >
-        {/* TyreCard wrapper: flex-1 for width, but NO min-w-0/min-h-0
-            so the card keeps its natural height. */}
-        <div className="flex-1 w-full">
-          <TyreCard
+      {deckTab === "pace" && (
+        <>
+          <PaceDeltaMatrix
+            year={year}
+            event={eventName}
+            session={session}
+            initialReferenceDriver={driver || "LEC"}
+            lap={selectedLap}
+          />
+          <GhostLapOverlay
+            year={year}
+            event={eventName}
+            session={session}
+            initialDriver1={driver || "LEC"}
+            initialDriver2={targetDriver || strat?.competitor_ahead || "PIA"}
+            lap={selectedLap ?? 15}
+          />
+          <DriverRadarChart
+            year={year}
+            event={eventName}
+            session={session}
+            driver={driver || "LEC"}
+            compareDriver={targetDriver || strat?.competitor_ahead || "PIA"}
+          />
+          <DrsOptimizerCard
+            year={year}
+            event={eventName}
+            session={session}
+            driver={driver || "LEC"}
+            compareDriver={targetDriver || strat?.competitor_ahead || "PIA"}
+          />
+        </>
+      )}
+
+      {deckTab === "track" && (
+        <>
+          <TyreThermalHeatmap
             year={year}
             event={eventName}
             session={session}
             driver={driver}
             lap={selectedLap}
-            initialData={initialTyreData}
           />
-        </div>
-
-        {showGapGauge && (
-          <div className="shrink-0 w-full sm:w-auto">
-            <GapGauge
-              currentGap={strat.current_gap_seconds!}
-              pitLoss={strat.pit_loss_seconds!}
-              undercutRisk={strat.undercut_risk}
-              competitor={strat.competitor_ahead}
-              trackName={eventName}
-            />
-          </div>
-        )}
-      </motion.div>
-
-      {/* Row 3.5 — Tyre Thermal 3D Heatmap & Carcass Cutaway */}
-      <motion.div
-        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.25 }}
-      >
-        <TyreThermalHeatmap
-          year={year}
-          event={eventName}
-          session={session}
-          driver={driver}
-          lap={selectedLap}
-        />
-      </motion.div>
-
-      {/* Row 3.6 — Race Control Incident Feed & Steward Deliberation Engine */}
-      <motion.div
-        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.35 }}
-      >
-        <RaceControlPanel
-          year={year}
-          event={eventName}
-          session={session}
-          selectedLap={selectedLap}
-        />
-      </motion.div>
-
-      {/* Row 3.7 — Track Weather Radar & Compound Cross-Over Predictor */}
-      <motion.div
-        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.42 }}
-      >
-        <WeatherRadarPanel
-          year={year}
-          event={eventName}
-          session={session}
-          selectedLap={selectedLap}
-        />
-      </motion.div>
-
-      {/* Row 3.8 — Multi-Driver Pace Delta Matrix & Sector Splits */}
-      <motion.div
-        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.46 }}
-      >
-        <PaceDeltaMatrix
-          year={year}
-          event={eventName}
-          session={session}
-          initialReferenceDriver={driver || "LEC"}
-          lap={selectedLap}
-        />
-      </motion.div>
-
-      {/* Row 3.9 — Pirelli Tyre Degradation & Stint Cliff Advisor */}
-      <motion.div
-        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.48 }}
-      >
-        <StintCliffAdvisor
-          year={year}
-          event={eventName}
-          driver={driver || "LEC"}
-          initialCompound={initialTyreData?.compound || "HARD"}
-          currentStintLaps={initialTyreData?.stint_laps ?? 18}
-        />
-      </motion.div>
-
-      {/* Row 3.10 — Hands-Free Pit-Wall Voice Synthesizer */}
-      <motion.div
-        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.49 }}
-      >
-        <VoicePitWallAudio
-          driver={driver || "LEC"}
-          pitWindowLap={34}
-          cliffLap={38}
-          lastTacticalMessage={Array.isArray(strat?.rationale) ? strat.rationale[0] : (typeof strat?.rationale === "string" ? strat.rationale : undefined)}
-        />
-      </motion.div>
-
-      {/* Row 3.11 — Head-to-Head Ghost Lap Telemetry Trace Overlay */}
-      <motion.div
-        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.495 }}
-      >
-        <GhostLapOverlay
-          year={year}
-          event={eventName}
-          session={session}
-          initialDriver1={driver || "LEC"}
-          initialDriver2={targetDriver || strat?.competitor_ahead || "PIA"}
-          lap={selectedLap ?? 15}
-        />
-      </motion.div>
-
-      {/* Row 3.12 — 6-Axis Driver Telemetry Performance Radar */}
-      <motion.div
-        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.498 }}
-      >
-        <DriverRadarChart
-          year={year}
-          event={eventName}
-          session={session}
-          driver={driver || "LEC"}
-          compareDriver={targetDriver || strat?.competitor_ahead || "PIA"}
-        />
-      </motion.div>
-
-      {/* Row 3.13 — DRS Zone Efficiency & Top Speed Trap Optimizer */}
-      <motion.div
-        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.499 }}
-      >
-        <DrsOptimizerCard
-          year={year}
-          event={eventName}
-          session={session}
-          driver={driver || "LEC"}
-          compareDriver={targetDriver || strat?.competitor_ahead || "PIA"}
-        />
-      </motion.div>
-
-      {/* Row 4 — Catch-Up & Overtake Predictor */}
-      <motion.div
-        initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 1.5 }}
-      >
-        <CatchUpPredictorCard
-          currentLap={selectedLap ?? strat.gap_sampled_at_lap ?? 38}
-          totalLaps={totalLaps ?? 53}
-          initialGapSeconds={strat.current_gap_seconds ?? 5.4}
-          driver={driver || "PIA"}
-          targetDriver={targetDriver || strat.competitor_ahead || "LEC"}
-          driverCompound={initialTyreData?.compound || "HARD"}
-          targetCompound="HARD"
-          driverStintLaps={initialTyreData?.stint_laps ?? 10}
-          targetStintLaps={23}
-          isLoading={isLoading}
-        />
-      </motion.div>
-
-      {/* Row 5 — Scenario comparison cards
-          `isolate` creates a new stacking context so that when
-          AnimatePresence expands ScenarioComparison the animated
-          overflow cannot bleed visually into Row 2 above it. */}
-      {showScenario && (
-        <motion.div
-          className="isolate"
-          initial={{ opacity: 0, y: CANVAS_ANIM_Y_OFFSET }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: CANVAS_ANIM_DURATION, delay: CANVAS_ANIM_STAGGER * 2 }}
-        >
-          <ScenarioComparison
+          <RaceControlPanel
             year={year}
             event={eventName}
-            sessionType={session}
-            driver={driver}
-            targetDriver={targetDriver ?? null}
+            session={session}
+            selectedLap={selectedLap}
           />
-        </motion.div>
+          <WeatherRadarPanel
+            year={year}
+            event={eventName}
+            session={session}
+            selectedLap={selectedLap}
+          />
+        </>
       )}
+
       {/* Bottom end-of-deck marker */}
       <div className="flex items-center justify-center py-4 border-t border-border/30 text-[0.58rem] font-mono text-foreground-faint uppercase tracking-widest">
-        <span>FIA Pit-Wall Telemetry Stream End — All Strategy Modules Synchronized</span>
+        <span>FIA Pit-Wall Telemetry Stream End — Strategy Deck</span>
       </div>
     </div>
   );

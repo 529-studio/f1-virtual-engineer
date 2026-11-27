@@ -8,7 +8,6 @@ export { LapDeltaChart } from "./LapDeltaChart";
 export { MissionFooter } from "./MissionFooter";
 export { StrategyHUD } from "./StrategyHUD";
 export { PitExitCard } from "./PitExitCard";
-export { MissionBoard } from "./MissionBoard";
 export { CoachmarksModal } from "./CoachmarksModal";
 export { StrategyCanvas } from "./StrategyCanvas";
 export { CornerInspectorCard } from "./CornerInspectorCard";

@@ -278,19 +278,17 @@ test.describe("Issue #94 — Demo Telemetry & Prod UI Regressions", () => {
       }
 
       // 2. Verify Strategy view copy fixes (zero literal LaTeX, zero +- sign bug)
-      await expect(page.getByText("-11.4°C")).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText(/Stint Pace Decay Curve \(Delta Time\)/i)).toBeVisible({ timeout: 10000 });
       await expect(page.locator("text=+-")).toHaveCount(0);
       await expect(page.locator("text=$\\Delta t$")).toHaveCount(0);
-      await expect(page.getByText(/Stint Pace Decay Curve \(Delta Time\)/i)).toBeVisible();
-      await expect(page.getByText(/Lap 15 · Synchronized/i)).toBeVisible();
 
-      // 3. MissionBoard collapsed ribbon: no Extend overlap
-      const expandBoardBtn = page.getByRole("button", { name: "Expand Mission Board" });
-      await expect(expandBoardBtn).toBeVisible();
-      const expandBox = await expandBoardBtn.boundingBox();
-      expect(Math.round(expandBox?.height ?? 0)).toBeGreaterThanOrEqual(44);
+      await page.getByRole("tab", { name: /Track & Stewards/i }).click();
+      await expect(page.getByText("-11.4°C")).toBeVisible({ timeout: 10000 });
 
-      // 4. Open HUD -> RADIO tab -> verify subtitle & 1.5x speed button doesn't clip
+      await page.getByRole("tab", { name: /Pace & Aero/i }).click();
+      await expect(page.getByText(/Lap 15 · Synchronized/i)).toBeVisible({ timeout: 10000 });
+
+      // 3. Open HUD -> RADIO tab -> verify subtitle & 1.5x speed button doesn't clip
       if (vp.width < 1280) {
         const hudTrigger = page.getByRole("button", { name: /Strategy HUD/i }).first();
         await hudTrigger.click();
