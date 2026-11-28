@@ -80,14 +80,28 @@ export function HelpModal({ onClose }: HelpModalProps) {
             <p className="label text-foreground">Mission Control</p>
             <p className="readout text-[0.6rem] text-foreground-faint">Quick reference · press ESC to close</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close help"
-            className="readout flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center border border-border text-foreground-faint transition-colors hover:border-foreground-dim hover:text-foreground cursor-pointer"
-          >
-            <X className="h-4 w-4" strokeWidth={1.75} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new CustomEvent("apex:open-tour"));
+                }
+              }}
+              className="readout inline-flex min-h-[44px] items-center justify-center rounded border border-border px-3 text-[0.6rem] font-semibold uppercase tracking-wider text-accent transition-colors hover:border-accent cursor-pointer"
+            >
+              Take Guided Tour
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close help"
+              className="readout flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center border border-border text-foreground-faint transition-colors hover:border-foreground-dim hover:text-foreground cursor-pointer"
+            >
+              <X className="h-4 w-4" strokeWidth={1.75} />
+            </button>
+          </div>
         </div>
 
         {/* Quick Start */}

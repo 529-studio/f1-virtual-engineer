@@ -34,15 +34,14 @@ export function CoachmarksModal({ onDismiss }: CoachmarksModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [visible, setVisible] = useState(false);
 
+  // Non-blocking on first paint: only open when explicitly triggered via HelpModal ("apex:open-tour").
   useEffect(() => {
-    try {
-      const seen = localStorage.getItem(STORAGE_KEY);
-      if (!seen) {
-        queueMicrotask(() => setVisible(true));
-      }
-    } catch {
-      // Ignore localStorage errors in private mode
-    }
+    const handleOpenTour = () => {
+      setCurrentStep(0);
+      setVisible(true);
+    };
+    window.addEventListener("apex:open-tour", handleOpenTour);
+    return () => window.removeEventListener("apex:open-tour", handleOpenTour);
   }, []);
 
   const closeTour = () => {
