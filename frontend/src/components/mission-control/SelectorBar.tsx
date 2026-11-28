@@ -229,7 +229,7 @@ export function SelectorBar({
             disabled={!canRun}
             className="btn btn--accent shrink-0 px-3 py-2 min-h-[44px] text-xs font-bold uppercase tracking-wider disabled:cursor-not-allowed disabled:opacity-30 active:scale-95 transition-all shadow-md"
           >
-            {isLoading ? "…" : (!driver || driversLoading || eventsLoading) ? "Sync" : "Analyze"}
+            {isLoading ? "…" : (!driver && (driversLoading || eventsLoading)) ? "Sync" : "Analyze"}
           </button>
         </div>
 
@@ -406,50 +406,115 @@ export function SelectorBar({
         )}
       </div>
 
-      {/* ─── Desktop View (sm: and above): Proven Horizontal Flex Toolbar ─── */}
-      <div className="hidden sm:flex shrink-0 flex-wrap items-center gap-2 w-full">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          <Select<string>
-            value={String(year)}
-            onChange={handleYearChange}
-            options={yearOptions}
-            placeholder="Year"
-          />
-          <VDivider />
+      {/* ─── Desktop View (sm: and above): Clean 2-Row Pit-Wall Toolbar ─── */}
+      <div className="hidden sm:flex shrink-0 flex-col gap-2 w-full">
+        {/* Row 1: Primary Session Selectors + Action Controls */}
+        <div className="flex flex-wrap items-center justify-between gap-2 w-full">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <Select<string>
+              value={String(year)}
+              onChange={handleYearChange}
+              options={yearOptions}
+              placeholder="Year"
+            />
+            <VDivider />
 
-          <Select<string>
-            value={eventName}
-            onChange={handleEventChange}
-            options={eventOptions}
-            loading={eventsLoading}
-            placeholder="Grand Prix"
-          />
-          <VDivider />
+            <Select<string>
+              value={eventName}
+              onChange={handleEventChange}
+              options={eventOptions}
+              loading={eventsLoading}
+              placeholder="Grand Prix"
+            />
+            <VDivider />
 
-          <Select<SessionId>
-            value={session}
-            onChange={handleSessionChange}
-            options={sessionOptions}
-            placeholder="Session"
-          />
-          <VDivider />
+            <Select<SessionId>
+              value={session}
+              onChange={handleSessionChange}
+              options={sessionOptions}
+              placeholder="Session"
+            />
+            <VDivider />
 
-          <Select<string>
-            value={driver}
-            onChange={handleDriverChange}
-            options={driverOptions}
-            loading={driversLoading}
-            placeholder="Driver"
-          />
-          {driversFallback && eventName ? (
-            <span className="label shrink-0 text-foreground-faint" title="Live roster unavailable; using fallback list.">
-              est.
-            </span>
-          ) : null}
+            <Select<string>
+              value={driver}
+              onChange={handleDriverChange}
+              options={driverOptions}
+              loading={driversLoading}
+              placeholder="Driver"
+            />
+            {driversFallback && eventName ? (
+              <span className="label shrink-0 text-foreground-faint" title="Live roster unavailable; using fallback list.">
+                est.
+              </span>
+            ) : null}
+          </div>
 
-          <VDivider />
+          <div className="flex shrink-0 items-center gap-2">
+            {onOpenStintCompare && (
+              <button
+                type="button"
+                onClick={onOpenStintCompare}
+                disabled={!driver}
+                className="flex h-11 min-h-[44px] items-center gap-1.5 rounded border border-border bg-surface-elevated px-2.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-wider text-foreground hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40 transition-colors cursor-pointer"
+                title="Compare telemetry curves between two laps of this driver"
+                aria-label="Open Stint Comparison"
+              >
+                <Layers className="h-4 w-4 text-accent" />
+                <span className="hidden xl:inline">Stint Compare</span>
+              </button>
+            )}
 
-          {/* F1: Shared Lap Selector & Scrubber */}
+            {onExport && (
+              <ExportButton
+                onExport={onExport}
+                exportStatus={exportStatus}
+                exportError={exportError}
+                year={year}
+                event={eventName}
+                session={session}
+                driver={driver}
+                lapNumber={lap}
+              />
+            )}
+
+            <button
+              type="button"
+              onClick={() => setHelpOpen(true)}
+              aria-label="Open help"
+              title="Help — selectors, HUD panels, F1 glossary"
+              className="readout flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-border text-[0.65rem] text-foreground-faint transition-colors hover:border-foreground-dim hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent cursor-pointer"
+            >
+              ?
+            </button>
+
+            <StarButton
+              kind="analyze"
+              payload={{
+                query: compareDriver
+                  ? `Analyse ${driver} vs ${compareDriver} at ${eventName} ${year} ${session}`
+                  : `Analyse ${driver} ${session} session at ${eventName} ${year}`,
+                driver,
+                compare_driver: compareDriver || null,
+                session_info: { event: eventName, year, session_type: session },
+              }}
+              canSave={canRun}
+              savedQueries={savedQueries}
+              onChange={onSavedQueriesChange}
+            />
+
+            <button
+              onClick={onAnalyze}
+              disabled={!canRun}
+              className="btn btn--accent min-h-[44px] shrink-0 disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              {isLoading ? "Computing…" : (!driver && (driversLoading || eventsLoading)) ? "Syncing…" : "Analyze"}
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2: Lap Scrubber & Comparison Selectors */}
+        <div className="flex flex-wrap items-center gap-2 border-t border-border/40 pt-2">
           <div className="flex items-center gap-2">
             <Select<string>
               value={lap}
@@ -508,68 +573,6 @@ export function SelectorBar({
             options={compareYearOptions}
             placeholder="vs Year"
           />
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          {onOpenStintCompare && (
-            <button
-              type="button"
-              onClick={onOpenStintCompare}
-              disabled={!driver}
-              className="flex h-11 min-h-[44px] items-center gap-1.5 rounded border border-border bg-surface-elevated px-2.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-wider text-foreground hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40 transition-colors cursor-pointer"
-              title="Compare telemetry curves between two laps of this driver"
-              aria-label="Open Stint Comparison"
-            >
-              <Layers className="h-4 w-4 text-accent" />
-              <span className="hidden xl:inline">Stint Compare</span>
-            </button>
-          )}
-
-          {onExport && (
-            <ExportButton
-              onExport={onExport}
-              exportStatus={exportStatus}
-              exportError={exportError}
-              year={year}
-              event={eventName}
-              session={session}
-              driver={driver}
-              lapNumber={lap}
-            />
-          )}
-
-          <button
-            type="button"
-            onClick={() => setHelpOpen(true)}
-            aria-label="Open help"
-            title="Help — selectors, HUD panels, F1 glossary"
-            className="readout flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full border border-border text-[0.65rem] text-foreground-faint transition-colors hover:border-foreground-dim hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent cursor-pointer"
-          >
-            ?
-          </button>
-
-          <StarButton
-            kind="analyze"
-            payload={{
-              query: compareDriver
-                ? `Analyse ${driver} vs ${compareDriver} at ${eventName} ${year} ${session}`
-                : `Analyse ${driver} ${session} session at ${eventName} ${year}`,
-              driver,
-              compare_driver: compareDriver || null,
-              session_info: { event: eventName, year, session_type: session },
-            }}
-            canSave={canRun}
-            savedQueries={savedQueries}
-            onChange={onSavedQueriesChange}
-          />
-
-          <button
-            onClick={onAnalyze}
-            disabled={!canRun}
-            className="btn btn--accent shrink-0 disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            {isLoading ? "Computing…" : (!driver || driversLoading || eventsLoading) ? "Syncing…" : "Analyze"}
-          </button>
         </div>
       </div>
     </div>
