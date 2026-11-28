@@ -56,7 +56,7 @@ export function WhyThisCallPanel({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between"
+        className="flex min-h-[44px] w-full items-center justify-between py-2 cursor-pointer"
         aria-expanded={open}
       >
         <p className="label">Why this call?</p>

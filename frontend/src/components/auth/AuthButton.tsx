@@ -81,7 +81,7 @@ export function AuthButton() {
       type="button"
       aria-label="Sign in with Google"
       title="Sign in with Google"
-      className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center shrink-0 rounded-sm p-1 opacity-80 transition-opacity duration-[var(--dur-fast)] hover:opacity-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+      className="inline-flex min-h-[44px] items-center justify-center gap-2 shrink-0 rounded-sm border border-border-strong bg-surface-elevated px-3 py-1.5 text-[length:var(--text-readout)] uppercase tracking-wide text-foreground-dim transition-colors duration-[var(--dur-fast)] hover:border-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
       disabled={busy}
       onClick={async () => {
         setBusy(true);
@@ -100,10 +100,11 @@ export function AuthButton() {
       <img
         src="/icons/google/google-icon-logo-svgrepo-com.svg"
         alt=""
-        width={20}
-        height={20}
-        className="block"
+        width={16}
+        height={16}
+        className="block shrink-0"
       />
+      <span>Sign in</span>
     </button>
   );
 }
