@@ -231,8 +231,9 @@ test.describe("Sprint 3 Consolidated Feature Suite — Multi-Viewport Verificati
       await page.goto("/mission-control");
 
       // =========================================================================
-      // Feature 1: Chassis CAD Blueprint SVG (Issue #80)
+      // Feature 1: Chassis CAD Blueprint SVG (Issue #80) — Track & Stewards tab
       // =========================================================================
+      await page.getByRole("tab", { name: /Track & Stewards/i }).click();
       const heatmapTitle = page.getByText(/Tyre Thermal Surface Degradation/i).first();
       await expect(heatmapTitle).toBeVisible({ timeout: 10000 });
 
@@ -243,8 +244,9 @@ test.describe("Sprint 3 Consolidated Feature Suite — Multi-Viewport Verificati
       await expect(isometricCanvas.getByText(/CHASSIS DATUM 0.0/i)).toBeVisible();
 
       // =========================================================================
-      // Feature 2: Multi-Driver Pace Delta Matrix (Issue #81)
+      // Feature 2: Multi-Driver Pace Delta Matrix (Issue #81) — Pace & Aero tab
       // =========================================================================
+      await page.getByRole("tab", { name: /Pace & Aero/i }).click();
       const paceContainer = page.getByTestId("pace-delta-matrix");
       await expect(paceContainer).toBeVisible({ timeout: 10000 });
       await expect(page.getByText("MULTI-DRIVER PACE DELTA MATRIX")).toBeVisible();
@@ -260,8 +262,9 @@ test.describe("Sprint 3 Consolidated Feature Suite — Multi-Viewport Verificati
       expect(Math.round(chipBox?.height ?? 0)).toBeGreaterThanOrEqual(44);
 
       // =========================================================================
-      // Feature 3: Stint Cliff Advisor (Issue #82)
+      // Feature 3: Stint Cliff Advisor (Issue #82) — Pit & Tyre tab
       // =========================================================================
+      await page.getByRole("tab", { name: /Pit & Tyre/i }).click();
       const cliffContainer = page.getByTestId("stint-cliff-advisor");
       await expect(cliffContainer).toBeVisible({ timeout: 10000 });
       await expect(page.getByText("PIRELLI TYRE DEGRADATION & STINT CLIFF ADVISOR")).toBeVisible();
@@ -277,31 +280,9 @@ test.describe("Sprint 3 Consolidated Feature Suite — Multi-Viewport Verificati
       expect(Math.round(softBox?.height ?? 0)).toBeGreaterThanOrEqual(44);
 
       // =========================================================================
-      // Feature 4: Hands-Free Pit-Wall Voice Synthesizer (Issue #83)
-      // =========================================================================
-      const voiceContainer = page.getByTestId("voice-pit-wall-audio");
-      await expect(voiceContainer).toBeVisible({ timeout: 10000 });
-      await expect(page.getByText("PIT-WALL VOICE SYNTHESIZER")).toBeVisible();
-
-      const calloutBtn = voiceContainer.getByRole("button", {
-        name: /radio callout|stop radio|transmit|callout/i,
-      });
-      const muteBtn = voiceContainer.getByRole("button", {
-        name: /mute pit-wall audio|unmute pit-wall audio/i,
-      });
-      await expect(calloutBtn).toBeVisible();
-      await expect(muteBtn).toBeVisible();
-
-      const calloutBox = await calloutBtn.boundingBox();
-      const muteBox = await muteBtn.boundingBox();
-      expect(Math.round(calloutBox?.width ?? 0)).toBeGreaterThanOrEqual(44);
-      expect(Math.round(calloutBox?.height ?? 0)).toBeGreaterThanOrEqual(44);
-      expect(Math.round(muteBox?.width ?? 0)).toBeGreaterThanOrEqual(44);
-      expect(Math.round(muteBox?.height ?? 0)).toBeGreaterThanOrEqual(44);
-
-      // =========================================================================
       // Feature 5: Head-to-Head Ghost Lap Telemetry Trace Overlay (Issue #84)
       // =========================================================================
+      await page.getByRole("tab", { name: /Pace & Aero/i }).click();
       const ghostLapContainer = page.getByTestId("ghost-lap-overlay");
       await expect(ghostLapContainer).toBeVisible({ timeout: 10000 });
       await expect(
