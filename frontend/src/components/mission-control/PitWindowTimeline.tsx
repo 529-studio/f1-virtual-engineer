@@ -152,33 +152,50 @@ export const PitWindowTimeline: React.FC<PitWindowTimelineProps> = ({
             fontFamily: "var(--font-mono)",
           }}
         >
-          {/* Window start label */}
-          <div
-            style={{
-              position: "absolute",
-              left: `${lapToPercent(startLap)}%`,
-              top: `${TIMELINE_BOUNDARY_LABEL_TOP}px`,
-              transform: "translateX(-50%)",
-              fontSize: `${TIMELINE_LABEL_FONT_SIZE}px`,
-              color: "var(--foreground-dim)",
-            }}
-          >
-            L{startLap}
-          </div>
+          {/* Window start / end labels — combine when narrow so L14 and L18 never collide */}
+          {lapToPercent(endLap) - lapToPercent(startLap) < 12 ? (
+            <div
+              style={{
+                position: "absolute",
+                left: `${(lapToPercent(startLap) + lapToPercent(endLap)) / 2}%`,
+                top: `${TIMELINE_BOUNDARY_LABEL_TOP}px`,
+                transform: "translateX(-50%)",
+                fontSize: `${TIMELINE_LABEL_FONT_SIZE}px`,
+                color: "var(--foreground-dim)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              L{startLap}–L{endLap}
+            </div>
+          ) : (
+            <>
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${lapToPercent(startLap)}%`,
+                  top: `${TIMELINE_BOUNDARY_LABEL_TOP}px`,
+                  transform: "translateX(-50%)",
+                  fontSize: `${TIMELINE_LABEL_FONT_SIZE}px`,
+                  color: "var(--foreground-dim)",
+                }}
+              >
+                L{startLap}
+              </div>
 
-          {/* Window end label */}
-          <div
-            style={{
-              position: "absolute",
-              left: `${lapToPercent(endLap)}%`,
-              top: `${TIMELINE_BOUNDARY_LABEL_TOP}px`,
-              transform: "translateX(-50%)",
-              fontSize: `${TIMELINE_LABEL_FONT_SIZE}px`,
-              color: "var(--foreground-dim)",
-            }}
-          >
-            L{endLap}
-          </div>
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${lapToPercent(endLap)}%`,
+                  top: `${TIMELINE_BOUNDARY_LABEL_TOP}px`,
+                  transform: "translateX(-50%)",
+                  fontSize: `${TIMELINE_LABEL_FONT_SIZE}px`,
+                  color: "var(--foreground-dim)",
+                }}
+              >
+                L{endLap}
+              </div>
+            </>
+          )}
 
           {/* Target lap label */}
           {targetLap != null && (

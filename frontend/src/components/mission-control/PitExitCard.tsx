@@ -257,7 +257,10 @@ export function PitExitCard({ projection, isLoading, event, driver, lap }: PitEx
             AS OF L{as_of_lap} · pit loss {pit_loss_s.toFixed(1)}s{event ? ` @ ${event}` : ""}
           </span>
           <span className="text-foreground-dim uppercase">
-            traffic: {traffic_state.replace(/_/g, " ").toLowerCase()}
+            traffic:{" "}
+            {traffic_state === "TRAFFIC"
+              ? "in traffic"
+              : traffic_state.replace(/_/g, " ").toLowerCase()}
           </span>
         </div>
         <p className="mt-0.5 text-[0.55rem] text-foreground-faint">

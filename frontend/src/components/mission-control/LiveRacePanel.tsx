@@ -90,28 +90,7 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
     return generateMiniSectors(d1, d2, 24);
   }, [tick]);
 
-  // Countdown timer for next session (Las Vegas FP1) in Empty state
-  const [countdown, setCountdown] = useState<string>("");
-
-  useEffect(() => {
-    const targetDate = new Date("2026-11-20T00:30:00Z").getTime();
-    const updateCountdown = () => {
-      const now = Date.now();
-      const diff = targetDate - now;
-      if (diff <= 0) {
-        setCountdown("Session Starting Shortly");
-        return;
-      }
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-      const minutes = Math.floor((diff / (1000 * 60)) % 60);
-      const seconds = Math.floor((diff / 1000) % 60);
-      setCountdown(`${days}d ${hours}h ${minutes}m ${seconds}s`);
-    };
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  const countdown = "Standby — awaiting next live FIA session";
 
   // 1. SKELETON STATE
   if (status === "connecting" && !latestTick) {
@@ -220,7 +199,7 @@ export function LiveRacePanel({ onSwitchHistorical }: LiveRacePanelProps) {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
-              LIVE · OpenF1 · ~3s delay
+              {tick.source === "openf1" ? "LIVE · OpenF1 · ~3s delay" : "REPLAY · OpenF1 Feed"}
             </div>
           )}
 

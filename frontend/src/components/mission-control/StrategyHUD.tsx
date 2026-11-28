@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, Flame, PanelRightClose, PanelRightOpen, RotateCw, Scale } from "lucide-react";
 import type { AnalyzeHistoryItem, AnalyzeResponse, SavedQueryItem, StrategyData, TelemetryHistoryItem } from "@/services/api";
+import { useSupabase } from "@/components/auth/SupabaseProvider";
+import { AuthButton } from "@/components/auth/AuthButton";
 import { TeamIcon } from "@/components/icons/TeamIcons";
 import { RecentAnalyses } from "./RecentAnalyses";
 import { RecentTelemetry } from "./RecentTelemetry";
@@ -56,6 +58,7 @@ export function StrategyHUD({
   onSelectSaved?: (item: SavedQueryItem) => void;
 }) {
   const activeTeam = TEAMS.find((t) => t.id === theme) ?? TEAMS[0];
+  const { session: authSession } = useSupabase();
   const [hudTab, setHudTab] = useState<"ai" | "hist" | "radio" | "regs">("ai");
   const [isCollapsed, setIsCollapsed] = useState(true);
 
@@ -183,94 +186,93 @@ export function StrategyHUD({
         ))}
       </div>
 
-      {(() => {
-        const status: "ok" | "warn" | "error" | "info" = rateLimitMessage
-          ? "warn"
-          : hasData && strat?.undercut_risk === "high"
-            ? "error"
-            : isLoading
-              ? "info"
-              : hasData
-                ? "ok"
-                : "info";
-        const statusColor = `var(--status-${status})`;
-        const statusBg = `var(--status-${status}-dim)`;
-        const label = rateLimitMessage
-          ? "RATE LIMITED"
-          : hasData && strat?.undercut_risk === "high"
-            ? "STRATEGY ALERT"
-            : isLoading
-              ? streamStage !== "idle" ? `${streamStage.toUpperCase()}…` : "ANALYZING"
-              : hasData
-                ? "ANALYSIS COMPLETE"
-                : "SYSTEM STATUS";
-        return (
-          <div
-            className="status-bar mx-4 mt-4 shrink-0 border p-4"
-            data-status={status}
-            style={{ borderColor: statusColor, background: statusBg }}
-          >
-            <p
-              className="label mb-2 inline-flex items-center gap-1.5"
-              style={{ color: statusColor }}
+      {/* ── AI Tab ────────────────────────────────────────────────── */}
+      {hudTab === "ai" && <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-4">
+        {(() => {
+          const status: "ok" | "warn" | "error" | "info" = rateLimitMessage
+            ? "warn"
+            : hasData && strat?.undercut_risk === "high"
+              ? "error"
+              : isLoading
+                ? "info"
+                : hasData
+                  ? "ok"
+                  : "info";
+          const statusColor = `var(--status-${status})`;
+          const statusBg = `var(--status-${status}-dim)`;
+          const label = rateLimitMessage
+            ? "RATE LIMITED"
+            : hasData && strat?.undercut_risk === "high"
+              ? "STRATEGY ALERT"
+              : isLoading
+                ? streamStage !== "idle" ? `${streamStage.toUpperCase()}…` : "ANALYZING"
+                : hasData
+                  ? "ANALYSIS COMPLETE"
+                  : "SYSTEM STATUS";
+          return (
+            <div
+              className="status-bar shrink-0 border p-4"
+              data-status={status}
+              style={{ borderColor: statusColor, background: statusBg }}
             >
-              {(status === "warn" || status === "error") && (
-                <AlertTriangle className="h-3 w-3 shrink-0" strokeWidth={1.75} aria-hidden />
-              )}
-              {label}
-            </p>
-            <p className="readout text-[0.7rem] font-semibold uppercase leading-snug text-foreground">
-              {rateLimitMessage
-                ? rateLimitMessage
-                : isLoading
-                  ? (streamMessage || "Fetching telemetry…")
-                  : hasData
-                    ? displayedAgentResponse
-                    : "Select year, grand prix, session and driver above."}
-            </p>
-            {retryState === "retrying" && (
               <p
-                className="readout mt-2 inline-flex items-center gap-1.5 text-[0.6rem] uppercase tracking-[var(--track-wide)]"
-                style={{ color: "var(--status-warn)" }}
-                aria-live="polite"
+                className="label mb-2 inline-flex items-center gap-1.5"
+                style={{ color: statusColor }}
               >
-                <motion.span
-                  className="inline-flex items-center justify-center"
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1.4, ease: "linear" }}
-                >
-                  <RotateCw className="h-3 w-3" strokeWidth={1.75} />
-                </motion.span>
-                Network blip — retrying…
+                {(status === "warn" || status === "error") && (
+                  <AlertTriangle className="h-3 w-3 shrink-0" strokeWidth={1.75} aria-hidden />
+                )}
+                {label}
               </p>
-            )}
-            {retryState === "failed" && (
-              <div className="mt-2 flex items-center justify-between gap-2">
+              <p className="readout text-[0.7rem] font-semibold uppercase leading-snug text-foreground">
+                {rateLimitMessage
+                  ? rateLimitMessage
+                  : isLoading
+                    ? (streamMessage || "Fetching telemetry…")
+                    : hasData
+                      ? displayedAgentResponse
+                      : "Select year, grand prix, session and driver above."}
+              </p>
+              {retryState === "retrying" && (
                 <p
-                  className="readout text-[0.6rem] uppercase tracking-[var(--track-wide)]"
-                  style={{ color: "var(--status-error)" }}
+                  className="readout mt-2 inline-flex items-center gap-1.5 text-[0.6rem] uppercase tracking-[var(--track-wide)]"
+                  style={{ color: "var(--status-warn)" }}
                   aria-live="polite"
                 >
-                  Network unstable — try again
-                </p>
-                {onRetryClick && (
-                  <button
-                    type="button"
-                    onClick={onRetryClick}
-                    className="readout border px-2 py-0.5 text-[0.55rem] uppercase tracking-[var(--track-wide)] transition-colors hover:bg-[var(--status-error-dim)]"
-                    style={{ borderColor: "var(--status-error)", color: "var(--status-error)" }}
+                  <motion.span
+                    className="inline-flex items-center justify-center"
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1.4, ease: "linear" }}
                   >
-                    Try again
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* ── AI Tab ─────────────────────────────────────────────────── */}
-      {hudTab === "ai" && <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-4">
+                    <RotateCw className="h-3 w-3" strokeWidth={1.75} />
+                  </motion.span>
+                  Network blip — retrying…
+                </p>
+              )}
+              {retryState === "failed" && (
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <p
+                    className="readout text-[0.6rem] uppercase tracking-[var(--track-wide)]"
+                    style={{ color: "var(--status-error)" }}
+                    aria-live="polite"
+                  >
+                    Network unstable — try again
+                  </p>
+                  {onRetryClick && (
+                    <button
+                      type="button"
+                      onClick={onRetryClick}
+                      className="readout border px-2 py-0.5 text-[0.55rem] uppercase tracking-[var(--track-wide)] transition-colors hover:bg-[var(--status-error-dim)]"
+                      style={{ borderColor: "var(--status-error)", color: "var(--status-error)" }}
+                    >
+                      Try again
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
         {/* Issue #256: Pit Window is the headline. When the user picked
             an analysis intent and we have a recommendation, surface the
             lap range *before* tyre/why-this-call so the panel reads
@@ -402,17 +404,31 @@ export function StrategyHUD({
 
       {/* ── HIST Tab ────────────────────────────────────────────────── */}
       {hudTab === "hist" && (
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2">
-          <RecentAnalyses refreshSignal={historyRefreshSignal} onSelect={onSelectHistory} />
-          <RecentTelemetry
-            refreshSignal={telemetryHistoryRefreshSignal}
-            onSelect={onSelectTelemetryHistory}
-          />
-          <SavedQueriesPanel
-            items={savedQueries}
-            onItemsChange={onSavedQueriesChange}
-            onSelect={onSelectSaved}
-          />
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3">
+          {!authSession ? (
+            <div className="rounded border border-border bg-surface-elevated/40 p-4 text-center space-y-3">
+              <p className="label text-foreground-dim">Session History</p>
+              <p className="text-xs leading-relaxed text-foreground-faint">
+                Sign in with Google to save and revisit past race analyses, telemetry runs, and starred queries.
+              </p>
+              <div className="flex justify-center pt-1">
+                <AuthButton />
+              </div>
+            </div>
+          ) : (
+            <>
+              <RecentAnalyses refreshSignal={historyRefreshSignal} onSelect={onSelectHistory} />
+              <RecentTelemetry
+                refreshSignal={telemetryHistoryRefreshSignal}
+                onSelect={onSelectTelemetryHistory}
+              />
+              <SavedQueriesPanel
+                items={savedQueries}
+                onItemsChange={onSavedQueriesChange}
+                onSelect={onSelectSaved}
+              />
+            </>
+          )}
         </div>
       )}
 
